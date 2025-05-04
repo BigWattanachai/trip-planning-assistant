@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0EA5E9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="500" height="500" fill="#F3F4F6" rx="20"/>
+  
+  <!-- Globe -->
+  <circle cx="250" cy="250" r="120" fill="url(#gradient)" opacity="0.1"/>
+  <circle cx="250" cy="250" r="100" fill="none" stroke="url(#gradient)" stroke-width="3"/>
+  
+  <!-- Travel lines -->
+  <path d="M150 250 Q250 150 350 250" fill="none" stroke="url(#gradient)" stroke-width="2" stroke-dasharray="5,5"/>
+  <path d="M180 280 Q250 220 320 280" fill="none" stroke="url(#gradient)" stroke-width="2" stroke-dasharray="5,5"/>
+  
+  <!-- Plane -->
+  <g transform="translate(250,200) rotate(30)">
+    <path d="M0,-20 L10,-15 L8,-5 L15,0 L8,5 L10,15 L0,20 L-5,15 L-8,5 L-15,0 L-8,-5 L-5,-15 Z" fill="url(#gradient)"/>
+  </g>
+  
+  <!-- Location markers -->
+  <g transform="translate(180,240)">
+    <path d="M0,-10 C-5,-10 -10,-5 -10,0 C-10,5 -5,10 0,10 C5,10 10,5 10,0 C10,-5 5,-10 0,-10 Z" fill="#0EA5E9"/>
+    <circle cx="0" cy="0" r="3" fill="white"/>
+  </g>
+  
+  <g transform="translate(320,240)">
+    <path d="M0,-10 C-5,-10 -10,-5 -10,0 C-10,5 -5,10 0,10 C5,10 10,5 10,0 C10,-5 5,-10 0,-10 Z" fill="#A855F7"/>
+    <circle cx="0" cy="0" r="3" fill="white"/>
+  </g>
+  
+  <!-- Luggage -->
+  <rect x="210" y="320" width="40" height="50" rx="5" fill="#6B7280"/>
+  <rect x="210" y="330" width="40" height="5" fill="#4B5563"/>
+  <circle cx="220" cy="375" r="3" fill="#374151"/>
+  <circle cx="240" cy="375" r="3" fill="#374151"/>
+  
+  <!-- Camera -->
+  <rect x="260" y="330" width="30" height="25" rx="3" fill="#374151"/>
+  <circle cx="275" cy="342.5" r="8" fill="#6B7280"/>
+  <circle cx="275" cy="342.5" r="5" fill="#9CA3AF"/>
+  
+  <!-- Text -->
+  <text x="250" y="420" text-anchor="middle" font-family="Arial" font-size="24" font-weight="bold" fill="#1F2937">Plan Your Journey</text>
+</svg>
