@@ -14,8 +14,8 @@ from google.adk.agents import LiveRequestQueue
 from google.adk.agents.run_config import RunConfig
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 
-# Import the root_agent (travel_coordinator)
-from agents.travel_coordinator import root_agent
+# Import the root_agent (travel_agent)
+from agents.travel_agent import root_agent
 
 # Load environment variables
 load_dotenv()
@@ -31,7 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-APP_NAME = "Travel A2A Application"
+APP_NAME = "Travel Planning Assistant"
 session_service = InMemorySessionService()
 
 # Active WebSocket connections
@@ -45,27 +45,27 @@ def start_agent_session(session_id: str):
         user_id=session_id,
         session_id=session_id,
     )
-    
+
     # Create a Runner
     runner = Runner(
         app_name=APP_NAME,
         agent=root_agent,
         session_service=session_service,
     )
-    
+
     # Set response modality = TEXT
     run_config = RunConfig(response_modalities=["TEXT"])
-    
+
     # Create a LiveRequestQueue for this session
     live_request_queue = LiveRequestQueue()
-    
+
     # Start agent session
     live_events = runner.run_live(
         session=session,
         live_request_queue=live_request_queue,
         run_config=run_config,
     )
-    
+
     return live_events, live_request_queue
 
 async def agent_to_client_messaging(websocket, live_events):
@@ -76,27 +76,27 @@ async def agent_to_client_messaging(websocket, live_events):
             if event.turn_complete:
                 await websocket.send_text(json.dumps({"turn_complete": True}))
                 print("[TURN COMPLETE]")
-                
+
             if event.interrupted:
                 await websocket.send_text(json.dumps({"interrupted": True}))
                 print("[INTERRUPTED]")
-                
+
             # Read the Content and its first Part
             part = event.content and event.content.parts and event.content.parts[0]
-            
+
             if not part or not event.partial:
                 continue
-                
+
             # Get the text
             text = event.content and event.content.parts and event.content.parts[0].text
-            
+
             if not text:
                 continue
-                
+
             # Send the text to the client
             await websocket.send_text(json.dumps({"message": text}))
             print(f"[AGENT TO CLIENT]: {text}")
-            
+
             await asyncio.sleep(0)
     except Exception as e:
         print(f"Error in agent_to_client_messaging: {e}")
@@ -109,7 +109,7 @@ async def client_to_agent_messaging(websocket, live_request_queue):
             content = Content(role="user", parts=[Part.from_text(text=text)])
             live_request_queue.send_content(content=content)
             print(f"[CLIENT TO AGENT]: {text}")
-            
+
             await asyncio.sleep(0)
     except WebSocketDisconnect:
         print("Client disconnected")
@@ -128,14 +128,14 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         # Wait for client connection
         await websocket.accept()
         print(f"Client #{session_id} connected")
-        
+
         # Store the connection
         active_connections[session_id] = websocket
-        
+
         # Start agent session
         session_id_str = str(session_id)
         live_events, live_request_queue = start_agent_session(session_id_str)
-        
+
         # Start tasks
         agent_to_client_task = asyncio.create_task(
             agent_to_client_messaging(websocket, live_events)
@@ -143,7 +143,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         client_to_agent_task = asyncio.create_task(
             client_to_agent_messaging(websocket, live_request_queue)
         )
-        
+
         try:
             await asyncio.gather(agent_to_client_task, client_to_agent_task)
         except Exception as e:
@@ -153,7 +153,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             if session_id in active_connections:
                 del active_connections[session_id]
             print(f"Client #{session_id} disconnected")
-            
+
     except Exception as e:
         print(f"Error in websocket_endpoint: {e}")
 
@@ -161,7 +161,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
 @app.post("/api/plan_trip")
 async def plan_trip_api(
-    origin: str = Body(...), 
+    origin: str = Body(...),
     destination: str = Body(...),
     departure_date: str = Body(...),
     return_date: str = Body(...),
