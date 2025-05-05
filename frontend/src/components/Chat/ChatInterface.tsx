@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User } from 'lucide-react';
+import { Send, Bot, User, Loader, WifiOff } from 'lucide-react';
 import { useTripPlanning } from '@/context/TripPlanningContext';
 import { TripData } from '@/context/TripPlanningContext';
+import WebSocketService from '@/services/WebSocketService';
 import TripInputForm from './TripInputForm';
 
 interface Message {
@@ -26,7 +27,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onPlanningStart, onPlanni
     },
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocketService | null>(null);
 
   const { dispatch } = useTripPlanning();
 
@@ -37,10 +44,104 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onPlanningStart, onPlanni
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  // Connect to WebSocket when component mounts
+  useEffect(() => {
+    connectToWebSocket();
+    
+    // Clean up on unmount
+    return () => {
+      disconnectWebSocket();
+    };
+  }, []);
+  
+  const connectToWebSocket = () => {
+    if (wsRef.current) {
+      return; // Already connected or connecting
+    }
+    
+    setIsConnecting(true);
+    setConnectionError(null);
+    
+    // Generate a unique session ID
+    const sessionId = Math.random().toString(36).substring(2, 15);
+    
+    // Create WebSocket handlers
+    const handlers = {
+      onOpen: () => {
+        setIsConnected(true);
+        setIsConnecting(false);
+        console.log('WebSocket connected');
+      },
+      onMessage: (text: string) => {
+        // For a new message from the agent
+        if (currentMessageId === null) {
+          const newMessageId = Date.now().toString();
+          setCurrentMessageId(newMessageId);
+          
+          setMessages(prev => [
+            ...prev,
+            {
+              id: newMessageId,
+              role: 'assistant',
+              content: text,
+              timestamp: new Date(),
+            }
+          ]);
+        } else {
+          // For streaming response, append to existing message
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === currentMessageId 
+                ? { ...msg, content: msg.content + text } 
+                : msg
+            )
+          );
+        }
+      },
+      onTurnComplete: () => {
+        setCurrentMessageId(null);
+      },
+      onInterrupted: () => {
+        setCurrentMessageId(null);
+      },
+      onClose: () => {
+        setIsConnected(false);
+        console.log('WebSocket disconnected');
+      },
+      onError: (error: any) => {
+        setConnectionError('Connection to the assistant failed. Please try again.');
+        setIsConnecting(false);
+        setIsConnected(false);
+        console.error('WebSocket error:', error);
+      }
+    };
+    
+    // Create and connect the WebSocket
+    wsRef.current = new WebSocketService(sessionId, handlers);
+    wsRef.current.connect();
+  };
+  
+  const disconnectWebSocket = () => {
+    if (wsRef.current) {
+      wsRef.current.disconnect();
+      wsRef.current = null;
+      setIsConnected(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
+    
+    // Check if WebSocket is connected
+    if (!isConnected) {
+      if (!isConnecting) {
+        connectToWebSocket();
+      }
+      setConnectionError('Connecting to the assistant. Please try again in a moment.');
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -50,46 +151,67 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onPlanningStart, onPlanni
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    
+    // Send message to WebSocket
+    if (wsRef.current) {
+      try {
+        wsRef.current.sendMessage(inputValue);
+      } catch (error) {
+        console.error('Failed to send message:', error);
+        setConnectionError('Failed to send message. Please try again.');
+      }
+    } else {
+      setConnectionError('Not connected to the assistant. Please refresh the page.');
+    }
+    
     setInputValue('');
-
-    // Simulate AI response
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'ขอบคุณค่ะ! กรุณากรอกข้อมูลการเดินทางของคุณในฟอร์มด้านบนเพื่อให้ฉันช่วยวางแผนการเดินทางที่สมบูรณ์แบบให้คุณค่ะ',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    }, 1000);
   };
 
   const handleTripInputSubmit = async (tripInput: any) => {
+    // Check if WebSocket is connected
+    if (!isConnected) {
+      if (!isConnecting) {
+        connectToWebSocket();
+      }
+      setConnectionError('Connecting to the assistant. Please try again in a moment.');
+      return;
+    }
+    
     onPlanningStart();
+    dispatch({ type: 'SET_LOADING', payload: true });
+
+    const tripQueryText = `วางแผนการเดินทางให้หน่อย:\n- จาก: ${tripInput.departure}\n- ไป: ${tripInput.destination}\n- วันที่: ${tripInput.startDate} ถึง ${tripInput.endDate}\n- งบประมาณ: ${tripInput.budgetRange}`;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: `วางแผนการเดินทางให้หน่อย:\n- จาก: ${tripInput.departure}\n- ไป: ${tripInput.destination}\n- วันที่: ${tripInput.startDate} ถึง ${tripInput.endDate}\n- งบประมาณ: ${tripInput.budgetRange}`,
+      content: tripQueryText,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMessage]);
 
-    // Simulate AI processing
+    // Send the trip planning request to the backend via WebSocket
+    if (wsRef.current) {
+      try {
+        wsRef.current.sendMessage(tripQueryText);
+      } catch (error) {
+        console.error('Failed to send trip planning request:', error);
+        setConnectionError('Failed to send trip planning request. Please try again.');
+        dispatch({ type: 'SET_LOADING', payload: false });
+        onPlanningComplete();
+      }
+    } else {
+      setConnectionError('Not connected to the assistant. Please refresh the page.');
+      dispatch({ type: 'SET_LOADING', payload: false });
+      onPlanningComplete();
+    }
+    
+    // For demo purposes, we'll still use the mock data since the real backend might not have
+    // full functionality yet. In a production environment, this data would come from the backend.
+    // We'll use a timeout to simulate backend processing
     setTimeout(() => {
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'กำลังวางแผนการเดินทางให้คุณค่ะ... AI Agents กำลังค้นหาสถานที่ท่องเที่ยว ร้านอาหาร เที่ยวบิน และที่พักที่เหมาะสมที่สุดให้คุณ',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    }, 1000);
-
-    // Simulate AI completion
-    setTimeout(() => {
-      // Mock trip data
+      // This is mock data - in a real implementation, the trip data would be parsed from the agent's response
       const tripData: TripData = {
         destination: tripInput.destination,
         departure: tripInput.departure,
@@ -227,14 +349,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onPlanningStart, onPlanni
       };
 
       dispatch({ type: 'SET_TRIP_DATA', payload: tripData });
-
-      const completionMessage: Message = {
-        id: (Date.now() + 2).toString(),
-        role: 'assistant',
-        content: 'เยี่ยมมาก! ฉันได้วางแผนการเดินทางที่สมบูรณ์แบบให้คุณแล้วค่ะ คุณสามารถดูรายละเอียดทั้งหมดได้ทางด้านซ้ายของหน้าจอ มีอะไรที่อยากให้ฉันปรับเปลี่ยนหรือเพิ่มเติมไหมคะ?',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, completionMessage]);
+      dispatch({ type: 'SET_LOADING', payload: false });
       onPlanningComplete();
     }, 5000);
   };
@@ -242,10 +357,34 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onPlanningStart, onPlanni
   return (
     <div className="h-full flex flex-col bg-gray-50">
       <div className="bg-white border-b border-gray-200 p-4">
-        <h2 className="text-lg font-semibold text-gray-900">AI Chat Assistant</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-gray-900">AI Chat Assistant</h2>
+          {isConnecting ? (
+            <div className="flex items-center text-amber-600 text-sm">
+              <Loader className="w-4 h-4 mr-1 animate-spin" />
+              <span>Connecting...</span>
+            </div>
+          ) : isConnected ? (
+            <div className="flex items-center text-green-600 text-sm">
+              <div className="w-2 h-2 rounded-full bg-green-500 mr-1"></div>
+              <span>Connected</span>
+            </div>
+          ) : (
+            <div className="flex items-center text-rose-600 text-sm">
+              <WifiOff className="w-4 h-4 mr-1" />
+              <span>Disconnected</span>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {connectionError && (
+          <div className="bg-rose-50 border border-rose-200 rounded-lg p-3 text-rose-600 text-sm">
+            {connectionError}
+          </div>
+        )}
+        
         <TripInputForm onSubmit={handleTripInputSubmit} />
 
         {messages.map((message) => (

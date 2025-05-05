@@ -1,99 +1,111 @@
 # Travel A2A Backend
 
-This is the backend for the Travel A2A application, built using Google's Agent Development Kit (ADK). It consists of several specialized agents coordinated by a main TravelCoordinator agent.
+This is the backend application for the Travel A2A project, which provides AI-powered travel planning services.
 
-## Project Structure
-
-```
-backend/
-├── agents/                    # Agents directory
-│   ├── __init__.py           # Package initialization
-│   ├── activity_search_agent.py     # Activities and attractions agent
-│   ├── restaurant_agent.py          # Restaurants and dining agent
-│   ├── flight_search_agent.py       # Flight search agent
-│   ├── accommodation_agent.py       # Accommodation search agent
-│   ├── youtube_video_agent.py       # YouTube travel videos agent
-│   └── travel_coordinator.py        # Main coordinator agent
-├── .env                      # Environment variables (create from .env.example)
-├── .env.example              # Example environment file
-├── main.py                   # FastAPI application entry point
-├── requirements.txt          # Project dependencies
-└── README.md                 # This file
-```
-
-## Setup Instructions
+## Getting Started
 
 ### Prerequisites
 
 - Python 3.9 or higher
-- Virtual environment tool (e.g., venv, conda)
-- Google AI API key
+- pip (Python package manager)
+- Google API Key for Gemini (for the AI capabilities)
+
+### Environment Setup
+
+1. Create a virtual environment:
+
+```bash
+# Create the virtual environment
+python -m venv .venv
+
+# Activate the virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows:
+# .venv\Scripts\activate.bat (CMD)
+# .venv\Scripts\Activate.ps1 (PowerShell)
+```
+
+2. Set up environment variables by copying `.env.example` to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+3. Edit the `.env` file and add your Google API Key:
+
+```
+GOOGLE_API_KEY=your_api_key_here
+```
 
 ### Installation
 
-1. Create and activate a virtual environment:
-
-```bash
-# Create virtual environment
-python -m venv .venv
-
-# Activate virtual environment
-# On macOS/Linux:
-source .venv/bin/activate
-# On Windows (CMD):
-.venv\Scripts\activate.bat
-# On Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-```
-
-2. Install dependencies:
+1. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Set up environment variables:
-
-```bash
-# Copy the example .env file
-cp .env.example .env
-
-# Edit the .env file with your API keys
-# Replace 'your_api_key_here' with your actual Google AI API key
-```
-
-### Running the Server
-
-Start the FastAPI server:
+2. Start the server:
 
 ```bash
 python main.py
 ```
 
-The server will start on http://localhost:8000 by default.
+The server will run on `http://localhost:8000` by default (configurable in the `.env` file).
 
 ## API Endpoints
 
-- **Health Check**: `GET /api/health`
-- **WebSocket**: `WS /api/ws/{session_id}` - For real-time conversation with agents
-- **Plan Trip**: `POST /api/plan_trip` - Plan a complete trip
-- **Search Activities**: `GET /api/search_activities` - Find activities at a destination
-- **Search Restaurants**: `GET /api/search_restaurants` - Find restaurants at a destination
-- **Search Flights**: `GET /api/search_flights` - Find flights between locations
-- **Search Accommodations**: `GET /api/search_accommodations` - Find places to stay
-- **Search Travel Videos**: `GET /api/search_travel_videos` - Find travel-related YouTube videos
+The backend provides the following endpoints:
 
-## Agent Descriptions
+- WebSocket: `/api/ws/{session_id}` - For real-time chat with the travel planning assistant
+- Health Check: `/api/health` - To check if the server is running
+- Trip Planning: `/api/plan_trip` - To plan a complete trip
+- Activities: `/api/search_activities` - To search for activities at a destination
+- Restaurants: `/api/search_restaurants` - To search for restaurants at a destination
+- Flights: `/api/search_flights` - To search for flights between locations
+- Accommodations: `/api/search_accommodations` - To search for accommodations at a destination
+- Travel Videos: `/api/search_travel_videos` - To search for travel-related videos about a destination
 
-1. **ActivitySearchAgent**: Specializes in finding and recommending activities and attractions at travel destinations.
-2. **RestaurantAgent**: Focuses on dining options and restaurant recommendations.
-3. **FlightSearchAgent**: Handles flight search and booking recommendations.
-4. **AccommodationAgent**: Specializes in finding and recommending places to stay.
-5. **YouTubeVideoAgent**: Finds and recommends travel-related YouTube videos.
-6. **TravelCoordinator**: Main agent that coordinates all other agents to provide comprehensive travel planning.
+## Architecture
 
-## Development Notes
+The backend uses:
 
-- The current implementation uses Google Search for information retrieval. In a production environment, you would integrate with actual travel APIs.
-- This backend is designed to work with the Travel A2A frontend.
-- The WebSocket endpoint provides real-time streaming communication with the agent.
+- FastAPI for the web framework
+- Google ADK (Agent Development Kit) for the AI capabilities
+- WebSockets for real-time bidirectional communication
+- In-memory session management for stateful conversations
+
+## Agent Structure
+
+The backend is organized around several AI agents:
+
+- `travel_coordinator` - The main agent that coordinates all other agents
+- `activity_search_agent` - Specializes in finding activities and attractions
+- `restaurant_agent` - Specializes in finding restaurants and dining options
+- `flight_search_agent` - Specializes in finding flights and transportation
+- `accommodation_agent` - Specializes in finding accommodations
+- `youtube_video_agent` - Specializes in finding travel-related videos
+
+## WebSocket Communication
+
+The WebSocket endpoint (`/api/ws/{session_id}`) enables real-time communication with the AI agent. The communication format is JSON with the following structure:
+
+- From client to server: Plain text messages
+- From server to client: JSON objects with the following structure:
+  - `message`: The text response from the AI
+  - `turn_complete`: Boolean indicating if the AI has completed its response
+  - `interrupted`: Boolean indicating if the AI's response was interrupted
+
+## Troubleshooting
+
+- **API Key Issues**: Make sure your Google API Key is valid and has access to the Gemini API
+- **Import Errors**: Make sure all dependencies are installed correctly
+- **Connection Issues**: Check if the server is running and the ports are not blocked by a firewall
+
+## Contributing
+
+1. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Commit your changes (`git commit -m 'Add some amazing feature'`)
+3. Push to the branch (`git push origin feature/amazing-feature`)
+4. Open a Pull Request
