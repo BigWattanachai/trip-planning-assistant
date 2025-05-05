@@ -22,10 +22,26 @@ A modern web application for planning trips using AI agents built with Google A2
 
 ## Getting Started
 
+### Using Docker (Recommended)
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/yourusername/travel-a2a.git
 cd travel-a2a
+```
+
+2. Start the services with Docker Compose:
+```bash
+docker-compose up
+```
+
+3. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Frontend Development
+
+1. Navigate to the frontend directory:
+```bash
+cd frontend
 ```
 
 2. Install dependencies:
@@ -44,18 +60,21 @@ npm run dev
 
 ```
 travel-a2a/
-├── src/
-│   ├── app/              # Next.js app router
-│   ├── components/       # React components
-│   │   ├── Canvas/       # Travel results display
-│   │   ├── Chat/         # Chat interface
-│   │   └── Layout/       # Layout components
-│   ├── context/          # React context providers
-│   ├── services/         # AI agents and orchestration
-│   │   └── agents/       # Individual AI agents
-│   └── lib/              # Utility functions
-├── public/               # Static assets
-└── package.json          # Project dependencies
+├── frontend/
+│   ├── src/
+│   │   ├── app/              # Next.js app router
+│   │   ├── components/       # React components
+│   │   │   ├── Canvas/       # Travel results display
+│   │   │   ├── Chat/         # Chat interface
+│   │   │   └── Layout/       # Layout components
+│   │   ├── context/          # React context providers
+│   │   ├── services/         # AI agents and orchestration
+│   │   │   └── agents/       # Individual AI agents
+│   │   └── lib/              # Utility functions
+│   ├── public/               # Static assets
+│   └── package.json          # Project dependencies
+├── backend/                  # Backend API and AI agent implementations
+└── docker-compose.yml        # Docker configuration
 ```
 
 ## AI Agents
