@@ -1,11 +1,12 @@
 import os
 import json
 import asyncio
+import time
+import uuid
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Body, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
 from google.genai.types import Part, Content
@@ -14,8 +15,10 @@ from google.adk.agents import LiveRequestQueue
 from google.adk.agents.run_config import RunConfig
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 
-# Import the root_agent (travel_agent)
-from agents.travel_agent import root_agent
+# Import the agents
+from agents.travel_agent import root_agent, classify_intent
+from agents.activity_search_agent import activity_search_agent
+from agents.restaurant_agent import restaurant_agent
 
 # Load environment variables
 load_dotenv()
@@ -32,94 +35,114 @@ app.add_middleware(
 )
 
 APP_NAME = "Travel Planning Assistant"
-session_service = InMemorySessionService()
 
-# Active WebSocket connections
-active_connections = {}
+# Global session services and runner dictionaries to keep consistent sessions per client
+session_services = {}
+runners = {}
+# Lock to prevent concurrent access to session creation
+session_locks = {}
 
-def start_agent_session(session_id: str):
-    """Starts an agent session"""
-    # Create a Session
-    session = session_service.create_session(
-        app_name=APP_NAME,
-        user_id=session_id,
-        session_id=session_id,
-    )
+def get_session_and_runner(session_id: str, agent_type: str = "travel"):
+    """Get or create a session service and runner for a client session"""
+    key = f"{session_id}_{agent_type}"
+    
+    if key not in session_services:
+        # Create new session service and runner for this client
+        print(f"Creating new session service and runner for {key}")
+        session_service = InMemorySessionService()
+        
+        # Select the appropriate agent based on the agent_type - only use one agent at a time
+        # This prevents multiple responses
+        if agent_type == "activity":
+            agent = activity_search_agent
+        elif agent_type == "restaurant":
+            agent = restaurant_agent
+        else:
+            # Default to the main travel agent - NOT using the sequential agent to avoid multiple responses
+            agent = root_agent
+            
+        # Create a new runner for this session
+        runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
+        
+        # Store session services and runners
+        session_services[key] = session_service
+        runners[key] = runner
+        
+        # Create a session
+        user_id = "user_123"  # Use a common user ID
+        session_service.create_session(app_name=APP_NAME, user_id=user_id, session_id=session_id)
+    
+    return session_services[key], runners[key]
 
-    # Create a Runner
-    runner = Runner(
-        app_name=APP_NAME,
-        agent=root_agent,
-        session_service=session_service,
-    )
 
-    # Set response modality = TEXT
-    run_config = RunConfig(response_modalities=["TEXT"])
-
-    # Create a LiveRequestQueue for this session
-    live_request_queue = LiveRequestQueue()
-
-    # Start agent session
-    live_events = runner.run_live(
-        session=session,
-        live_request_queue=live_request_queue,
-        run_config=run_config,
-    )
-
-    return live_events, live_request_queue
-
-async def agent_to_client_messaging(websocket, live_events):
-    """Agent to client communication"""
+async def get_agent_response_async(user_message: str, agent_type: str = "travel", session_id: str = None):
+    """Gets a response from the agent asynchronously using Google ADK"""
     try:
-        async for event in live_events:
-            # turn_complete
-            if event.turn_complete:
-                await websocket.send_text(json.dumps({"turn_complete": True}))
-                print("[TURN COMPLETE]")
-
-            if event.interrupted:
-                await websocket.send_text(json.dumps({"interrupted": True}))
-                print("[INTERRUPTED]")
-
-            # Read the Content and its first Part
-            part = event.content and event.content.parts and event.content.parts[0]
-
-            if not part or not event.partial:
-                continue
-
-            # Get the text
-            text = event.content and event.content.parts and event.content.parts[0].text
-
-            if not text:
-                continue
-
-            # Send the text to the client
-            await websocket.send_text(json.dumps({"message": text}))
-            print(f"[AGENT TO CLIENT]: {text}")
-
-            await asyncio.sleep(0)
+        # Use a common user ID
+        user_id = "user_123"
+        
+        # Get or create session service and runner
+        session_service, runner = get_session_and_runner(session_id, agent_type)
+        
+        # Create a content object with the user's message
+        content = Content(role="user", parts=[Part(text=user_message)])
+        
+        # Run the agent asynchronously with the retrieved session
+        print(f"Running async with user_id={user_id}, session_id={session_id}, agent_type={agent_type}")
+        
+        accumulated_text = ""
+        final_response = ""
+        partial_count = 0  # Track number of partial updates to avoid excessive streaming
+        
+        try:
+            async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=content):
+                # Check if this is a partial response - only send every 3rd partial to reduce message count
+                if hasattr(event, 'is_partial') and event.is_partial():
+                    if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
+                        partial_text = event.content.parts[0].text
+                        accumulated_text += partial_text
+                        partial_count += 1
+                        
+                        # Only send partial updates occasionally to avoid flooding
+                        if partial_count % 3 == 0 and len(partial_text) > 5:
+                            yield {"message": partial_text, "partial": True}
+                
+                # Check if this is the final response
+                if hasattr(event, 'is_final_response') and event.is_final_response():
+                    if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
+                        final_response = event.content.parts[0].text
+                        print(f"Final response: {final_response}")
+                        yield {"message": final_response, "final": True}
+                
+                # Process function calls if any - but don't send to client
+                if hasattr(event, 'get_function_calls'):
+                    function_calls = event.get_function_calls()
+                    for function_call in function_calls:
+                        print(f"Function call: {function_call.name}")
+                        print(f"Arguments: {function_call.args}")
+                
+                # Process function responses if any - but don't send to client
+                if hasattr(event, 'get_function_responses'):
+                    function_responses = event.get_function_responses()
+                    for function_response in function_responses:
+                        print(f"Function response: {function_response.name}")
+                        print(f"Result: {function_response.response}")
+        
+        except Exception as inner_e:
+            print(f"Error during run_async: {inner_e}")
+            yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดขณะประมวลผล: {str(inner_e)}", "final": True}
+            return
+        
+        # If we don't get a final response, use the accumulated text or a default message
+        if not final_response:
+            final_message = accumulated_text or "ขออภัยค่ะ ฉันยังไม่เข้าใจคำถามของคุณ กรุณาถามใหม่อีกครั้งค่ะ"
+            yield {"message": final_message, "final": True}
+            
     except Exception as e:
-        print(f"Error in agent_to_client_messaging: {e}")
+        print(f"Error getting agent response asynchronously: {e}")
+        # Fallback response in case of error
+        yield {"message": f"ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้น: {str(e)}", "final": True}
 
-async def client_to_agent_messaging(websocket, live_request_queue):
-    """Client to agent communication"""
-    try:
-        while True:
-            text = await websocket.receive_text()
-            content = Content(role="user", parts=[Part.from_text(text=text)])
-            live_request_queue.send_content(content=content)
-            print(f"[CLIENT TO AGENT]: {text}")
-
-            await asyncio.sleep(0)
-    except WebSocketDisconnect:
-        print("Client disconnected")
-    except Exception as e:
-        print(f"Error in client_to_agent_messaging: {e}")
-
-@app.get("/api/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy"}
 
 @app.websocket("/api/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
@@ -128,185 +151,207 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         # Wait for client connection
         await websocket.accept()
         print(f"Client #{session_id} connected")
+        
+        # Get or create a session for this client
+        get_session_and_runner(session_id)
 
-        # Store the connection
+        # Mapping for active connections
+        active_connections = {}
         active_connections[session_id] = websocket
+        
+        # Send a welcome message to the client
+        welcome_message = "สวัสดีค่ะ! ฉันคือผู้ช่วยวางแผนการเดินทางของคุณ บอกฉันหน่อยว่าคุณอยากไปเที่ยวที่ไหน และมีงบประมาณเท่าไหร่คะ?"
+        await websocket.send_text(json.dumps({"message": welcome_message}))
+        await websocket.send_text(json.dumps({"turn_complete": True}))
+        print(f"[AGENT TO CLIENT]: {welcome_message}")
+        print("[TURN COMPLETE]")
 
-        # Start agent session
-        session_id_str = str(session_id)
-        live_events, live_request_queue = start_agent_session(session_id_str)
+        # Set to hold processing state - avoid processing multiple messages at once
+        is_processing = False
 
-        # Start tasks
-        agent_to_client_task = asyncio.create_task(
-            agent_to_client_messaging(websocket, live_events)
-        )
-        client_to_agent_task = asyncio.create_task(
-            client_to_agent_messaging(websocket, live_request_queue)
-        )
-
+        # Process messages from the client
         try:
-            await asyncio.gather(agent_to_client_task, client_to_agent_task)
+            while True:
+                # Receive message from client
+                user_message = await websocket.receive_text()
+                print(f"[CLIENT TO AGENT]: {user_message}")
+
+                # Skip processing if already handling a message
+                if is_processing:
+                    print("Already processing a message, skipping")
+                    await websocket.send_text(json.dumps({
+                        "message": "ขออภัยค่ะ ฉันกำลังประมวลผลคำถามของคุณอยู่ กรุณารอสักครู่ค่ะ",
+                        "partial": True
+                    }))
+                    continue
+
+                is_processing = True
+                try:
+                    # Classify user intent
+                    agent_type = classify_intent(user_message)
+                    print(f"[INTENT CLASSIFICATION]: Detected intent as '{agent_type}'")
+                    
+                    # Get streamed responses from the appropriate agent
+                    async for response_part in get_agent_response_async(user_message, agent_type=agent_type, session_id=session_id):
+                        # Send response part to client
+                        if "partial" in response_part and response_part["partial"]:
+                            # Send streaming response
+                            await websocket.send_text(json.dumps({"message": response_part["message"], "partial": True}))
+                            print(f"[AGENT TO CLIENT (STREAMING)]: {response_part['message']}")
+                        elif "final" in response_part and response_part["final"]:
+                            # Send final response
+                            await websocket.send_text(json.dumps({"message": response_part["message"]}))
+                            await websocket.send_text(json.dumps({"turn_complete": True}))
+                            print(f"[AGENT TO CLIENT (FINAL)]: {response_part['message']}")
+                            print("[TURN COMPLETE]")
+                finally:
+                    is_processing = False
+
+        except WebSocketDisconnect:
+            print(f"Client #{session_id} disconnected")
         except Exception as e:
-            print(f"Error in WebSocket connection: {e}")
+            print(f"Error processing client message: {e}")
+            # Send error message to client
+            try:
+                await websocket.send_text(json.dumps({"message": f"ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้น: {str(e)}"}))
+                await websocket.send_text(json.dumps({"turn_complete": True}))
+            except Exception:
+                pass
         finally:
-            # Clean up
+            # Clean up active connections
             if session_id in active_connections:
                 del active_connections[session_id]
-            print(f"Client #{session_id} disconnected")
+            # Don't delete session or runner to maintain state between reconnections
+            print(f"Client #{session_id} disconnected, but keeping session")
 
     except Exception as e:
         print(f"Error in websocket_endpoint: {e}")
+        # Send error message to client if connection is still open
+        try:
+            await websocket.send_text(json.dumps({"message": f"ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้น: {str(e)}"}))
+            await websocket.send_text(json.dumps({"turn_complete": True}))
+        except Exception:
+            pass
 
-# API endpoints for specific agent functionalities
 
-@app.post("/api/plan_trip")
-async def plan_trip_api(
-    origin: str = Body(...),
-    destination: str = Body(...),
-    departure_date: str = Body(...),
-    return_date: str = Body(...),
-    budget: str = Body(None),
-    interests: str = Body(None),
-    travelers: int = Body(1)
-):
-    """API endpoint to plan a complete trip"""
-    try:
-        # In a real implementation, this would use the travel_coordinator agent
-        return {
-            "status": "success",
-            "message": "Trip planning initiated",
-            "details": {
-                "origin": origin,
-                "destination": destination,
-                "departure_date": departure_date,
-                "return_date": return_date,
-                "budget": budget,
-                "interests": interests,
-                "travelers": travelers
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy"}
+
+
+@app.get("/api/agents")
+async def list_agents():
+    """List available agents"""
+    return {
+        "agents": [
+            {
+                "id": "travel",
+                "name": "Travel Planning Assistant",
+                "description": "General travel planning and recommendations"
+            },
+            {
+                "id": "activity",
+                "name": "Activity Search Assistant",
+                "description": "Find activities and attractions in a destination"
+            },
+            {
+                "id": "restaurant",
+                "name": "Restaurant Recommendation Assistant",
+                "description": "Find restaurants and food experiences in a destination"
             }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        ]
+    }
 
-@app.get("/api/search_activities")
-async def search_activities_api(
-    location: str = Query(...),
-    preferences: str = Query(None),
-    budget: str = Query(None)
-):
-    """API endpoint to search for activities"""
-    try:
-        # In a real implementation, this would use the activity_search_agent
-        return {
-            "status": "success",
-            "message": "Activity search initiated",
-            "details": {
-                "location": location,
-                "preferences": preferences,
-                "budget": budget
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/search_restaurants")
-async def search_restaurants_api(
-    location: str = Query(...),
-    cuisine: str = Query(None),
-    budget: str = Query(None),
-    dietary_restrictions: str = Query(None)
-):
-    """API endpoint to search for restaurants"""
+@app.websocket("/api/ws/{session_id}/{agent_type}")
+async def agent_websocket_endpoint(websocket: WebSocket, session_id: str, agent_type: str):
+    """WebSocket endpoint for real-time communication with a specific agent"""
     try:
-        # In a real implementation, this would use the restaurant_agent
-        return {
-            "status": "success",
-            "message": "Restaurant search initiated",
-            "details": {
-                "location": location,
-                "cuisine": cuisine,
-                "budget": budget,
-                "dietary_restrictions": dietary_restrictions
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Wait for client connection
+        await websocket.accept()
+        print(f"Client #{session_id} connected to {agent_type} agent")
+        
+        # Get or create a session for this client
+        get_session_and_runner(session_id, agent_type)
 
-@app.get("/api/search_flights")
-async def search_flights_api(
-    origin: str = Query(...),
-    destination: str = Query(...),
-    departure_date: str = Query(...),
-    return_date: str = Query(None),
-    passengers: int = Query(1),
-    cabin_class: str = Query("economy")
-):
-    """API endpoint to search for flights"""
-    try:
-        # In a real implementation, this would use the flight_search_agent
-        return {
-            "status": "success",
-            "message": "Flight search initiated",
-            "details": {
-                "origin": origin,
-                "destination": destination,
-                "departure_date": departure_date,
-                "return_date": return_date,
-                "passengers": passengers,
-                "cabin_class": cabin_class
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Mapping for active connections
+        active_connections = {}
+        connection_key = f"{session_id}_{agent_type}"
+        active_connections[connection_key] = websocket
+        
+        # Send a welcome message to the client
+        welcome_message = "สวัสดีค่ะ! ฉันคือผู้ช่วยวางแผนการเดินทางของคุณ บอกฉันหน่อยว่าคุณอยากไปเที่ยวที่ไหน และมีงบประมาณเท่าไหร่คะ?"
+        await websocket.send_text(json.dumps({"message": welcome_message}))
+        await websocket.send_text(json.dumps({"turn_complete": True}))
+        print(f"[AGENT TO CLIENT]: {welcome_message}")
+        print("[TURN COMPLETE]")
 
-@app.get("/api/search_accommodations")
-async def search_accommodations_api(
-    location: str = Query(...),
-    check_in_date: str = Query(...),
-    check_out_date: str = Query(...),
-    guests: int = Query(2),
-    room_type: str = Query(None),
-    amenities: str = Query(None),
-    budget: str = Query(None)
-):
-    """API endpoint to search for accommodations"""
-    try:
-        # In a real implementation, this would use the accommodation_agent
-        return {
-            "status": "success",
-            "message": "Accommodation search initiated",
-            "details": {
-                "location": location,
-                "check_in_date": check_in_date,
-                "check_out_date": check_out_date,
-                "guests": guests,
-                "room_type": room_type,
-                "amenities": amenities,
-                "budget": budget
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Set to hold processing state - avoid processing multiple messages at once
+        is_processing = False
 
-@app.get("/api/search_travel_videos")
-async def search_travel_videos_api(
-    destination: str = Query(...),
-    content_type: str = Query(None)
-):
-    """API endpoint to search for travel-related YouTube videos"""
-    try:
-        # In a real implementation, this would use the youtube_video_agent
-        return {
-            "status": "success",
-            "message": "Travel video search initiated",
-            "details": {
-                "destination": destination,
-                "content_type": content_type
-            }
-        }
+        # Process messages from the client
+        try:
+            while True:
+                # Receive message from client
+                user_message = await websocket.receive_text()
+                print(f"[CLIENT TO AGENT]: {user_message}")
+
+                # Skip processing if already handling a message
+                if is_processing:
+                    print("Already processing a message, skipping")
+                    await websocket.send_text(json.dumps({
+                        "message": "ขออภัยค่ะ ฉันกำลังประมวลผลคำถามของคุณอยู่ กรุณารอสักครู่ค่ะ",
+                        "partial": True
+                    }))
+                    continue
+
+                is_processing = True
+                try:
+                    # Get streamed responses from agent
+                    async for response_part in get_agent_response_async(user_message, agent_type, session_id):
+                        # Send response part to client
+                        if "partial" in response_part and response_part["partial"]:
+                            # Send streaming response
+                            await websocket.send_text(json.dumps({"message": response_part["message"], "partial": True}))
+                            print(f"[AGENT TO CLIENT (STREAMING)]: {response_part['message']}")
+                        elif "final" in response_part and response_part["final"]:
+                            # Send final response
+                            await websocket.send_text(json.dumps({"message": response_part["message"]}))
+                            await websocket.send_text(json.dumps({"turn_complete": True}))
+                            print(f"[AGENT TO CLIENT (FINAL)]: {response_part['message']}")
+                            print("[TURN COMPLETE]")
+                finally:
+                    is_processing = False
+
+        except WebSocketDisconnect:
+            print(f"Client #{session_id} disconnected from {agent_type} agent")
+        except Exception as e:
+            print(f"Error processing client message: {e}")
+            # Send error message to client
+            try:
+                await websocket.send_text(json.dumps({"message": f"ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้น: {str(e)}"}))
+                await websocket.send_text(json.dumps({"turn_complete": True}))
+            except Exception:
+                pass
+        finally:
+            # Clean up active connections
+            if connection_key in active_connections:
+                del active_connections[connection_key]
+            # Don't delete session or runner to maintain state between reconnections
+            print(f"Client #{session_id} disconnected from {agent_type} agent, but keeping session")
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Error in agent_websocket_endpoint: {e}")
+        # Send error message to client if connection is still open
+        try:
+            await websocket.send_text(json.dumps({"message": f"ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้น: {str(e)}"}))
+            await websocket.send_text(json.dumps({"turn_complete": True}))
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
