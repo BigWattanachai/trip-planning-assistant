@@ -1,71 +1,92 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
+from fastapi.responses import JSONResponse
 import os
 import logging
-from dotenv import load_dotenv
+import time
+import json
+from datetime import datetime
 
-from routes.api import router as api_router
-from utils.middleware import setup_middleware
+from config.settings import settings
 
-# Load environment variables
-load_dotenv()
+# Import routers
+from routers.activity_router import router as activity_router
+from routers.restaurant_router import router as restaurant_router
+from routers.flight_router import router as flight_router
+from routers.accommodation_router import router as accommodation_router
+from routers.video_router import router as video_router
+from routers.travel_plan_router import router as travel_plan_router
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# Create FastAPI app
 app = FastAPI(
-    title="Travel A2A API",
-    description="AI-powered travel planning API using Google ADK and MCP",
-    version="1.0.0",
-    docs_url="/api/docs",
-    redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json",
+    title=settings.APP_NAME,
+    description="AI-Powered Travel Planning Assistant API",
+    version=settings.VERSION,
+    debug=settings.DEBUG,
 )
 
-# Set up middleware
-setup_middleware(app)
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=settings.CORS_METHODS,
+    allow_headers=settings.CORS_HEADERS,
+)
 
-# Include API routes
-app.include_router(api_router)
+# Request timing middleware
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)
+    logger.info(f"Request to {request.url.path} took {process_time:.4f}s")
+    return response
 
-@app.get("/")
+# Include routers with API prefix
+api_prefix = settings.API_PREFIX
+app.include_router(activity_router, prefix=api_prefix)
+app.include_router(restaurant_router, prefix=api_prefix)
+app.include_router(flight_router, prefix=api_prefix)
+app.include_router(accommodation_router, prefix=api_prefix)
+app.include_router(video_router, prefix=api_prefix)
+app.include_router(travel_plan_router, prefix=api_prefix)
+
+# Root endpoint
+@app.get("/", tags=["Root"])
 async def root():
-    """Root endpoint"""
+    return {"message": "Welcome to the Travel Planner API", "version": settings.VERSION}
+
+# Health check endpoint
+@app.get("/api/health", tags=["Health"])
+async def health_check():
     return {
-        "name": "Travel A2A API",
-        "version": "1.0.0",
-        "description": "AI-powered travel planning using Google ADK and MCP",
-        "documentation": "/api/docs"
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": settings.VERSION,
+        "api": "Travel Planner API"
     }
 
-@app.on_event("startup")
-async def startup_event():
-    """Execute on server startup"""
-    logger.info("Starting Travel A2A API server")
-    logger.info(f"API documentation available at: http://localhost:{os.getenv('PORT', '8000')}/api/docs")
+# Error handlers
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": exc.detail}
+    )
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Execute on server shutdown"""
-    logger.info("Shutting down Travel A2A API server")
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc):
+    logger.error(f"Unhandled exception: {str(exc)}")
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Internal server error", "detail": str(exc) if settings.DEBUG else None}
+    )
 
 if __name__ == "__main__":
-    # Get server configuration from environment variables
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
-    env = os.getenv("ENV", "development")
-    
-    # Run server
-    uvicorn.run(
-        "main:app",
-        host=host,
-        port=port,
-        reload=(env == "development"),
-        log_level="info"
-    )
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

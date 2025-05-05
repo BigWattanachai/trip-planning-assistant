@@ -1,208 +1,131 @@
-# Travel A2A Backend API
+# Travel Planner API
 
-Backend API for the Travel Planning Application using Google Agent-to-Agent (A2A) architecture with MCP integration.
+This is the backend API for the AI-powered Travel Planner application, built using FastAPI and Google's Agent Development Kit (ADK).
 
 ## Features
 
-- Multi-agent system for comprehensive travel planning
-- Specialized agents for different aspects of travel:
-  - Activities and attractions
-  - Restaurant recommendations
-  - Flight search
-  - Accommodation search
-  - YouTube travel videos
-- Agent coordination and orchestration
-- Session management and memory systems
-- MCP integration for external services
-- RESTful API endpoints
+- Flight search recommendations
+- Accommodation search
+- Restaurant and dining recommendations
+- Activity and attraction suggestions
+- Travel-related YouTube video curation
+- Comprehensive travel plan generation
 
-## Tech Stack
+## System Architecture
 
-- FastAPI
-- Google ADK (Agent Development Kit)
-- Google Cloud AI Platform
-- Gemini Models
-- MCP (Model Context Protocol)
+The backend is composed of specialized AI agents, each focused on a specific aspect of travel planning:
+
+1. **ActivitySearchAgent**: Finds activities and attractions at destinations
+2. **RestaurantAgent**: Recommends dining options based on preferences
+3. **FlightSearchAgent**: Provides flight recommendations and information
+4. **AccommodationAgent**: Suggests lodging options at destinations
+5. **YouTubeVideoAgent**: Curates relevant travel videos
+6. **TravelCoordinator**: Main agent that orchestrates all others to create a cohesive travel plan
 
 ## Prerequisites
 
 - Python 3.9+
-- Google Cloud Project with Gemini API access
-- API keys for external services
+- pip (Python package manager)
+- Google API Key for the Gemini API
 
 ## Installation
 
-1. Clone the repository and navigate to the backend directory:
-```bash
-cd backend
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-repo/travel-planner.git
+   cd travel-planner/backend
+   ```
 
 2. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
 3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Create a `.env` file:
+   ```bash
+   cp .env.example .env
+   ```
+
+5. Edit the `.env` file to add your Google API key
+
+## Running the Application
+
+### Development mode
+
 ```bash
-pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
-4. Set up environment variables:
+### Production mode
+
 ```bash
-cp .env.example .env
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-Edit `.env` with your API keys and configuration.
+### Using Docker
 
-## Configuration
-
-Required environment variables:
-
-```env
-# Google Cloud Configuration
-GOOGLE_APPLICATION_CREDENTIALS=path/to/your/service-account-key.json
-GOOGLE_PROJECT_ID=your-project-id
-GOOGLE_LOCATION=us-central1
-
-# API Keys
-GEMINI_API_KEY=your-gemini-api-key
-GOOGLE_SEARCH_API_KEY=your-google-search-api-key
-GOOGLE_SEARCH_ENGINE_ID=your-search-engine-id
-YOUTUBE_API_KEY=your-youtube-api-key
-
-# External Service API Keys (optional)
-SKYSCANNER_API_KEY=your-skyscanner-api-key
-TRIPADVISOR_API_KEY=your-tripadvisor-api-key
-OPENWEATHER_API_KEY=your-openweather-api-key
-
-# Server Configuration
-PORT=8000
-HOST=0.0.0.0
-ENV=development
-
-# MCP Configuration
-MCP_SERVER_URL=http://mcp-server:8080
-MCP_API_KEY=your-mcp-api-key
-```
-
-## Running the Server
-
-Development mode:
 ```bash
-python main.py
-```
-
-Production mode:
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4
+docker build -t travel-planner-api .
+docker run -p 8000:8000 travel-planner-api
 ```
 
 ## API Endpoints
 
-### POST /api/plan-trip
-Plan a complete trip based on user requirements.
+The API is structured around the following resource groups:
 
-Request body:
-```json
-{
-  "departure": "San Francisco",
-  "destination": "Bangkok",
-  "startDate": "2024-06-01",
-  "endDate": "2024-06-10",
-  "budgetRange": "medium",
-  "preferences": {
-    "activities": ["cultural", "food", "shopping"],
-    "accommodation_type": "hotel",
-    "dietary": ["vegetarian"]
-  }
-}
-```
+- `/api/activities` - Activity and attraction recommendations
+- `/api/restaurants` - Dining recommendations
+- `/api/flights` - Flight search and information
+- `/api/accommodations` - Lodging recommendations
+- `/api/videos` - Travel video curation
+- `/api/travel-plans` - Comprehensive travel planning
 
-### POST /api/chat
-Chat with the travel agent for questions and refinements.
+### Key Endpoints
 
-Request body:
-```json
-{
-  "message": "What are the best areas to stay in Bangkok?",
-  "sessionId": "optional-session-id"
-}
-```
+- `POST /api/travel-plans/create` - Create a comprehensive travel plan
+- `POST /api/travel-plans/destination-insights` - Get insights about a destination
+- `POST /api/activities/search` - Search for activities at a destination
+- `POST /api/restaurants/search` - Search for restaurants at a destination
+- `POST /api/flights/search` - Search for flight options
+- `POST /api/accommodations/search` - Search for accommodation options
+- `POST /api/videos/search` - Search for travel videos
 
-### GET /api/health
-Health check endpoint.
+## Documentation
 
-### GET /api/destinations/{destination}
-Get detailed information about a destination.
+Once the server is running, the API documentation is available at:
 
-## Agent Architecture
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
-The system uses a multi-agent architecture with:
+## Environment Variables
 
-1. **Travel Coordinator**: Main orchestrator agent
-2. **Activity Search Agent**: Finds attractions and activities
-3. **Restaurant Agent**: Recommends dining options
-4. **Flight Search Agent**: Searches for flights
-5. **Accommodation Agent**: Finds hotels and rentals
-6. **YouTube Video Agent**: Curates relevant travel videos
-
-Agents work in parallel for efficiency and use the coordinator for synthesis.
-
-## MCP Integration
-
-The backend integrates with MCP (Model Context Protocol) for:
-- External API calls
-- Real-time data fetching
-- Service orchestration
-
-MCP provides a standardized way to interact with external services while maintaining security and reliability.
+| Variable | Description | Default |
+|----------|-------------|---------|
+| DEBUG | Enable debug mode | True |
+| API_PREFIX | Prefix for all API routes | /api |
+| DEFAULT_MODEL | Default Gemini model for agents | gemini-1.5-flash |
+| COORDINATOR_MODEL | Model for the coordinator agent | gemini-1.5-pro |
+| GOOGLE_API_KEY | Your Google API key | - |
+| CORS_ORIGINS | Allowed CORS origins | * |
+| ENABLE_CACHE | Enable response caching | True |
+| CACHE_TTL | Cache time-to-live in seconds | 3600 |
 
 ## Development
 
-To add a new agent:
+The backend is structured as follows:
 
-1. Create a new agent class extending `LlmAgent` or `BaseAgent`
-2. Implement the `run_async` method
-3. Add custom tools if needed
-4. Register the agent in `agent_system.py`
-
-Example:
-```python
-from google.adk import LlmAgent
-
-class NewAgent(LlmAgent):
-    def __init__(self):
-        super().__init__(
-            name="New Agent",
-            model="gemini-1.5-flash",
-            system_prompt="Your agent's purpose..."
-        )
-    
-    async def run_async(self, context: Dict) -> Dict:
-        # Agent logic here
-        return results
-```
-
-## Testing
-
-Run tests:
-```bash
-pytest tests/
-```
-
-## Deployment
-
-1. Build Docker image:
-```bash
-docker build -t travel-a2a-backend .
-```
-
-2. Run container:
-```bash
-docker run -p 8000:8000 --env-file .env travel-a2a-backend
-```
+- `/agents` - Specialized AI agents for different travel aspects
+- `/config` - Application configuration
+- `/routers` - FastAPI route handlers
+- `/schemas` - Pydantic models for request/response validation
+- `/tools` - Utility functions and tools
 
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the LICENSE file for details.

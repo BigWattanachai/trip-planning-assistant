@@ -1,203 +1,107 @@
-import os
-from typing import Dict, List, Any
-from google.adk import LlmAgent
-from google.adk.tools import function_tool, search_tool
-import aiohttp
-import json
+from google.adk import Agent
+from google.adk.tools import google_search
+from typing import Dict, Any, Optional, List
+import logging
 
-class RestaurantAgent(LlmAgent):
-    def __init__(self):
-        super().__init__(
-            name="RestaurantAgent",
-            model="gemini-1.5-flash",
-            system_prompt="""คุณเป็นผู้เชี่ยวชาญด้านร้านอาหารและประสบการณ์การรับประทานอาหาร 
-            มีหน้าที่ค้นหาและแนะนำร้านอาหารที่เหมาะกับงบประมาณและความชอบของผู้ใช้
-            
-            คุณต้อง:
-            1. ค้นหาร้านอาหารที่หลากหลายประเภท (อาหารท้องถิ่น, นานาชาติ, ร้านดัง)
-            2. พิจารณาระดับราคาให้เหมาะกับงบประมาณ
-            3. ให้ข้อมูลเมนูแนะนำ, รีวิว, และบรรยากาศร้าน
-            4. แนะนำร้านสำหรับมื้อต่างๆ (เช้า, กลางวัน, เย็น)
-            5. ระบุข้อมูลการจองและช่วงเวลาที่แนะนำ"""
-        )
-        
-        # Add search tool
-        self.add_tool(search_tool(
-            search_engine="google",
-            max_results=10
-        ))
-        
-        # Add custom restaurant search tool
-        self.add_tool(self._create_restaurant_search_tool())
+logger = logging.getLogger(__name__)
+
+class RestaurantAgent:
+    """
+    Agent responsible for finding and recommending restaurants and dining options 
+    at travel destinations.
+    """
     
-    def _create_restaurant_search_tool(self):
-        @function_tool
-        async def search_restaurants(destination: str, cuisine_type: str = None, price_range: str = None) -> Dict:
-            """Search for restaurants in a destination"""
-            # Simulated restaurant data - in production, use actual APIs
-            restaurants = [
-                {
-                    "id": "1",
-                    "name": f"{destination} Fine Dining",
-                    "cuisine": "Modern European",
-                    "priceRange": "$$$",
-                    "rating": 4.8,
-                    "reviewHighlight": "Exquisite culinary experience with innovative dishes",
-                    "imageUrl": f"https://source.unsplash.com/800x600/?restaurant,fine-dining",
-                    "address": f"123 Main Street, {destination}",
-                    "phone": "+1 234 567 8900",
-                    "website": "https://example.com",
-                    "hours": {
-                        "monday": "6:00 PM - 11:00 PM",
-                        "tuesday": "6:00 PM - 11:00 PM",
-                        "wednesday": "6:00 PM - 11:00 PM",
-                        "thursday": "6:00 PM - 11:00 PM",
-                        "friday": "6:00 PM - 12:00 AM",
-                        "saturday": "6:00 PM - 12:00 AM",
-                        "sunday": "Closed"
-                    },
-                    "menuHighlights": [
-                        "Wagyu Beef Tenderloin",
-                        "Fresh Seafood Platter",
-                        "Seasonal Tasting Menu"
-                    ],
-                    "bookingRequired": True
-                },
-                {
-                    "id": "2",
-                    "name": f"Local Flavors of {destination}",
-                    "cuisine": "Local Cuisine",
-                    "priceRange": "$$",
-                    "rating": 4.7,
-                    "reviewHighlight": "Authentic local dishes in a traditional setting",
-                    "imageUrl": f"https://source.unsplash.com/800x600/?restaurant,local-food",
-                    "address": f"456 Heritage Lane, {destination}",
-                    "phone": "+1 234 567 8901",
-                    "hours": {
-                        "monday": "11:00 AM - 10:00 PM",
-                        "tuesday": "11:00 AM - 10:00 PM",
-                        "wednesday": "11:00 AM - 10:00 PM",
-                        "thursday": "11:00 AM - 10:00 PM",
-                        "friday": "11:00 AM - 11:00 PM",
-                        "saturday": "11:00 AM - 11:00 PM",
-                        "sunday": "11:00 AM - 9:00 PM"
-                    },
-                    "menuHighlights": [
-                        "Traditional Soup",
-                        "Grilled Local Fish",
-                        "House Special Curry"
-                    ],
-                    "bookingRequired": False
-                },
-                {
-                    "id": "3",
-                    "name": f"{destination} Street Food Market",
-                    "cuisine": "Street Food",
-                    "priceRange": "$",
-                    "rating": 4.5,
-                    "reviewHighlight": "Vibrant street food scene with diverse options",
-                    "imageUrl": f"https://source.unsplash.com/800x600/?street-food,market",
-                    "address": f"Night Market, {destination}",
-                    "hours": {
-                        "monday": "5:00 PM - 11:00 PM",
-                        "tuesday": "5:00 PM - 11:00 PM",
-                        "wednesday": "5:00 PM - 11:00 PM",
-                        "thursday": "5:00 PM - 11:00 PM",
-                        "friday": "5:00 PM - 12:00 AM",
-                        "saturday": "5:00 PM - 12:00 AM",
-                        "sunday": "5:00 PM - 11:00 PM"
-                    },
-                    "menuHighlights": [
-                        "Fresh Spring Rolls",
-                        "Grilled Skewers",
-                        "Local Desserts"
-                    ],
-                    "bookingRequired": False
-                }
-            ]
-            
-            return {"restaurants": restaurants}
-        
-        return search_restaurants
-    
-    async def run_async(self, context: Dict) -> Dict:
-        """Search for restaurants based on trip context"""
-        destination = context.get("destination")
-        budget = context.get("budget", "medium")
-        preferences = context.get("preferences", {})
-        
-        # Extract food preferences
-        cuisine_types = preferences.get("cuisine", ["local", "international"])
-        dietary_restrictions = preferences.get("dietary", [])
-        
-        # Map budget to price range
-        price_map = {
-            "budget": "$",
-            "medium": "$$",
-            "luxury": "$$$"
-        }
-        price_range = price_map.get(budget, "$$")
-        
-        # Search for restaurants using our custom tool
-        search_results = await self.use_tool(
-            "search_restaurants",
-            destination=destination,
-            price_range=price_range
-        )
-        
-        # Use search tool for additional information
-        search_query = f"best restaurants in {destination} {' '.join(cuisine_types)} food dining {price_range}"
-        web_results = await self.use_tool("search_tool", query=search_query)
-        
-        # Generate recommendations using LLM
-        query = f"""
-        Based on the following information, recommend the best restaurants for a trip to {destination}:
-        
-        Trip Details:
-        - Budget: {budget} (Price range: {price_range})
-        - Cuisine preferences: {cuisine_types}
-        - Dietary restrictions: {dietary_restrictions}
-        
-        Available Restaurants:
-        {json.dumps(search_results['restaurants'], indent=2)}
-        
-        Additional Information:
-        {web_results}
-        
-        Please provide:
-        1. Top 5-7 recommended restaurants
-        2. Why each restaurant is recommended
-        3. Must-try dishes at each restaurant
-        4. Best time to visit (lunch/dinner)
-        5. Reservation recommendations
-        6. Any local dining etiquette tips
-        
-        Also categorize restaurants by:
-        - Fine dining experiences
-        - Casual local favorites
-        - Street food/markets
-        - Breakfast/brunch spots
-        
-        Format the response to be informative and helpful for travelers.
+    def __init__(self, model: str = "gemini-1.5-flash"):
         """
+        Initialize the RestaurantAgent.
         
-        response = await self.generate_async(query)
+        Args:
+            model: The Gemini model to use for the agent.
+        """
+        self.agent = Agent(
+            name="Restaurant Agent",
+            model=model,
+            tools=[google_search()],
+            system_prompt="""
+            You are an expert food and restaurant researcher specialized in finding the best dining 
+            options at travel destinations.
+            
+            Focus on providing:
+            - Local cuisine and specialties that shouldn't be missed
+            - Restaurants with authentic local food
+            - Popular dining establishments with great reviews
+            - Options for different price ranges (budget to fine dining)
+            - Dietary accommodations (vegetarian, vegan, gluten-free, etc.)
+            - Unique culinary experiences (food tours, cooking classes, etc.)
+            
+            For each recommendation, include:
+            - Name of the restaurant/dining option
+            - Type of cuisine
+            - Price range ($ to $$$$$)
+            - Signature dishes or must-try items
+            - Location details
+            - Notable features (view, ambiance, historical significance)
+            - Reservation requirements if relevant
+            
+            Always consider the traveler's dietary restrictions, cuisine preferences, and budget in your recommendations.
+            """
+        )
+    
+    async def find_restaurants(self, 
+                        location: str, 
+                        cuisine_type: Optional[str] = None,
+                        dietary_restrictions: Optional[List[str]] = None,
+                        price_range: Optional[str] = None,
+                        max_results: int = 5) -> Dict[str, Any]:
+        """
+        Find restaurant recommendations in a specific location based on user preferences.
         
-        # Process and enhance restaurant data
-        restaurants = search_results['restaurants']
+        Args:
+            location: The destination location.
+            cuisine_type: Type of cuisine preferred (optional).
+            dietary_restrictions: List of dietary restrictions (optional).
+            price_range: Budget range for dining (e.g., "budget", "medium", "luxury").
+            max_results: Maximum number of results to return.
+            
+        Returns:
+            Dictionary containing restaurant recommendations and related information.
+        """
+        logger.info(f"Searching restaurants in {location}")
         
-        # Add additional context based on LLM insights
-        for restaurant in restaurants:
-            restaurant['recommendation'] = f"Recommended for {budget} budget travelers"
-            restaurant['bestTimeToVisit'] = "Dinner" if restaurant['priceRange'] == "$$$" else "Lunch or Dinner"
-            restaurant['reservationTips'] = "Reserve in advance" if restaurant.get('bookingRequired') else "Walk-ins welcome"
+        # Prepare the query
+        query = f"What are the best restaurants and dining options in {location}?"
         
-        return {
-            "restaurants": restaurants,
-            "recommendations": response,
-            "dining_guide": {
-                "local_etiquette": "Check for local customs and tipping practices",
-                "peak_hours": "Lunch: 12-2 PM, Dinner: 7-9 PM",
-                "budget_tips": f"Look for lunch specials and set menus for better value in {destination}"
+        # Add cuisine preferences if provided
+        if cuisine_type:
+            query += f" for {cuisine_type} cuisine"
+        
+        # Add dietary restrictions if provided
+        if dietary_restrictions and len(dietary_restrictions) > 0:
+            restrictions = ", ".join(dietary_restrictions)
+            query += f" that accommodate {restrictions} dietary needs"
+        
+        # Add price range if provided
+        if price_range:
+            query += f" in the {price_range} price range"
+            
+        # Add results limit
+        query += f". Please recommend up to {max_results} dining options."
+        
+        # Execute the search
+        try:
+            response = await self.agent.run_async(query)
+            
+            return {
+                "success": True,
+                "location": location,
+                "recommendations": response,
+                "count": max_results,
+                "query": query
             }
-        }
+        except Exception as e:
+            logger.error(f"Error finding restaurants: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "message": "Failed to retrieve restaurant recommendations."
+            }
