@@ -1,26 +1,15 @@
-import os
 import json
-import asyncio
-import time
-import uuid
-from pathlib import Path
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Body, Query
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from google.genai.types import Part, Content
 from google.adk.runners import Runner
-from google.adk.agents import LiveRequestQueue
-from google.adk.agents.run_config import RunConfig
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
-
-# Import the agents
 from agents.travel_agent import root_agent, classify_intent
 from agents.activity_search_agent import activity_search_agent
 from agents.restaurant_agent import restaurant_agent
 
-# Load environment variables
 load_dotenv()
 
 app = FastAPI(title="Travel A2A Backend")
