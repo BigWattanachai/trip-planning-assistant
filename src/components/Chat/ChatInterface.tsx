@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User } from 'lucide-react';
 import { useTripPlanning } from '@/context/TripPlanningContext';
+import { TripData } from '@/context/TripPlanningContext';
 import TripInputForm from './TripInputForm';
 
 interface Message {
@@ -89,7 +90,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onPlanningStart, onPlanni
     // Simulate AI completion
     setTimeout(() => {
       // Mock trip data
-      const tripData = {
+      const tripData: TripData = {
         destination: tripInput.destination,
         departure: tripInput.departure,
         startDate: tripInput.startDate,

@@ -52,7 +52,7 @@ interface Video {
   viewCount: string;
 }
 
-interface Accommodation {
+export interface Accommodation {
   id: string;
   name: string;
   type: string;
@@ -66,7 +66,7 @@ interface Accommodation {
   bookingUrl: string;
 }
 
-interface TripData {
+export interface TripData {
   destination: string;
   departure: string;
   startDate: string;
