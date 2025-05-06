@@ -36,3 +36,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 backend/__pycache__
+backend/agents/__pycache__
