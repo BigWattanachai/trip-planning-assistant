@@ -2,20 +2,20 @@
 Travel Agent: A main agent that orchestrates specialized agents.
 """
 from google.adk.agents import Agent
+import sys
+import os
 
-# Import specialized agents
-from .activity_search_agent import activity_search_agent
-from .restaurant_agent import restaurant_agent
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
 
-# Dictionary of Thai keywords related to food and restaurants
 FOOD_KEYWORDS = [
     # Thai food-related words
-    "อาหาร", "ร้านอาหาร", "กิน", "อร่อย", "ร้าน", "อาหารเช้า", 
-    "อาหารกลางวัน", "อาหารเย็น", "มื้อ", "เมนู", "จาน", "ทาน", 
+    "อาหาร", "ร้านอาหาร", "กิน", "อร่อย", "ร้าน", "อาหารเช้า",
+    "อาหารกลางวัน", "อาหารเย็น", "มื้อ", "เมนู", "จาน", "ทาน",
     "รสชาติ", "ราคา", "ค่าอาหาร", "คาเฟ่", "กาแฟ", "ขนม", "ของหวาน",
     "อาหารพื้นเมือง", "อาหารเหนือ", "อาหารใต้", "อาหารอีสาน", "อาหารทะเล",
     "สั่งอาหาร", "เชฟ", "บุฟเฟ่ต์", "ร้านอร่อย", "ของกิน", "กับข้าว", "ของทานเล่น",
-    
+
     # English food-related words
     "restaurant", "food", "eat", "cafe", "breakfast", "lunch", "dinner",
     "meal", "dish", "menu", "cuisine", "delicious", "tasty", "dining", "snack",
@@ -26,13 +26,13 @@ FOOD_KEYWORDS = [
 # Dictionary of Thai keywords related to activities and attractions
 ACTIVITY_KEYWORDS = [
     # Thai activity-related words
-    "เที่ยว", "สถานที่", "ไป", "ดู", "เดินทาง", "กิจกรรม", "น้ำตก", 
-    "ทะเล", "ภูเขา", "วัด", "พิพิธภัณฑ์", "ตลาด", "ช้อปปิ้ง", 
+    "เที่ยว", "สถานที่", "ไป", "ดู", "เดินทาง", "กิจกรรม", "น้ำตก",
+    "ทะเล", "ภูเขา", "วัด", "พิพิธภัณฑ์", "ตลาด", "ช้อปปิ้ง",
     "ท่องเที่ยว", "ชายหาด", "อุทยาน", "ธรรมชาติ", "แลนด์มาร์ค", "ที่เที่ยว",
     "จุดชมวิว", "จุดถ่ายรูป", "สวนสาธารณะ", "สวนสนุก", "ปีนเขา", "เดินป่า",
     "เดินเล่น", "ชมวิว", "ศิลปะ", "วัฒนธรรม", "ประเพณี", "พระธาตุ", "เจดีย์",
     "โบราณสถาน", "ประวัติศาสตร์", "อนุสาวรีย์", "พิพิธภัณฑ์", "หมู่บ้าน", "ชุมชน",
-    
+
     # English activity-related words
     "activity", "attractions", "see", "visit", "place", "temple", "market", "beach",
     "sightseeing", "tourism", "tourist spots", "landmarks", "things to do", "places to see",
@@ -45,70 +45,73 @@ ACTIVITY_KEYWORDS = [
 def classify_intent(user_input: str, session_id: str = None) -> str:
     """
     Classify user intent as food, activity, or general travel based on keywords and conversation context.
-    
+
     Args:
         user_input: The user's input message
         session_id: Optional session ID to consider conversation history
-        
+
     Returns:
         String indicating the intent: "restaurant", "activity", or "travel"
-    """    
-    # Import conversation history here to avoid circular imports
-    from conversation_history import conversation_history
-    
+    """
+    # Import state manager here to avoid circular imports
+    try:
+        # First try direct import
+        from state_manager import state_manager
+    except ImportError:
+        try:
+            # Try with backend prefix
+            from backend.state_manager import state_manager
+        except ImportError:
+            # If all else fails, create a minimal state manager for this function
+            class MinimalStateManager:
+                def get_conversation_history(self, session_id, max_messages=10):
+                    return []
+            state_manager = MinimalStateManager()
+
     # Get previous messages for context if session_id provided
     previous_messages = []
     previous_agent_type = None
-    
+
     if session_id:
-        history = conversation_history.get_history(session_id)
+        history = state_manager.get_conversation_history(session_id, max_messages=5)
         # Check the last few messages for context
-        for i in range(len(history) - 1, max(-1, len(history) - 5), -1):
+        for i in range(len(history) - 1, -1, -1):
             message = history[i]
             previous_messages.append(message.get("content", ""))
-            
+
             # Check if the last assistant message was from a specific agent
             if message.get("role") == "assistant" and "agent_type" in message:
                 previous_agent_type = message.get("agent_type")
                 break
-    """
-    Classify user intent as food, activity, or general travel based on keywords.
-    
-    Args:
-        user_input: The user's input message
-        
-    Returns:
-        String indicating the intent: "restaurant", "activity", or "travel"
-    """
     # Lower case the input for case-insensitive matching
     user_input_lower = user_input.lower()
-    
+
     # Count keyword matches with weighting for phrase matches (more specific intent)
     food_score = 0
     activity_score = 0
-    
+
     # Special high-priority cases first
-    
+
     # Strong food-specific patterns
     if "ร้าน" in user_input_lower and "อร่อย" in user_input_lower:
         food_score += 10  # Very strong indicator for food
-    
+
     if "where" in user_input_lower and "eat" in user_input_lower:
         food_score += 10  # Very strong indicator for food
-    
+
     if "restaurant" in user_input_lower:
         food_score += 10  # Direct mention
-    
+
     # Strong activity-specific patterns
     if "where" in user_input_lower and "visit" in user_input_lower:
         activity_score += 10  # Very strong indicator for activities
-    
+
     if "attraction" in user_input_lower:
         activity_score += 10  # Direct mention
-    
+
     if "ที่เที่ยว" in user_input_lower:
         activity_score += 10  # Direct mention
-    
+
     # Check for food-related keywords
     for word in FOOD_KEYWORDS:
         word_lower = word.lower()
@@ -118,7 +121,7 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
                 food_score += 2
             else:
                 food_score += 1
-    
+
     # Check for activity-related keywords
     for word in ACTIVITY_KEYWORDS:
         word_lower = word.lower()
@@ -128,62 +131,59 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
                 activity_score += 2
             else:
                 activity_score += 1
-    
+
     # Specific phrase boost for very clear intent signals
     food_specific_phrases = [
-        "ร้านอาหาร", "ที่กิน", "จะกินที่ไหน", "อาหารอร่อย", 
-        "where to eat", "restaurant recommend", "should i eat", "good food", 
+        "ร้านอาหาร", "ที่กิน", "จะกินที่ไหน", "อาหารอร่อย",
+        "where to eat", "restaurant recommend", "should i eat", "good food",
         "food in", "restaurants in", "dining", "where can i eat"
     ]
-    
+
     activity_specific_phrases = [
-        "ที่เที่ยว", "สถานที่ท่องเที่ยว", "อยากไปเที่ยว", 
+        "ที่เที่ยว", "สถานที่ท่องเที่ยว", "อยากไปเที่ยว",
         "places to visit", "attractions", "things to do", "where to go",
         "places to see", "visit in", "tourist spots", "temples in"
     ]
-    
+
     # Special case for temple (วัด) - it's a common attraction in Thailand
     if "วัด" in user_input_lower or "temple" in user_input_lower:
         activity_score += 3
-    
+
     for phrase in food_specific_phrases:
         if phrase.lower() in user_input_lower:
             food_score += 5  # Strong boost for very clear food intent
-    
+
     for phrase in activity_specific_phrases:
         if phrase.lower() in user_input_lower:
             activity_score += 5  # Strong boost for very clear activity intent
-    
-    # Handle the specific case "ร้านไหนอร่อยในจังหวัดน่าน" 
+
+    # Handle the specific case "ร้านไหนอร่อยในจังหวัดน่าน"
     # If both "ร้าน" and "อร่อย" are present, it's very likely about restaurants
     if "ร้าน" in user_input_lower and "อร่อย" in user_input_lower:
         food_score += 10
-    
-    # Print scores for debugging
-    print(f"[INTENT SCORES] Food: {food_score}, Activity: {activity_score}")
-    
+
+
     # Check if the message is a follow-up question to a previous agent response
     is_follow_up = False
     follow_up_indicators = [
         "เพิ่มเติม", "แล้ว", "ด้วย", "อีก", "ต่อ", "พวกนี้",  # Thai follow-up indicators
         "more", "also", "another", "additional", "and", "what about", "those"  # English follow-up indicators
     ]
-    
+
     # Simple questions are often follow-ups
     if len(user_input.split()) <= 5:
         is_follow_up = True
-    
+
     # Check for follow-up phrases
     for indicator in follow_up_indicators:
         if indicator in user_input.lower():
             is_follow_up = True
             break
-    
+
     # If this is a follow-up and we have a previous agent type, use that
     if is_follow_up and previous_agent_type and previous_agent_type != "travel":
-        print(f"[INTENT CLASSIFICATION] Follow-up detected, using previous agent type: {previous_agent_type}")
         return previous_agent_type
-    
+
     # Determine intent based on weighted score with thresholds
     if food_score > activity_score and food_score >= 2:
         return "restaurant"
@@ -205,31 +205,31 @@ root_agent = Agent(
     instruction="""
     You are a helpful travel planning assistant. Your job is to help users plan their travels to destinations
     in Thailand. You should understand the user's intent and provide appropriate information.
-    
+
     If the user asks about food, restaurants, or dining, you should call the restaurant agent.
     If the user asks about activities, attractions, or things to do, you should call the activity agent.
-    
+
     If the user's request is general or combines multiple aspects of travel, you should provide
     a comprehensive response covering all relevant aspects.
-    
+
     Always be friendly, informative, and conversational. Start responses with a friendly greeting in Thai.
-    
+
     If the user doesn't provide enough information, ask follow-up questions to better understand their needs.
     For example, if they just mention a destination without specifying interests, ask what kinds of activities
     or food experiences they're interested in.
-    
+
     When responding about costs, always use Thai Baht (THB).
-    
+
     Examples of food-related queries:
     - ร้านอาหารที่ไหนอร่อยที่สุดในกรุงเทพ?
     - แนะนำร้านอาหารในเชียงใหม่หน่อย
     - อยากกินอาหารทะเลในภูเก็ต
-    
+
     Examples of activity-related queries:
     - มีที่เที่ยวอะไรบ้างในกรุงเทพ?
     - แนะนำสถานที่ท่องเที่ยวในเชียงใหม่
     - อยากไปเที่ยวทะเลที่ภูเก็ต
-    
+
     Remember that your goal is to provide the most helpful and accurate information to assist
     the user in planning their travel.
     """

@@ -1,10 +1,9 @@
 """
 Activity Search Agent: An agent for finding activities in a destination with tools.
 """
-import json
-import requests
 from typing import List, Dict, Any, Optional
 from google.adk.agents import Agent
+
 
 def search_activities(location: str, interests: Optional[List[str]] = None) -> Dict[str, Any]:
     """
@@ -93,8 +92,8 @@ def search_activities(location: str, interests: Optional[List[str]] = None) -> D
         filtered_activities = []
         for activity in activities:
             # Simple matching - in a real implementation, this would be more sophisticated
-            if any(interest.lower() in activity["type"].lower() or 
-                   interest.lower() in activity["description"].lower() 
+            if any(interest.lower() in activity["type"].lower() or
+                   interest.lower() in activity["description"].lower()
                    for interest in interests):
                 filtered_activities.append(activity)
 
@@ -102,6 +101,7 @@ def search_activities(location: str, interests: Optional[List[str]] = None) -> D
         activities = filtered_activities if filtered_activities else activities
 
     return {"activities": activities}
+
 
 def get_activity_details(activity_name: str, location: str) -> Dict[str, Any]:
     """
@@ -164,6 +164,7 @@ def get_activity_details(activity_name: str, location: str) -> Dict[str, Any]:
             "tips": "We recommend checking official websites or local tourist information centers for the most up-to-date information.",
             "nearby": "Information not available"
         }
+
 
 # Create the activity search agent with tools
 activity_search_agent = Agent(

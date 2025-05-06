@@ -1,12 +1,12 @@
 """
 Restaurant Agent: An agent for finding restaurants in a destination with tools.
 """
-import json
-import requests
 from typing import List, Dict, Any, Optional
 from google.adk.agents import Agent
 
-def search_restaurants(location: str, cuisine_type: Optional[str] = None, dietary_requirements: Optional[List[str]] = None) -> Dict[str, Any]:
+
+def search_restaurants(location: str, cuisine_type: Optional[str] = None,
+                       dietary_requirements: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Search for restaurants in a specific location based on cuisine type and dietary requirements.
 
@@ -130,7 +130,7 @@ def search_restaurants(location: str, cuisine_type: Optional[str] = None, dietar
         dietary_friendly_restaurants = []
         for restaurant in restaurants:
             # Check if any dietary requirement is mentioned in the description or special features
-            if any(req.lower() in restaurant["description"].lower() or 
+            if any(req.lower() in restaurant["description"].lower() or
                    req.lower() in restaurant["special_features"].lower() or
                    req.lower() in restaurant["cuisine"].lower()
                    for req in dietary_requirements):
@@ -141,6 +141,7 @@ def search_restaurants(location: str, cuisine_type: Optional[str] = None, dietar
             restaurants = dietary_friendly_restaurants
 
     return {"restaurants": restaurants}
+
 
 def get_restaurant_details(restaurant_name: str, location: str) -> Dict[str, Any]:
     """
@@ -211,6 +212,7 @@ def get_restaurant_details(restaurant_name: str, location: str) -> Dict[str, Any
             "reservation_info": "We recommend checking the restaurant's official website or calling directly for reservation information.",
             "reviews": "Information not available"
         }
+
 
 # Create the restaurant agent with tools
 restaurant_agent = Agent(
