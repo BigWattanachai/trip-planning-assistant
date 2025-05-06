@@ -6,9 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from google.genai.types import Part, Content
 from google.adk.runners import Runner
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
-from agents.travel_agent import root_agent, classify_intent
+from agents.travel_agent import root_agent
 from agents.activity_search_agent import activity_search_agent
 from agents.restaurant_agent import restaurant_agent
+from conversation_history import conversation_history
+from agent_orchestrator import orchestrator
 
 load_dotenv()
 
@@ -65,7 +67,7 @@ def get_session_and_runner(session_id: str, agent_type: str = "travel"):
 
 
 async def get_agent_response_async(user_message: str, agent_type: str = "travel", session_id: str = None):
-    """Gets a response from the agent asynchronously using Google ADK"""
+    """Gets a response from the agent asynchronously using Google ADK and the orchestrator"""
     try:
         # Use a common user ID
         user_id = "user_123"
@@ -73,18 +75,13 @@ async def get_agent_response_async(user_message: str, agent_type: str = "travel"
         # Get or create session service and runner
         session_service, runner = get_session_and_runner(session_id, agent_type)
         
-        # Create a content object with the user's message
-        content = Content(role="user", parts=[Part(text=user_message)])
-        
-        # Run the agent asynchronously with the retrieved session
-        print(f"Running async with user_id={user_id}, session_id={session_id}, agent_type={agent_type}")
-        
         accumulated_text = ""
         final_response = ""
         partial_count = 0  # Track number of partial updates to avoid excessive streaming
         
         try:
-            async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=content):
+            # Use the orchestrator to process the message and get events
+            async for event in orchestrator.process_message(user_message, session_id, runner):
                 # Check if this is a partial response - only send every 3rd partial to reduce message count
                 if hasattr(event, 'is_partial') and event.is_partial():
                     if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
@@ -176,9 +173,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
                 is_processing = True
                 try:
-                    # Classify user intent
-                    agent_type = classify_intent(user_message)
-                    print(f"[INTENT CLASSIFICATION]: Detected intent as '{agent_type}'")
+                    # Use orchestrator to classify user intent with session context
+                    detected_agent_type = orchestrator.classify_intent(user_message, session_id)
+                    print(f"[INTENT CLASSIFICATION]: Detected intent as '{detected_agent_type}'")
+                    
+                    # Override agent_type with detected type for better routing
+                    agent_type = detected_agent_type
                     
                     # Get streamed responses from the appropriate agent
                     async for response_part in get_agent_response_async(user_message, agent_type=agent_type, session_id=session_id):
@@ -297,6 +297,16 @@ async def agent_websocket_endpoint(websocket: WebSocket, session_id: str, agent_
 
                 is_processing = True
                 try:
+                    # Override agent_type with what's detected in case of follow-ups
+                    detected_agent_type = orchestrator.classify_intent(user_message, session_id)
+                    print(f"[INTENT CLASSIFICATION FOR SPECIALIZED AGENT]: Detected intent as '{detected_agent_type}'")
+
+                    # Keep using the specialized agent that the user connected to 
+                    # unless we're in a follow-up context and should switch
+                    if detected_agent_type != agent_type and detected_agent_type != "travel":
+                        print(f"Switching from {agent_type} to {detected_agent_type} for follow-up query")
+                        agent_type = detected_agent_type
+                    
                     # Get streamed responses from agent
                     async for response_part in get_agent_response_async(user_message, agent_type, session_id):
                         # Send response part to client

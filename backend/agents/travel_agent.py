@@ -42,7 +42,35 @@ ACTIVITY_KEYWORDS = [
     "what to see", "where to visit"
 ]
 
-def classify_intent(user_input: str) -> str:
+def classify_intent(user_input: str, session_id: str = None) -> str:
+    """
+    Classify user intent as food, activity, or general travel based on keywords and conversation context.
+    
+    Args:
+        user_input: The user's input message
+        session_id: Optional session ID to consider conversation history
+        
+    Returns:
+        String indicating the intent: "restaurant", "activity", or "travel"
+    """    
+    # Import conversation history here to avoid circular imports
+    from conversation_history import conversation_history
+    
+    # Get previous messages for context if session_id provided
+    previous_messages = []
+    previous_agent_type = None
+    
+    if session_id:
+        history = conversation_history.get_history(session_id)
+        # Check the last few messages for context
+        for i in range(len(history) - 1, max(-1, len(history) - 5), -1):
+            message = history[i]
+            previous_messages.append(message.get("content", ""))
+            
+            # Check if the last assistant message was from a specific agent
+            if message.get("role") == "assistant" and "agent_type" in message:
+                previous_agent_type = message.get("agent_type")
+                break
     """
     Classify user intent as food, activity, or general travel based on keywords.
     
@@ -133,6 +161,28 @@ def classify_intent(user_input: str) -> str:
     
     # Print scores for debugging
     print(f"[INTENT SCORES] Food: {food_score}, Activity: {activity_score}")
+    
+    # Check if the message is a follow-up question to a previous agent response
+    is_follow_up = False
+    follow_up_indicators = [
+        "เพิ่มเติม", "แล้ว", "ด้วย", "อีก", "ต่อ", "พวกนี้",  # Thai follow-up indicators
+        "more", "also", "another", "additional", "and", "what about", "those"  # English follow-up indicators
+    ]
+    
+    # Simple questions are often follow-ups
+    if len(user_input.split()) <= 5:
+        is_follow_up = True
+    
+    # Check for follow-up phrases
+    for indicator in follow_up_indicators:
+        if indicator in user_input.lower():
+            is_follow_up = True
+            break
+    
+    # If this is a follow-up and we have a previous agent type, use that
+    if is_follow_up and previous_agent_type and previous_agent_type != "travel":
+        print(f"[INTENT CLASSIFICATION] Follow-up detected, using previous agent type: {previous_agent_type}")
+        return previous_agent_type
     
     # Determine intent based on weighted score with thresholds
     if food_score > activity_score and food_score >= 2:
