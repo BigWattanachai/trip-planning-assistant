@@ -10,6 +10,10 @@ interface Activity {
   openingHours: string;
   imageUrl: string;
   category: string;
+  location: string;
+  price: string;
+  highlights: string[] ;
+  bestTimeToVisit: string;
 }
 
 interface Restaurant {
@@ -20,6 +24,10 @@ interface Restaurant {
   rating: number;
   reviewHighlight: string;
   imageUrl: string;
+  location: string;
+  hours: string;
+  reservationRequired: boolean;
+  specialties: string[];
 }
 
 interface Flight {
@@ -30,16 +38,22 @@ interface Flight {
     airport: string;
     time: string;
     date: string;
+    terminal: string;
   };
   arrival: {
     airport: string;
     time: string;
     date: string;
+    terminal: string;
   };
   duration: string;
   price: number;
+  stops: number;
   class: string;
   bookingUrl: string;
+  layover: string;
+  cancellationPolicy: string;
+  amenities: string[];
 }
 
 interface Video {
@@ -50,6 +64,9 @@ interface Video {
   embedUrl: string;
   duration: string;
   viewCount: string;
+  likes: string;
+  channel: string;
+  publishDate: string;
 }
 
 export interface Accommodation {
@@ -64,6 +81,16 @@ export interface Accommodation {
   imageUrl: string;
   platform: 'Airbnb' | 'Agoda' | 'TripAdvisor';
   bookingUrl: string;
+  location: string;
+  description: string;
+  distance: string;
+}
+
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
 }
 
 export interface TripData {
@@ -71,6 +98,7 @@ export interface TripData {
   departure: string;
   startDate: string;
   endDate: string;
+  travelers: string;
   budget: string;
   activities: Activity[];
   restaurants: Restaurant[];
@@ -83,17 +111,21 @@ interface TripPlanningState {
   tripData: TripData | null;
   isLoading: boolean;
   error: string | null;
+  messages: Message[];
 }
 
 type TripPlanningAction =
   | { type: 'SET_TRIP_DATA'; payload: TripData }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string | null };
+  | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'ADD_MESSAGE'; payload: Message }
+  | { type: 'SET_MESSAGES'; payload: Message[] };
 
 const initialState: TripPlanningState = {
   tripData: null,
   isLoading: false,
   error: null,
+  messages: [],
 };
 
 const tripPlanningReducer = (
@@ -107,6 +139,10 @@ const tripPlanningReducer = (
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
       return { ...state, error: action.payload, isLoading: false };
+    case 'ADD_MESSAGE':
+      return { ...state, messages: [...state.messages, action.payload] };
+    case 'SET_MESSAGES':
+      return { ...state, messages: action.payload };
     default:
       return state;
   }
