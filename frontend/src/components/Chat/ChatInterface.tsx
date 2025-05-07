@@ -10,6 +10,23 @@ interface ChatInterfaceProps {
     onPlanningComplete: () => void;
 }
 
+// Helper function to create sample trip data
+const createSampleTripData = (tripInput?: any): TripData => {
+    const destination = tripInput?.destination || "Bangkok";
+    const departure = tripInput?.departure || "No departure specified";
+    const startDate = tripInput?.startDate || "2023-05-10";
+    const endDate = tripInput?.endDate || "2023-05-15";
+    const budget = tripInput?.budgetRange || "฿30,000";
+
+    return {
+        destination,
+        departure,
+        startDate,
+        endDate,
+        budget,
+    };
+};
+
 // Helper function to parse trip data from AI response
 const extractTripDataFromResponse = (messages: Message[]): TripData | null => {
     try {
@@ -52,124 +69,13 @@ const extractTripDataFromResponse = (messages: Message[]): TripData | null => {
 
         // Check for common patterns in the text
         const destinationMatch = lastMessage.match(/(?:เที่ยว|ไป|ท่องเที่ยว)\s*(?:ที่|ยัง)?\s*([^,\.\n]+)/i);
-        const dateMatch = lastMessage.match(/(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})\s*(?:ถึง|to|-)\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})/i);
-        const budgetMatch = lastMessage.match(/งบประมาณ\s*(?:ประมาณ)?\s*([^,\.\n]+)(?:บาท|฿)/i);
 
-        // Create hardcoded sample data for testing
-        // This is a temporary measure to confirm the Canvas display works
-        const sampleData: TripData = {
-            destination: destinationMatch ? destinationMatch[1].trim() : "Bangkok",
-            departure: "No departure specified",
-            startDate: dateMatch ? dateMatch[1] : "2023-05-10",
-            endDate: dateMatch ? dateMatch[2] : "2023-05-15",
-            budget: budgetMatch ? budgetMatch[1] : "฿30,000",
-            travelers: "2",
-            activities: [
-                {
-                    id: '1',
-                    name: 'Grand Palace',
-                    description: 'The Grand Palace is a complex of buildings at the heart of Bangkok, Thailand. The palace has been the official residence of the Kings of Siam since 1782.',
-                    rating: 4.8,
-                    openingHours: '8:30 AM - 3:30 PM',
-                    imageUrl: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=800&auto=format&fit=crop&q=60',
-                    category: 'Cultural',
-                    location: 'Na Phra Lan Road, Bangkok',
-                    price: '฿500 per person',
-                    highlights: ['Emerald Buddha', 'Throne Halls', 'Royal decorations'],
-                    bestTimeToVisit: 'Early morning'
-                },
-            ],
-            restaurants: [
-                {
-                    id: '1',
-                    name: 'Thipsamai Pad Thai',
-                    cuisine: 'Thai',
-                    priceRange: '฿฿',
-                    rating: 4.7,
-                    reviewHighlight: 'The best Pad Thai in Bangkok, a must-visit for authentic Thai flavors!',
-                    imageUrl: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?w=800&auto=format&fit=crop&q=60',
-                    location: 'Maha Chai Road, Bangkok',
-                    hours: '5:00 PM - 2:00 AM',
-                    specialties: ['Pad Thai', 'Fresh spring rolls', 'Orange juice'],
-                    reservationRequired: false
-                },
-                {
-                    id: '2',
-                    name: 'Raan Jay Fai',
-                    cuisine: 'Thai Street Food',
-                    priceRange: '฿฿฿',
-                    rating: 4.9,
-                    reviewHighlight: 'Michelin-starred street food that lives up to the hype. The crab omelette is legendary!',
-                    imageUrl: 'https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?w=800&auto=format&fit=crop&q=60',
-                    location: 'Maha Chai Road, Bangkok',
-                    hours: '2:00 PM - 12:00 AM',
-                    specialties: ['Crab omelette', 'Drunken noodles', 'Tom Yum'],
-                    reservationRequired: true
-                }
-            ],
-            flights: [
-                {
-                    id: '1',
-                    airline: 'Thai Airways',
-                    flightNumber: 'TG102',
-                    departure: {
-                        airport: 'SFO',
-                        time: '23:55',
-                        date: '2023-05-10',
-                        terminal: 'I'
-                    },
-                    arrival: {
-                        airport: 'BKK',
-                        time: '06:50',
-                        date: '2023-05-12',
-                        terminal: 'M'
-                    },
-                    duration: '15h 55m',
-                    price: 29750,
-                    class: 'Economy',
-                    bookingUrl: 'https://www.thaiairways.com',
-                    stops: 1,
-                    layover: '2h 30m in Tokyo',
-                    amenities: ['In-flight meals', 'Wi-Fi', 'Entertainment'],
-                    cancellationPolicy: 'Free cancellation up to 24 hours before departure'
-                }
-            ],
-            videos: [
-                {
-                    id: '1',
-                    title: 'Bangkok Travel Guide - Best Things to Do',
-                    description: 'Complete guide to Bangkok covering temples, markets, food, and nightlife.',
-                    thumbnail: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800&auto=format&fit=crop&q=60',
-                    embedUrl: 'https://www.youtube.com/embed/tO01J-M3g0U',
-                    duration: '12:45',
-                    viewCount: '250K',
-                    likes: '15K',
-                    channel: 'Travel Guides',
-                    publishDate: '2023-01-15',
-                }
-            ],
-            accommodations: [
-                {
-                    id: '1',
-                    name: 'The Siam Hotel',
-                    type: 'Luxury Hotel',
-                    rating: 4.9,
-                    reviewCount: 342,
-                    price: 8750,
-                    priceUnit: 'night',
-                    amenities: ['WiFi', 'Pool', 'Private Bathroom', 'Breakfast', 'Spa', 'Fitness Center'],
-                    imageUrl: 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=800&auto=format&fit=crop&q=60',
-                    platform: 'Agoda',
-                    bookingUrl: 'https://www.agoda.com',
-                    location: 'Riverside, Bangkok',
-                    description: 'An urban luxury resort with exquisite design and personalized service.',
-                    distance: '5 km'
-                }
-            ]
-        };
+        if (destinationMatch) {
+            // If we found a destination, create a sample trip data with that destination
+            return createSampleTripData({ destination: destinationMatch[1].trim() });
+        }
 
-        console.log("Using sample trip data for testing");
-        return sampleData;
+        return null;
     } catch (error) {
         console.error("Error extracting trip data:", error);
         return null;
@@ -375,13 +281,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
 
             const timer = setTimeout(() => {
                 console.log("Timer expired, forcing trip data update with sample data");
-                const tripData = extractTripDataFromResponse(state.messages);
-                if (tripData) {
-                    dispatch({type: 'SET_TRIP_DATA', payload: tripData});
-                    dispatch({type: 'SET_LOADING', payload: false});
-                    onPlanningComplete();
-                    setIsPlanningTrip(false);
-                }
+                const tripData = extractTripDataFromResponse(state.messages) || createSampleTripData();
+                dispatch({type: 'SET_TRIP_DATA', payload: tripData});
+                dispatch({type: 'SET_LOADING', payload: false});
+                onPlanningComplete();
+                setIsPlanningTrip(false);
             }, 10000);
 
             setProcessingTimer(timer);
@@ -456,118 +360,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
         // Set a timer to use sample data if no results
         const timer = setTimeout(() => {
             console.log("Trip input timer expired, forcing update with sample data");
-            // Create a direct trip data object from the form input
-            const sampleTripData: TripData = {
-                destination: tripInput.destination,
-                departure: tripInput.departure,
-                startDate: tripInput.startDate,
-                endDate: tripInput.endDate,
-                budget: tripInput.budgetRange,
-                travelers: "2",
-                activities: [
-                    {
-                        id: '1',
-                        name: 'Grand Palace',
-                        description: 'The Grand Palace is a complex of buildings at the heart of Bangkok, Thailand. The palace has been the official residence of the Kings of Siam since 1782.',
-                        rating: 4.8,
-                        openingHours: '8:30 AM - 3:30 PM',
-                        imageUrl: 'https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=800&auto=format&fit=crop&q=60',
-                        category: 'Cultural',
-                        location: 'Na Phra Lan Road, Bangkok',
-                        price: '฿500 per person',
-                        highlights: ['Emerald Buddha', 'Throne Halls', 'Royal decorations'],
-                        bestTimeToVisit: 'Early morning'
-                    },
-                ],
-                restaurants: [
-                    {
-                        id: '1',
-                        name: 'Thipsamai Pad Thai',
-                        cuisine: 'Thai',
-                        priceRange: '฿฿',
-                        rating: 4.7,
-                        reviewHighlight: 'The best Pad Thai in Bangkok, a must-visit for authentic Thai flavors!',
-                        imageUrl: 'https://images.unsplash.com/photo-1559314809-0d155014e29e?w=800&auto=format&fit=crop&q=60',
-                        location: 'Maha Chai Road, Bangkok',
-                        hours: '5:00 PM - 2:00 AM',
-                        specialties: ['Pad Thai', 'Fresh spring rolls', 'Orange juice'],
-                        reservationRequired: false
-                    },
-                    {
-                        id: '2',
-                        name: 'Raan Jay Fai',
-                        cuisine: 'Thai Street Food',
-                        priceRange: '฿฿฿',
-                        rating: 4.9,
-                        reviewHighlight: 'Michelin-starred street food that lives up to the hype. The crab omelette is legendary!',
-                        imageUrl: 'https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?w=800&auto=format&fit=crop&q=60',
-                        location: 'Maha Chai Road, Bangkok',
-                        hours: '2:00 PM - 12:00 AM',
-                        specialties: ['Crab omelette', 'Drunken noodles', 'Tom Yum'],
-                        reservationRequired: true
-                    }
-                ],
-                flights: [
-                    {
-                        id: '1',
-                        airline: 'Thai Airways',
-                        flightNumber: 'TG102',
-                        departure: {
-                            airport: 'SFO',
-                            time: '23:55',
-                            date: tripInput.startDate,
-                            terminal: 'I'
-                        },
-                        arrival: {
-                            airport: 'BKK',
-                            time: '06:50',
-                            date: tripInput.startDate,
-                            terminal: 'M'
-                        },
-                        duration: '15h 55m',
-                        price: 29750,
-                        class: 'Economy',
-                        bookingUrl: 'https://www.thaiairways.com',
-                        stops: 1,
-                        layover: '2h 30m in Tokyo',
-                        amenities: ['In-flight meals', 'Wi-Fi', 'Entertainment'],
-                        cancellationPolicy: 'Free cancellation up to 24 hours before departure'
-                    }
-                ],
-                videos: [
-                    {
-                        id: '1',
-                        title: `${tripInput.destination} Travel Guide - Best Things to Do`,
-                        description: `Complete guide to ${tripInput.destination} covering temples, markets, food, and nightlife.`,
-                        thumbnail: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=800&auto=format&fit=crop&q=60',
-                        embedUrl: 'https://www.youtube.com/embed/tO01J-M3g0U',
-                        duration: '12:45',
-                        viewCount: '250K',
-                        likes: '15K',
-                        channel: 'Travel Guides',
-                        publishDate: '2023-01-15',
-                    }
-                ],
-                accommodations: [
-                    {
-                        id: '1',
-                        name: 'Luxury Resort',
-                        type: 'Luxury Hotel',
-                        rating: 4.9,
-                        reviewCount: 342,
-                        price: 8750,
-                        priceUnit: 'night',
-                        amenities: ['WiFi', 'Pool', 'Private Bathroom', 'Breakfast', 'Spa', 'Fitness Center'],
-                        imageUrl: 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=800&auto=format&fit=crop&q=60',
-                        platform: 'Agoda',
-                        bookingUrl: 'https://www.agoda.com',
-                        location: `Downtown, ${tripInput.destination}`,
-                        description: 'An urban luxury resort with exquisite design and personalized service.',
-                        distance: '5 km'
-                    }
-                ]
-            };
-
+            const sampleTripData = createSampleTripData(tripInput);
             dispatch({type: 'SET_TRIP_DATA', payload: sampleTripData});
             dispatch({type: 'SET_LOADING', payload: false});
             onPlanningComplete();
@@ -613,10 +406,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
 
                 // Still use the sample data to show something
                 setTimeout(() => {
-                    const tripData = extractTripDataFromResponse(state.messages);
-                    if (tripData) {
-                        dispatch({type: 'SET_TRIP_DATA', payload: tripData});
-                    }
+                    const tripData = extractTripDataFromResponse(state.messages) || createSampleTripData(tripInput);
+                    dispatch({type: 'SET_TRIP_DATA', payload: tripData});
                     dispatch({type: 'SET_LOADING', payload: false});
                     onPlanningComplete();
                     setIsPlanningTrip(false);
@@ -632,10 +423,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
 
             // Still use the sample data to show something
             setTimeout(() => {
-                const tripData = extractTripDataFromResponse(state.messages);
-                if (tripData) {
-                    dispatch({type: 'SET_TRIP_DATA', payload: tripData});
-                }
+                const tripData = extractTripDataFromResponse(state.messages) || createSampleTripData(tripInput);
+                dispatch({type: 'SET_TRIP_DATA', payload: tripData});
                 dispatch({type: 'SET_LOADING', payload: false});
                 onPlanningComplete();
                 setIsPlanningTrip(false);

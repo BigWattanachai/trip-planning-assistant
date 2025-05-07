@@ -98,13 +98,7 @@ export interface TripData {
   departure: string;
   startDate: string;
   endDate: string;
-  travelers: string;
   budget: string;
-  activities: Activity[];
-  restaurants: Restaurant[];
-  flights: Flight[];
-  videos: Video[];
-  accommodations: Accommodation[];
 }
 
 interface TripPlanningState {
