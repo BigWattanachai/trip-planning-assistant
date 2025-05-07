@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin, CalendarDays, DollarSign } from 'lucide-react';
 
 interface TripInputFormProps {
@@ -19,8 +19,31 @@ const TripInputForm: React.FC<TripInputFormProps> = ({ onSubmit }) => {
     destination: '',
     startDate: '',
     endDate: '',
-    budgetRange: 'medium',
+    budgetRange: '30000',
   });
+
+  // Helper function to format date to YYYY-MM-DD
+  const formatDateToString = (date: Date): string => {
+    return date.toISOString().split('T')[0];
+  };
+
+  // Calculate default dates when component mounts
+  useEffect(() => {
+    // Calculate start date (current date + 7 days)
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 7);
+    
+    // Calculate end date (start date + 5 days)
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 5);
+    
+    // Update form data with formatted dates
+    setFormData(prev => ({
+      ...prev,
+      startDate: formatDateToString(startDate),
+      endDate: formatDateToString(endDate)
+    }));
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +73,7 @@ const TripInputForm: React.FC<TripInputFormProps> = ({ onSubmit }) => {
             name="departure"
             value={formData.departure}
             onChange={handleChange}
-            placeholder="e.g., San Francisco"
+            placeholder="e.g., กรุงเทพ"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
           />
@@ -68,7 +91,7 @@ const TripInputForm: React.FC<TripInputFormProps> = ({ onSubmit }) => {
             name="destination"
             value={formData.destination}
             onChange={handleChange}
-            placeholder="e.g., Bangkok"
+            placeholder="e.g., เชียงใหม่"
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             required
           />
@@ -122,9 +145,9 @@ const TripInputForm: React.FC<TripInputFormProps> = ({ onSubmit }) => {
           onChange={handleChange}
           className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
         >
-          <option value="budget">Budget (฿ - Under ฿35,000)</option>
-          <option value="medium">Medium (฿฿ - ฿35,000-฿105,000)</option>
-          <option value="luxury">Luxury (฿฿฿ - Above ฿105,000)</option>
+          <option value="ไม่เกิน ฿15,000 บาท">Budget (฿ - Under ฿15,000)</option>
+          <option value="฿15,000-฿30,000 บาท">Medium (฿฿ - ฿15,000-฿30,000)</option>
+          <option value="฿50,000 บาท">Luxury (฿฿฿ - Above ฿50,000)</option>
         </select>
       </div>
 
