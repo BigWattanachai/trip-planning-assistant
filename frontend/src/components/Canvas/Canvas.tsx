@@ -1,6 +1,6 @@
 import React, {useEffect} from 'react';
 import {useTripPlanning} from '@/context/TripPlanningContext';
-import {MapPin, Calendar, Users, Plane} from 'lucide-react';
+import {MapPin, Calendar, Users, Plane, MessageSquare, Loader2} from 'lucide-react';
 import {motion} from 'framer-motion';
 
 interface CanvasProps {
@@ -144,6 +144,126 @@ const Canvas: React.FC<CanvasProps> = ({isPlanning}) => {
 
     return (
         <div className="h-full overflow-y-auto bg-gradient-to-b from-blue-50 to-white">
+            {renderWelcomeMessage && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8 }}
+                    className="h-full flex items-center justify-center"
+                >
+                    <div className="text-center max-w-2xl mx-auto px-6">
+                        <div className="inline-block p-3 bg-blue-100 rounded-full mb-6">
+                            <Plane className="w-10 h-10 text-primary-500" />
+                        </div>
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to Travel Planner</h2>
+                        <p className="text-gray-600 mb-8 text-lg">
+                            Start planning your perfect trip by providing your travel details.
+                        </p>
+                        <p className="text-gray-500 mb-6">
+                            เพียงแชทบอกเราที่ช่องด้านขวาว่าอยากเดินทางไปไหน
+                            หรือใช้แบบฟอร์มกรอกรายละเอียด จุดหมายปลายทาง วันที่ และงบประมาณของคุณก็ได้ง่ายๆ
+                            แล้วการเดินทางของคุณจะเริ่มต้นขึ้นทันที!
+                        </p>
+                        <div className="w-80 h-80 mx-auto relative">
+                            <div className="absolute inset-0 bg-blue-500 rounded-full opacity-10 animate-pulse"></div>
+                            <img
+                                src="/travel-illustration.svg"
+                                alt="Travel planning illustration"
+                                className="w-full h-full object-contain relative z-10"
+                            />
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
+            {renderChatOnly && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8 }}
+                    className="h-full p-8"
+                >
+                    <div className="bg-white rounded-2xl shadow-lg p-8 mb-8">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Chat with our Travel Assistant</h2>
+                        <p className="text-gray-600 mb-4">
+                            You're chatting with our AI travel assistant. When you're ready to plan a trip,
+                            just ask about planning a trip to your desired destination.
+                        </p>
+                    </div>
+
+                    {/* Chat Messages Section */}
+                    {state.messages.length > 0 && (
+                        <div className="bg-white rounded-2xl shadow-lg p-8">
+                            <div className="flex items-center mb-6">
+                                <MessageSquare className="w-6 h-6 text-primary-500 mr-3" />
+                                <h2 className="text-2xl font-bold text-gray-900">Chat History</h2>
+                            </div>
+                            <div className="space-y-4">
+                                {state.messages.map((message) => (
+                                    <div
+                                        key={message.id}
+                                        className={`p-4 rounded-lg ${
+                                            message.role === 'user'
+                                                ? 'bg-primary-50 border-l-4 border-primary-500 ml-8'
+                                                : 'bg-gray-50 border-l-4 border-gray-300 mr-8'
+                                        }`}
+                                    >
+                                        <div className="flex items-center mb-2">
+                                            <div
+                                                className={`w-8 h-8 rounded-full flex items-center justify-center mr-2 ${
+                                                    message.role === 'user' ? 'bg-primary-500' : 'bg-gray-500'
+                                                }`}
+                                            >
+                                                <span className="text-white text-xs font-bold">
+                                                    {message.role === 'user' ? 'You' : 'AI'}
+                                                </span>
+                                            </div>
+                                            <span className="text-xs text-gray-500">
+                                                {new Date(message.timestamp).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <p className="text-gray-700 whitespace-pre-wrap">{message.content}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </motion.div>
+            )}
+
+            {renderLoadingMessage && (
+                <div className="h-full flex items-center justify-center">
+                    <div className="text-center max-w-lg mx-auto p-8 rounded-2xl bg-white shadow-lg">
+                        <div className="relative">
+                            <Loader2 className="w-16 h-16 text-primary-500 animate-spin mx-auto mb-6" />
+                            <div className="absolute inset-0 bg-primary-100 rounded-full opacity-30 scale-150 animate-ping"></div>
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3">Crafting Your Dream Itinerary</h2>
+                        <p className="text-gray-600 text-lg mb-4">Our AI agents are collaborating to design your perfect trip experience...</p>
+                        <div className="grid grid-cols-3 gap-3 mt-6">
+                            <div className="text-center p-2 rounded-lg bg-blue-50">
+                                <p className="text-xs text-gray-500">Finding Activities</p>
+                                <div className="w-full h-1 bg-gray-200 mt-1 overflow-hidden rounded-full">
+                                    <div className="h-full bg-blue-500 rounded-full animate-pulse" style={{width: '60%'}}></div>
+                                </div>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-amber-50">
+                                <p className="text-xs text-gray-500">Researching Dining</p>
+                                <div className="w-full h-1 bg-gray-200 mt-1 overflow-hidden rounded-full">
+                                    <div className="h-full bg-amber-500 rounded-full animate-pulse" style={{width: '40%'}}></div>
+                                </div>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-green-50">
+                                <p className="text-xs text-gray-500">Planning Routes</p>
+                                <div className="w-full h-1 bg-gray-200 mt-1 overflow-hidden rounded-full">
+                                    <div className="h-full bg-green-500 rounded-full animate-pulse" style={{width: '75%'}}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {renderTripData && state.tripData && (
                 <motion.div
                     variants={containerVariants}
