@@ -19,7 +19,7 @@ const TripInputForm: React.FC<TripInputFormProps> = ({ onSubmit }) => {
     destination: '',
     startDate: '',
     endDate: '',
-    budgetRange: '30000',
+    budgetRange: '',
   });
 
   // Helper function to format date to YYYY-MM-DD

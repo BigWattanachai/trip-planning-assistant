@@ -49,39 +49,93 @@ pip install -r requirements.txt
 2. Start the server:
 
 ```bash
+# Method 1: Run as a module (recommended)
+# From the travel-a2a directory (not from inside the backend directory)
+python -m backend.main
+
+# Method 2: Run directly
+# From the travel-a2a/backend directory
 python main.py
 ```
 
 The server will run on `http://localhost:8000` by default (configurable in the `.env` file).
 
-## Architecture
+## Project Structure
 
-The backend is built using FastAPI and Google ADK, with a multi-agent architecture:
+The backend is organized into the following directories:
 
-1. **Root Agent (Travel Agent)**: A SequentialAgent that orchestrates specialized agents
-2. **Activity Search Agent**: Helps find activities and attractions in a destination
-3. **Restaurant Agent**: Helps find restaurants and food experiences in a destination
-4. **Summary Agent**: Synthesizes responses from specialized agents
+- `/agents/` - Agent implementations for different specialized domains
+- `/api/` - API endpoints and WebSocket handlers
+- `/core/` - Core functionality like state management and orchestration
+- `/services/` - Services like itinerary management
+- `/utils/` - Utility functions and helpers
 
-## Agent Capabilities
+## Architecture Overview
 
-### Travel Agent
-- Orchestrates the specialized agents in sequence
-- Provides a coherent response to the user by combining information from specialized agents
+The system uses a multi-agent approach with the following components:
 
-### Activity Search Agent
-- Searches for activities in a destination
-- Provides detailed information about specific attractions
+1. **State Manager**: Central repository for maintaining conversation state and user context
+2. **Agent Orchestrator**: Coordinates between specialized agents, handling context-aware routing
+3. **Itinerary Manager**: Manages travel itinerary creation and modification
+4. **Specialized Agents**: Domain-specific agents for different aspects of travel planning
+
+### Agent Capabilities
+
+#### Travel Agent (Root Agent)
+- Orchestrates the specialized agents
+- Provides general travel planning advice
+- Answers questions about destinations in Thailand
+- Suggests itineraries and travel routes
+- Advises on travel logistics (transportation, accommodations, timing)
+- Provides budget information and general costs
+- Handles queries that don't clearly fit into food or activity categories
+
+#### Activity Search Agent
+- Specializes in finding activities and attractions
+- Provides detailed information about things to do
+- Aware of user interests and previous preferences
 - Uses tools:
   - `search_activities`: Finds activities based on location and interests
   - `get_activity_details`: Gets detailed information about a specific activity
 
-### Restaurant Agent
-- Searches for restaurants in a destination
-- Provides detailed information about specific restaurants
+#### Restaurant Agent
+- Specializes in food and dining recommendations
+- Considers dietary preferences and restrictions
+- Can suggest culinary experiences based on location
 - Uses tools:
   - `search_restaurants`: Finds restaurants based on location, cuisine type, and dietary requirements
   - `get_restaurant_details`: Gets detailed information about a specific restaurant
+
+### Intent Classification
+
+The system classifies user requests into three categories:
+- **Restaurant Intent**: Queries about food, restaurants, dining, etc.
+- **Activity Intent**: Queries about attractions, places to visit, things to do, etc.
+- **General Travel Intent**: General queries or ambiguous requests
+
+The intent classification algorithm uses a weighted keyword matching approach:
+1. Check for high-priority patterns (e.g., "ร้าน" + "อร่อย" for restaurant intent)
+2. Count weighted occurrences of keywords from predefined lists
+3. Apply special phrase boosts for particular expressions
+4. Compare scores with thresholds to determine intent
+
+### State Management
+
+The state management approach is inspired by ADK's state model, with specialized tools for:
+
+- **Memorization**: Storing key-value pairs in the session state
+- **Entity Recognition**: Extracting locations, activities, and preferences
+- **Context Summarization**: Creating concise summaries of relevant context
+- **Follow-up Detection**: Identifying follow-up questions to maintain context
+
+### Agent Flow
+
+1. **User Message Received**: WebSocket endpoint receives a message and session ID
+2. **Intent Classification**: The orchestrator determines the appropriate agent
+3. **Context Enhancement**: User message is enriched with conversation history and state
+4. **Agent Processing**: Specialized agent processes the message with context
+5. **State Update**: Response and new information are stored in the state
+6. **Response Streaming**: Response is streamed back to the user
 
 ## API Endpoints
 
@@ -103,14 +157,25 @@ The WebSocket endpoints enable real-time communication with the AI agents. The c
 
 ## Development
 
-The backend uses Google ADK's event-based architecture to handle agent responses, including function calls and responses. The `get_agent_response` function in `main.py` processes these events and returns the final response to the client.
+### Adding New Agents or Tools
 
 To add new agents or tools, follow these steps:
 
 1. Create a new agent file in the `agents` directory
 2. Define any tools as Python functions with proper docstrings
 3. Create an Agent instance with the tools
-4. Import the agent in `main.py` and add it to the agent selection logic
+4. Import the agent in the appropriate files and add it to the agent selection logic
+
+### Future Improvements
+
+1. **NLP-Based Entity Extraction**: Replace simple keyword matching with ML-based entity extraction
+2. **User Preference Learning**: Improve tracking and learning of user preferences over time
+3. **Personalization**: Enhance recommendations based on user history and preferences
+4. **Multi-Language Support**: Expand support for multiple languages
+5. **Context Compression**: Implement more sophisticated context summarization techniques
+6. **Machine Learning Classification**: Replace rule-based classification with ML model for better accuracy
+7. **Multi-Intent Support**: Handle queries that span multiple intents by utilizing multiple agents
+8. **Enhanced Agent Specialization**: Add more specialized agents for accommodation, transportation, etc.
 
 ## Troubleshooting
 
