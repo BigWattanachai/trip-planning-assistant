@@ -11,8 +11,10 @@
 
 # next.js
 /.next/
+/frontend/.next/
 /out/
-
+/frontend/out/
+frontend/.next
 # production
 /build
 
@@ -31,8 +33,13 @@ yarn-error.log*
 
 # vercel
 .vercel
-./.idea
-.idea
+
+# IDE files
+.idea/
+**/.idea/
+.vscode/
+**/.vscode/
+*.iml
 
 # typescript
 *.tsbuildinfo
