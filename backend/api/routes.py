@@ -168,48 +168,6 @@ def health_check():
     """Health check endpoint"""
     return {"status": "ok"}
 
-
-@router.get("/agents")
-def list_agents():
-    """List available agents"""
-    agents = [
-        {
-            "id": "travel",
-            "name": "Travel Agent",
-            "description": "General travel planning agent that can help with overall trip planning.",
-            "capabilities": [
-                "Trip planning",
-                "Destination information",
-                "Budget planning",
-                "General travel advice"
-            ]
-        },
-        {
-            "id": "restaurant",
-            "name": "Restaurant Agent",
-            "description": "Specialized agent for restaurant and food recommendations.",
-            "capabilities": [
-                "Restaurant recommendations",
-                "Cuisine information",
-                "Dietary accommodations",
-                "Food experiences"
-            ]
-        },
-        {
-            "id": "activity",
-            "name": "Activity Agent",
-            "description": "Specialized agent for activities and attractions.",
-            "capabilities": [
-                "Activity recommendations",
-                "Attraction information",
-                "Tour suggestions",
-                "Things to do"
-            ]
-        }
-    ]
-    return {"agents": agents}
-
-
 @router.websocket("/ws/{session_id}/{agent_type}")
 async def agent_websocket_endpoint(websocket: WebSocket, session_id: str, agent_type: str):
     """WebSocket endpoint for real-time communication with a specific agent"""
