@@ -49,17 +49,20 @@ async def get_agent_response_async(
                 # Check if this is a partial response - only send every 3rd partial to reduce message count
                 if hasattr(event, 'is_partial') and event.is_partial():
                     if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
+                        # Apply filtering to partial responses too
                         partial_text = event.content.parts[0].text
-                        accumulated_text += partial_text
+                        filtered_partial = improved_orchestrator.filter_internal_messages(partial_text)
+                        accumulated_text += filtered_partial
                         partial_count += 1
 
                         # Only send partial updates occasionally to avoid flooding
-                        if partial_count % 3 == 0 and len(partial_text) > 5:
-                            yield {"message": partial_text, "partial": True}
+                        if partial_count % 3 == 0 and len(filtered_partial) > 5:
+                            yield {"message": filtered_partial, "partial": True}
 
                 # Check if this is the final response
                 if hasattr(event, 'is_final_response') and event.is_final_response():
                     if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
+                        # Make sure we're using the already filtered response from orchestrator
                         final_response = event.content.parts[0].text
                         yield {"message": final_response, "final": True}
 
@@ -79,7 +82,9 @@ async def get_agent_response_async(
         # If we don't get a final response, use the accumulated text or a default message
         if not final_response:
             final_message = accumulated_text or "ขออภัยค่ะ ฉันยังไม่เข้าใจคำถามของคุณ กรุณาถามใหม่อีกครั้งค่ะ"
-            yield {"message": final_message, "final": True}
+            # Make sure to filter the message even in this fallback case
+            filtered_message = improved_orchestrator.filter_internal_messages(final_message)
+            yield {"message": filtered_message, "final": True}
 
     except Exception as e:
         print(f"Error getting agent response asynchronously: {e}")

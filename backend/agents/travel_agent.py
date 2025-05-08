@@ -45,6 +45,10 @@ ACTIVITY_KEYWORDS = [
 def classify_intent(user_input: str, session_id: str = None) -> str:
     """
     Classify user intent as food, activity, or general travel based on keywords and conversation context.
+    
+    TODO: Replace this simple keyword-based approach with a proper NLP intent classification model
+    in production for more accurate results. Consider using a transformer-based model or a
+    dedicated NLU service.
 
     Args:
         user_input: The user's input message
@@ -83,6 +87,7 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
             if message.get("role") == "assistant" and "agent_type" in message:
                 previous_agent_type = message.get("agent_type")
                 break
+                
     # Lower case the input for case-insensitive matching
     user_input_lower = user_input.lower()
 
@@ -157,12 +162,6 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
         if phrase.lower() in user_input_lower:
             activity_score += 5  # Strong boost for very clear activity intent
 
-    # Handle the specific case "ร้านไหนอร่อยในจังหวัดน่าน"
-    # If both "ร้าน" and "อร่อย" are present, it's very likely about restaurants
-    if "ร้าน" in user_input_lower and "อร่อย" in user_input_lower:
-        food_score += 10
-
-
     # Check if the message is a follow-up question to a previous agent response
     is_follow_up = False
     follow_up_indicators = [
@@ -198,7 +197,7 @@ root_agent = Agent(
     # A unique name for the agent.
     name="travel_agent",
     # The Large Language Model (LLM) that agent will use.
-    model="gemini-1.5-flash",
+    model="gemini-2.0-flash-001",
     # A short description of the agent's purpose.
     description="Main agent for travel planning that orchestrates specialized agents.",
     # Instructions to set the agent's behavior.

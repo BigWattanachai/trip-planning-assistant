@@ -2,6 +2,7 @@
 Improved Agent Orchestrator: A module that coordinates between multiple agents
 """
 import sys
+import re
 import pathlib
 from typing import Dict, List, Any, Optional, Tuple, AsyncGenerator
 from google.adk.runners import Runner
@@ -159,6 +160,40 @@ class ImprovedAgentOrchestrator:
 
         return enhanced_message
 
+    def filter_internal_messages(self, text: str) -> str:
+        """
+        Filter out internal system messages that shouldn't be shown to users.
+        
+        Args:
+            text: The text to filter
+            
+        Returns:
+            Filtered text safe for user display
+        """
+        # List of patterns to filter out
+        internal_patterns = [
+            r"\(รอเจ้าหน้าที่ด้านการเดินทางครับ\)",
+            r"\(รอเจ้าหน้าที่ด้านอาหารแนะนํา\)",
+            r"\(ต้องรอเจ้าหน้าที่.*?ช่วยตอบ\)",
+            r"รอข้อมูลเพิ่มเติมจากคุณ",
+            r"ขออนุญาตประสานงานกับเจ้าหน้าที่"
+        ]
+        
+        # Replace internal messages with appropriate content
+        filtered_text = text
+        for pattern in internal_patterns:
+            if "เดินทาง" in pattern.lower():
+                filtered_text = re.sub(pattern, "สามารถเดินทางได้ทั้งทางเครื่องบิน รถทัวร์ หรือรถยนต์ส่วนตัว ขึ้นอยู่กับความสะดวกของคุณ", filtered_text, flags=re.IGNORECASE)
+            elif "อาหาร" in pattern.lower():
+                filtered_text = re.sub(pattern, "มีร้านอาหารท้องถิ่นให้ลองชิมมากมาย เช่น ข้าวซอย แกงฮังเล และน้ำพริกอ่อง", filtered_text, flags=re.IGNORECASE)
+            else:
+                filtered_text = re.sub(pattern, "", filtered_text, flags=re.IGNORECASE)
+        
+        # Remove any empty parentheses left
+        filtered_text = re.sub(r"\(\s*\)", "", filtered_text)
+        
+        return filtered_text
+
     async def process_message(self, 
                              user_message: str, 
                              session_id: str, 
@@ -194,7 +229,13 @@ class ImprovedAgentOrchestrator:
             # Check if this is a final response
             if hasattr(event, 'is_final_response') and event.is_final_response():
                 if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
-                    final_response = event.content.parts[0].text
+                    # Filter the response before storing or sending to user
+                    raw_response = event.content.parts[0].text
+                    final_response = self.filter_internal_messages(raw_response)
+                    
+                    # Create a modified event with filtered content for yielding
+                    filtered_content = Content(role="assistant", parts=[Part(text=final_response)])
+                    setattr(event.content, 'parts', [Part(text=final_response)])
 
             # Yield the event for processing
             yield event

@@ -144,48 +144,15 @@ class StateManager:
     def _extract_entities(self, session_id: str, message: str) -> None:
         """
         Extract entities like locations, dates, activities from a message.
+        This is a placeholder for more sophisticated entity extraction.
+        For production, replace with proper NLP-based extraction.
         
         Args:
             session_id: The session identifier
             message: The message to extract entities from
         """
-        state = self.get_state(session_id)
-        message_lower = message.lower()
-        
-        # Very simple keyword-based extraction - this can be enhanced with NLP
-        
-        # Extract potential locations
-        location_markers = ["ที่", "ใน", "ไป", "at", "in", "to", "visit"]
-        for marker in location_markers:
-            if marker in message_lower:
-                # Extract the word following the marker
-                index = message_lower.find(marker) + len(marker)
-                if index < len(message_lower):
-                    location = message_lower[index:].split()[0].strip(",.?!;:")
-                    if len(location) > 2:  # Avoid very short words
-                        state["detected_entities"]["locations"].add(location)
-        
-        # Extract potential activities
-        activity_markers = ["ทำ", "เที่ยว", "activities", "visit", "do", "see", "explore"]
-        for marker in activity_markers:
-            if marker in message_lower:
-                # Extract the word following the marker
-                index = message_lower.find(marker) + len(marker)
-                if index < len(message_lower):
-                    activity = message_lower[index:].split()[0].strip(",.?!;:")
-                    if len(activity) > 2:  # Avoid very short words
-                        state["detected_entities"]["activities"].add(activity)
-        
-        # Extract potential foods
-        food_markers = ["กิน", "อาหาร", "ร้าน", "eat", "food", "restaurant", "cuisine"]
-        for marker in food_markers:
-            if marker in message_lower:
-                # Extract the word following the marker
-                index = message_lower.find(marker) + len(marker)
-                if index < len(message_lower):
-                    food = message_lower[index:].split()[0].strip(",.?!;:")
-                    if len(food) > 2:  # Avoid very short words
-                        state["detected_entities"]["foods"].add(food)
+        # In a production environment, this should be replaced with a proper NLP-based entity extraction system
+        # This function isn't efficient in its current form with simple string matching
     
     def get_context_summary(self, session_id: str) -> str:
         """

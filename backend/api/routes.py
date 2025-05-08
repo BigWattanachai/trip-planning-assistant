@@ -52,16 +52,16 @@ def get_session_and_runner(session_id: str, agent_type: str = "travel"):
         # Create new session service and runner for this client
         print(f"Creating new session service and runner for {key}")
         session_service = InMemorySessionService()
-
-        # Select the appropriate agent based on the agent_type - only use one agent at a time
-        # This prevents multiple responses
-        if agent_type == "activity":
-            agent = activity_search_agent
-        elif agent_type == "restaurant":
-            agent = restaurant_agent
-        else:
-            # Default to the main travel agent - NOT using the sequential agent to avoid multiple responses
-            agent = root_agent
+        
+        # Select the appropriate agent based on the agent_type
+        agent_mapping = {
+            "activity": activity_search_agent,
+            "restaurant": restaurant_agent,
+            "travel": root_agent
+        }
+        
+        # Get the agent from the mapping or default to root_agent
+        agent = agent_mapping.get(agent_type, root_agent)
 
         # Create a new runner for this session
         runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
@@ -70,8 +70,8 @@ def get_session_and_runner(session_id: str, agent_type: str = "travel"):
         session_services[key] = session_service
         runners[key] = runner
 
-        # Create a session
-        user_id = "user_123"  # Use a common user ID
+        # Create a session with a common user ID
+        user_id = "user_123"  
         session_service.create_session(app_name=APP_NAME, user_id=user_id, session_id=session_id)
 
     return session_services[key], runners[key]
