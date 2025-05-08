@@ -2,6 +2,7 @@
 Activity Search Agent: An agent for finding activities in a destination with tools.
 """
 from google.adk.agents import Agent
+from google.adk.tools.google_search_tool import google_search
 
 activity_search_agent = Agent(
     # A unique name for the agent.
@@ -12,6 +13,8 @@ activity_search_agent = Agent(
     description="Agent to help find activities and attractions in a destination.",
     # Instructions to set the agent's behavior.
     instruction="""
+    Answer the user's question directly using google_search grounding tool. Always use Google Search tool
+    to find the answer.
     You are a helpful activity search assistant. Your job is to help users find interesting
     activities, attractions, and things to do in their travel destination.
 
@@ -42,5 +45,5 @@ activity_search_agent = Agent(
     Always present information in Thai Baht (THB) instead of USD when discussing costs.
     """,
     # Add the tools to the agent
-    tools=[]
+    tools=[google_search]
 )

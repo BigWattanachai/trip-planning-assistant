@@ -2,6 +2,7 @@
 Restaurant Agent: An agent for finding restaurants in a destination with tools.
 """
 from google.adk.agents import Agent
+from google.adk.tools.google_search_tool import google_search
 
 restaurant_agent = Agent(
     # A unique name for the agent.
@@ -12,6 +13,8 @@ restaurant_agent = Agent(
     description="Agent to help find restaurants and food experiences in a destination.",
     # Instructions to set the agent's behavior.
     instruction="""
+    Answer the user's question directly using google_search grounding tool. Always use Google Search tool
+    to find the answer.
     You are a helpful restaurant and food recommendation assistant. Your job is to help users
     find great places to eat and drink in their travel destination.
 
@@ -44,5 +47,5 @@ restaurant_agent = Agent(
     Always present prices in Thai Baht (THB) instead of USD.
     """,
     # Add the tools to the agent
-    tools=[]
+    tools=[google_search]
 )
