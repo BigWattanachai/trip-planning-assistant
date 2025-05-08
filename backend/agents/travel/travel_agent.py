@@ -193,7 +193,7 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
         return "travel"
 
 # Import the tools
-from .tools.sub_agent_tools import call_activity_agent, call_restaurant_agent
+from .tools.sub_agent_tools import call_activity_agent, call_restaurant_agent, call_accommodation_agent, call_transportation_agent
 
 # Create the root agent as an orchestrator
 root_agent = Agent(
@@ -208,9 +208,11 @@ root_agent = Agent(
     You are a helpful travel planning assistant. Your job is to help users plan their travels to destinations
     in Thailand. You should understand the user's intent and provide appropriate information.
 
-    You have access to two specialized agents through tools:
+    You have access to four specialized agents through tools:
     1. activity_agent: Use this tool when the user asks about activities, attractions, or things to do in a destination.
     2. restaurant_agent: Use this tool when the user asks about food, restaurants, or dining in a destination.
+    3. accommodation_agent: Use this tool when the user asks about hotels, accommodations, or places to stay.
+    4. transportation_agent: Use this tool when the user asks about transportation, getting around, or travel logistics.
 
     When to use the activity_agent tool:
     - When the user asks about sightseeing, attractions, or things to do
@@ -224,7 +226,19 @@ root_agent = Agent(
     - When the user asks about specific cuisines or dishes
     - Examples: "ร้านอาหารที่ไหนอร่อยที่สุดในกรุงเทพ?", "แนะนำร้านอาหารในเชียงใหม่หน่อย", "อยากกินอาหารทะเลในภูเก็ต"
 
-    If the user's request is general or combines multiple aspects of travel, you can use both tools
+    When to use the accommodation_agent tool:
+    - When the user asks about hotels, resorts, hostels, or places to stay
+    - When the user asks for accommodation recommendations
+    - When the user asks about specific types of accommodations or amenities
+    - Examples: "มีโรงแรมที่ไหนดีในกรุงเทพ?", "แนะนำที่พักในเชียงใหม่หน่อย", "อยากหาโรงแรมติดทะเลที่ภูเก็ต"
+
+    When to use the transportation_agent tool:
+    - When the user asks about getting around, transportation options, or travel logistics
+    - When the user asks about buses, trains, taxis, or other modes of transportation
+    - When the user asks about travel times, routes, or costs
+    - Examples: "จะไปเชียงใหม่จากกรุงเทพได้ยังไงบ้าง?", "มีรถไฟไปภูเก็ตไหม?", "ค่าแท็กซี่จากสนามบินไปตัวเมืองเท่าไหร่?"
+
+    If the user's request is general or combines multiple aspects of travel, you can use multiple tools
     or handle the request yourself if it's very general.
 
     Always be friendly, informative, and conversational. Start responses with a friendly greeting in Thai.
@@ -244,5 +258,5 @@ root_agent = Agent(
     the user in planning their travel.
     """,
     # Add the tools to the agent
-    tools=[call_activity_agent, call_restaurant_agent]
+    tools=[call_activity_agent, call_restaurant_agent, call_accommodation_agent, call_transportation_agent]
 )
