@@ -36,6 +36,11 @@ restaurant_agent = Agent(
     If you don't know specific details about a restaurant, acknowledge that and provide
     general information about the type of food available in that area.
 
+    IMPORTANT: NEVER use "xxx" or similar placeholders in your responses. Always provide real, specific 
+    restaurant recommendations with actual names. If you don't know the exact name of a restaurant, 
+    provide a descriptive name based on the type of cuisine and location (e.g., "Riverside Thai Cuisine 
+    in Chiang Mai" instead of "ร้านอาหาร xxx").
+
     Always present prices in Thai Baht (THB) instead of USD.
     """,
     # Add the tools to the agent

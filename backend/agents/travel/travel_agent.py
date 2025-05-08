@@ -45,7 +45,7 @@ ACTIVITY_KEYWORDS = [
 def classify_intent(user_input: str, session_id: str = None) -> str:
     """
     Classify user intent as food, activity, or general travel based on keywords and conversation context.
-    
+
     TODO: Replace this simple keyword-based approach with a proper NLP intent classification model
     in production for more accurate results. Consider using a transformer-based model or a
     dedicated NLU service.
@@ -87,7 +87,7 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
             if message.get("role") == "assistant" and "agent_type" in message:
                 previous_agent_type = message.get("agent_type")
                 break
-                
+
     # Lower case the input for case-insensitive matching
     user_input_lower = user_input.lower()
 
@@ -192,6 +192,9 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
         # Default to general travel agent
         return "travel"
 
+# Import the tools
+from .tools.sub_agent_tools import call_activity_agent, call_restaurant_agent
+
 # Create the root agent as an orchestrator
 root_agent = Agent(
     # A unique name for the agent.
@@ -205,11 +208,24 @@ root_agent = Agent(
     You are a helpful travel planning assistant. Your job is to help users plan their travels to destinations
     in Thailand. You should understand the user's intent and provide appropriate information.
 
-    If the user asks about food, restaurants, or dining, you should call the restaurant agent.
-    If the user asks about activities, attractions, or things to do, you should call the activity agent.
+    You have access to two specialized agents through tools:
+    1. activity_agent: Use this tool when the user asks about activities, attractions, or things to do in a destination.
+    2. restaurant_agent: Use this tool when the user asks about food, restaurants, or dining in a destination.
 
-    If the user's request is general or combines multiple aspects of travel, you should provide
-    a comprehensive response covering all relevant aspects.
+    When to use the activity_agent tool:
+    - When the user asks about sightseeing, attractions, or things to do
+    - When the user asks about specific activities like hiking, museums, temples, etc.
+    - When the user asks for recommendations on places to visit
+    - Examples: "มีที่เที่ยวอะไรบ้างในกรุงเทพ?", "แนะนำสถานที่ท่องเที่ยวในเชียงใหม่", "อยากไปเที่ยวทะเลที่ภูเก็ต"
+
+    When to use the restaurant_agent tool:
+    - When the user asks about food, restaurants, or dining options
+    - When the user asks for food recommendations or where to eat
+    - When the user asks about specific cuisines or dishes
+    - Examples: "ร้านอาหารที่ไหนอร่อยที่สุดในกรุงเทพ?", "แนะนำร้านอาหารในเชียงใหม่หน่อย", "อยากกินอาหารทะเลในภูเก็ต"
+
+    If the user's request is general or combines multiple aspects of travel, you can use both tools
+    or handle the request yourself if it's very general.
 
     Always be friendly, informative, and conversational. Start responses with a friendly greeting in Thai.
 
@@ -219,17 +235,14 @@ root_agent = Agent(
 
     When responding about costs, always use Thai Baht (THB).
 
-    Examples of food-related queries:
-    - ร้านอาหารที่ไหนอร่อยที่สุดในกรุงเทพ?
-    - แนะนำร้านอาหารในเชียงใหม่หน่อย
-    - อยากกินอาหารทะเลในภูเก็ต
-
-    Examples of activity-related queries:
-    - มีที่เที่ยวอะไรบ้างในกรุงเทพ?
-    - แนะนำสถานที่ท่องเที่ยวในเชียงใหม่
-    - อยากไปเที่ยวทะเลที่ภูเก็ต
+    IMPORTANT: NEVER use "xxx" or similar placeholders in your responses. Always provide real, specific 
+    recommendations with actual names for hotels, restaurants, attractions, etc. If you don't know the 
+    exact name of a place, provide a descriptive name based on the type of establishment and location 
+    (e.g., "Riverside Boutique Hotel in Chiang Mai" instead of "โรงแรม xxx").
 
     Remember that your goal is to provide the most helpful and accurate information to assist
     the user in planning their travel.
-    """
+    """,
+    # Add the tools to the agent
+    tools=[call_activity_agent, call_restaurant_agent]
 )

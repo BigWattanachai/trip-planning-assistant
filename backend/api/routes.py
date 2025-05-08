@@ -12,10 +12,7 @@ from google.adk.sessions.in_memory_session_service import InMemorySessionService
 try:
     # When running as a module (python -m backend.main)
     from backend.agents.travel.travel_agent import root_agent
-    from backend.agents.activity.activity_search_agent import activity_search_agent
-    from backend.agents.restaurant.restaurant_agent import restaurant_agent
     from ..core.state_manager import state_manager
-    from ..core.improved_agent_orchestrator import improved_orchestrator
     from .async_agent_handler import get_agent_response_async
 except (ImportError, ValueError):
     # When running directly (python main.py)
@@ -26,10 +23,7 @@ except (ImportError, ValueError):
 
     # Use absolute imports
     from backend.agents.travel.travel_agent import root_agent
-    from backend.agents.activity.activity_search_agent import activity_search_agent
-    from backend.agents.restaurant.restaurant_agent import restaurant_agent
     from backend.core.state_manager import state_manager
-    from backend.core.improved_agent_orchestrator import improved_orchestrator
     from backend.api.async_agent_handler import get_agent_response_async
 
 # Create router
@@ -46,22 +40,16 @@ runners = {}
 
 def get_session_and_runner(session_id: str, agent_type: str = "travel"):
     """Get or create a session service and runner for a client session"""
-    key = f"{session_id}_{agent_type}"
+    # Always use the root agent regardless of agent_type
+    key = f"{session_id}_travel"
 
     if key not in session_services:
         # Create new session service and runner for this client
         print(f"Creating new session service and runner for {key}")
         session_service = InMemorySessionService()
-        
-        # Select the appropriate agent based on the agent_type
-        agent_mapping = {
-            "activity": activity_search_agent,
-            "restaurant": restaurant_agent,
-            "travel": root_agent
-        }
-        
-        # Get the agent from the mapping or default to root_agent
-        agent = agent_mapping.get(agent_type, root_agent)
+
+        # Always use the root_agent which now has tools to call specialized agents
+        agent = root_agent
 
         # Create a new runner for this session
         runner = Runner(agent=agent, app_name=APP_NAME, session_service=session_service)
@@ -125,7 +113,10 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                     # Get the runner for this session
                     _, runner = get_session_and_runner(session_id)
 
-                    # Process the message with the improved orchestrator
+                    # Store the user message in conversation history
+                    state_manager.add_user_message(session_id, user_message)
+
+                    # Process the message with the root agent
                     async for response in get_agent_response_async(user_message, "travel", session_id, runner):
                         # Check if this is a partial or final response
                         if response.get("partial", False):
@@ -135,14 +126,20 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                                 "partial": True
                             }))
                         elif response.get("final", False):
+                            # Get the final response message
+                            final_message = response.get("message", "")
+
+                            # Store the agent response in conversation history
+                            state_manager.add_agent_message(session_id, final_message, "travel")
+
                             # Send final response
                             await websocket.send_text(json.dumps({
-                                "message": response.get("message", ""),
+                                "message": final_message,
                                 "final": True
                             }))
                             # Signal turn completion
                             await websocket.send_text(json.dumps({"turn_complete": True}))
-                            print(f"[AGENT TO CLIENT]: {response.get('message', '')}")
+                            print(f"[AGENT TO CLIENT]: {final_message}")
                             print("[TURN COMPLETE]")
 
                 except Exception as e:

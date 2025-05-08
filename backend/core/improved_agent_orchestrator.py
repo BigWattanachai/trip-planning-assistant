@@ -163,10 +163,10 @@ class ImprovedAgentOrchestrator:
     def filter_internal_messages(self, text: str) -> str:
         """
         Filter out internal system messages that shouldn't be shown to users.
-        
+
         Args:
             text: The text to filter
-            
+
         Returns:
             Filtered text safe for user display
         """
@@ -178,7 +178,7 @@ class ImprovedAgentOrchestrator:
             r"รอข้อมูลเพิ่มเติมจากคุณ",
             r"ขออนุญาตประสานงานกับเจ้าหน้าที่"
         ]
-        
+
         # Replace internal messages with appropriate content
         filtered_text = text
         for pattern in internal_patterns:
@@ -188,10 +188,26 @@ class ImprovedAgentOrchestrator:
                 filtered_text = re.sub(pattern, "มีร้านอาหารท้องถิ่นให้ลองชิมมากมาย เช่น ข้าวซอย แกงฮังเล และน้ำพริกอ่อง", filtered_text, flags=re.IGNORECASE)
             else:
                 filtered_text = re.sub(pattern, "", filtered_text, flags=re.IGNORECASE)
-        
+
         # Remove any empty parentheses left
         filtered_text = re.sub(r"\(\s*\)", "", filtered_text)
-        
+
+        # Replace xxx placeholders with more descriptive text
+        # Hotel placeholders
+        filtered_text = re.sub(r"โรงแรม\s*xxx", "โรงแรมท้องถิ่นที่มีชื่อเสียง", filtered_text, flags=re.IGNORECASE)
+        filtered_text = re.sub(r"hotel\s*xxx", "local boutique hotel", filtered_text, flags=re.IGNORECASE)
+
+        # Restaurant placeholders
+        filtered_text = re.sub(r"ร้านอาหาร\s*xxx", "ร้านอาหารท้องถิ่นยอดนิยม", filtered_text, flags=re.IGNORECASE)
+        filtered_text = re.sub(r"restaurant\s*xxx", "popular local restaurant", filtered_text, flags=re.IGNORECASE)
+
+        # Attraction placeholders
+        filtered_text = re.sub(r"สถานที่ท่องเที่ยว\s*xxx", "สถานที่ท่องเที่ยวที่น่าสนใจในพื้นที่", filtered_text, flags=re.IGNORECASE)
+        filtered_text = re.sub(r"attraction\s*xxx", "interesting local attraction", filtered_text, flags=re.IGNORECASE)
+
+        # General xxx placeholders
+        filtered_text = re.sub(r"\bxxx\b", "ตัวเลือกที่เหมาะสม", filtered_text, flags=re.IGNORECASE)
+
         return filtered_text
 
     async def process_message(self, 
@@ -232,7 +248,7 @@ class ImprovedAgentOrchestrator:
                     # Filter the response before storing or sending to user
                     raw_response = event.content.parts[0].text
                     final_response = self.filter_internal_messages(raw_response)
-                    
+
                     # Create a modified event with filtered content for yielding
                     filtered_content = Content(role="assistant", parts=[Part(text=final_response)])
                     setattr(event.content, 'parts', [Part(text=final_response)])

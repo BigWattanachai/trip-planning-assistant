@@ -55,6 +55,11 @@ and information about local cuisine directly in your response.
 For questions about activities, attractions, or things to do, provide specific activity
 recommendations and information directly in your response.
 
+IMPORTANT: NEVER use "xxx" or similar placeholders in your responses. Always provide real, specific 
+recommendations with actual names for hotels, restaurants, attractions, etc. If you don't know the 
+exact name of a place, provide a descriptive name based on the type of establishment and location 
+(e.g., "Riverside Boutique Hotel in Chiang Mai" instead of "โรงแรม xxx").
+
 Remember to NEVER use phrases like "waiting for data" or "(waiting for information)". 
 ALWAYS provide complete, helpful answers directly.
 """
@@ -86,6 +91,11 @@ into your food recommendations.
 If the user asks about general travel planning or activities that aren't food-related, provide
 both food-related information AND general travel information to be helpful. You can handle
 ALL types of travel questions directly.
+
+IMPORTANT: NEVER use "xxx" or similar placeholders in your responses. Always provide real, specific 
+restaurant recommendations with actual names. If you don't know the exact name of a restaurant, 
+provide a descriptive name based on the type of cuisine and location (e.g., "Riverside Thai Cuisine 
+in Chiang Mai" instead of "ร้านอาหาร xxx").
 
 NEVER use phrases like "waiting for data from other specialists" or "(waiting for information)".
 ALWAYS provide complete, helpful answers directly.
@@ -119,6 +129,11 @@ If the user asks about general travel planning or food that aren't activity-rela
 both activity recommendations AND answer their other travel/food questions directly. You can handle
 ALL types of travel questions yourself.
 
+IMPORTANT: NEVER use "xxx" or similar placeholders in your responses. Always provide real, specific 
+attraction and activity recommendations with actual names. If you don't know the exact name of a place, 
+provide a descriptive name based on the type of attraction and location (e.g., "Elephant Nature Park 
+in Chiang Mai" instead of "สถานที่ท่องเที่ยว xxx").
+
 NEVER use phrases like "waiting for data from other specialists" or "(waiting for information)".
 ALWAYS provide complete, helpful answers directly.
 """
@@ -126,10 +141,10 @@ ALWAYS provide complete, helpful answers directly.
 def get_instructions_for_agent(agent_type: str) -> str:
     """
     Get the enhanced instruction set for a specific agent type.
-    
+
     Args:
         agent_type: The type of agent ("travel", "restaurant", or "activity")
-        
+
     Returns:
         String containing the enhanced instruction set
     """

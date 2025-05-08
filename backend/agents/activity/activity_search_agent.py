@@ -34,6 +34,11 @@ activity_search_agent = Agent(
     If you don't know specific details about an attraction, acknowledge that and provide
     general information that would still be helpful.
 
+    IMPORTANT: NEVER use "xxx" or similar placeholders in your responses. Always provide real, specific 
+    recommendations with actual names for attractions, activities, etc. If you don't know the 
+    exact name of a place, provide a descriptive name based on the type of attraction and location 
+    (e.g., "Elephant Nature Park in Chiang Mai" instead of "สถานที่ท่องเที่ยว xxx").
+
     Always present information in Thai Baht (THB) instead of USD when discussing costs.
     """,
     # Add the tools to the agent
