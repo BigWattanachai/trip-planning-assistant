@@ -40,6 +40,8 @@ APP_NAME = "Travel Planning Assistant"
 # Global session services and runner dictionaries to keep consistent sessions per client
 session_services = {}
 runners = {}
+
+
 # No locks needed as we're not using concurrent session creation
 
 def get_session_and_runner(session_id: str, agent_type: str = "travel"):
@@ -167,105 +169,3 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 def health_check():
     """Health check endpoint"""
     return {"status": "ok"}
-
-@router.websocket("/ws/{session_id}/{agent_type}")
-async def agent_websocket_endpoint(websocket: WebSocket, session_id: str, agent_type: str):
-    """WebSocket endpoint for real-time communication with a specific agent"""
-    try:
-        # Wait for client connection
-        await websocket.accept()
-        print(f"Client #{session_id} connected to {agent_type} agent")
-
-        # Validate agent type
-        if agent_type not in ["travel", "restaurant", "activity"]:
-            await websocket.send_text(json.dumps({
-                "message": f"ขออภัยค่ะ ไม่พบ agent ประเภท '{agent_type}' กรุณาเลือก 'travel', 'restaurant', หรือ 'activity'",
-                "final": True
-            }))
-            await websocket.send_text(json.dumps({"turn_complete": True}))
-            await websocket.close()
-            return
-
-        # Get or create a session for this client with the specific agent
-        get_session_and_runner(session_id, agent_type)
-
-        # Mapping for active connections
-        active_connections = {}
-        active_connections[f"{session_id}_{agent_type}"] = websocket
-
-        # Send a welcome message to the client
-        welcome_messages = {
-            "travel": "สวัสดีค่ะ! ฉันคือผู้ช่วยวางแผนการเดินทางของคุณ บอกฉันหน่อยว่าคุณอยากไปเที่ยวที่ไหน และมีงบประมาณเท่าไหร่คะ?",
-            "restaurant": "สวัสดีค่ะ! ฉันคือผู้ช่วยแนะนำร้านอาหาร บอกฉันหน่อยว่าคุณอยากทานอาหารประเภทไหน หรืออยู่ที่ไหนคะ?",
-            "activity": "สวัสดีค่ะ! ฉันคือผู้ช่วยแนะนำกิจกรรมและสถานที่ท่องเที่ยว บอกฉันหน่อยว่าคุณอยากไปเที่ยวที่ไหน หรือสนใจกิจกรรมแบบไหนคะ?"
-        }
-        welcome_message = welcome_messages.get(agent_type, welcome_messages["travel"])
-        await websocket.send_text(json.dumps({"message": welcome_message}))
-        await websocket.send_text(json.dumps({"turn_complete": True}))
-        print(f"[{agent_type.upper()} AGENT TO CLIENT]: {welcome_message}")
-        print("[TURN COMPLETE]")
-
-        # Set to hold processing state - avoid processing multiple messages at once
-        is_processing = False
-
-        # Process messages from the client
-        try:
-            while True:
-                # Receive message from client
-                user_message = await websocket.receive_text()
-                print(f"[CLIENT TO {agent_type.upper()} AGENT]: {user_message}")
-
-                # Skip processing if already handling a message
-                if is_processing:
-                    print("Already processing a message, skipping")
-                    await websocket.send_text(json.dumps({
-                        "message": "ขออภัยค่ะ ฉันกำลังประมวลผลคำถามของคุณอยู่ กรุณารอสักครู่ค่ะ",
-                        "partial": True
-                    }))
-                    continue
-
-                # Set processing flag
-                is_processing = True
-
-                try:
-                    # Get the runner for this session and agent type
-                    _, runner = get_session_and_runner(session_id, agent_type)
-
-                    # Process the message with the improved orchestrator
-                    async for response in get_agent_response_async(user_message, agent_type, session_id, runner):
-                        # Check if this is a partial or final response
-                        if response.get("partial", False):
-                            # Send partial response
-                            await websocket.send_text(json.dumps({
-                                "message": response.get("message", ""),
-                                "partial": True
-                            }))
-                        elif response.get("final", False):
-                            # Send final response
-                            await websocket.send_text(json.dumps({
-                                "message": response.get("message", ""),
-                                "final": True
-                            }))
-                            # Signal turn completion
-                            await websocket.send_text(json.dumps({"turn_complete": True}))
-                            print(f"[{agent_type.upper()} AGENT TO CLIENT]: {response.get('message', '')}")
-                            print("[TURN COMPLETE]")
-
-                except Exception as e:
-                    print(f"Error processing message: {e}")
-                    await websocket.send_text(json.dumps({
-                        "message": f"ขออภัยค่ะ เกิดข้อผิดพลาดในการประมวลผล: {str(e)}",
-                        "final": True
-                    }))
-                    await websocket.send_text(json.dumps({"turn_complete": True}))
-
-                # Reset processing flag
-                is_processing = False
-
-        except WebSocketDisconnect:
-            print(f"Client #{session_id} disconnected from {agent_type} agent")
-            if f"{session_id}_{agent_type}" in active_connections:
-                del active_connections[f"{session_id}_{agent_type}"]
-
-    except Exception as e:
-        print(f"WebSocket error: {e}")
