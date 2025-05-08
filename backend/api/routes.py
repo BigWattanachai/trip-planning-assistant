@@ -4,16 +4,16 @@ API Routes for Travel A2A Backend
 import json
 import sys
 import pathlib
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, APIRouter
+from fastapi import WebSocket, WebSocketDisconnect, APIRouter
 from google.adk.runners import Runner
 from google.adk.sessions.in_memory_session_service import InMemorySessionService
 
 # Handle imports for both running as a module and running directly
 try:
     # When running as a module (python -m backend.main)
-    from ..agents.travel_agent import root_agent
-    from ..agents.activity_search_agent import activity_search_agent
-    from ..agents.restaurant_agent import restaurant_agent
+    from backend.agents.travel.travel_agent import root_agent
+    from backend.agents.activity.activity_search_agent import activity_search_agent
+    from backend.agents.restaurant.restaurant_agent import restaurant_agent
     from ..core.state_manager import state_manager
     from ..core.improved_agent_orchestrator import improved_orchestrator
     from .async_agent_handler import get_agent_response_async
@@ -25,9 +25,9 @@ except (ImportError, ValueError):
         sys.path.append(parent_dir)
 
     # Use absolute imports
-    from backend.agents.travel_agent import root_agent
-    from backend.agents.activity_search_agent import activity_search_agent
-    from backend.agents.restaurant_agent import restaurant_agent
+    from backend.agents.travel.travel_agent import root_agent
+    from backend.agents.activity.activity_search_agent import activity_search_agent
+    from backend.agents.restaurant.restaurant_agent import restaurant_agent
     from backend.core.state_manager import state_manager
     from backend.core.improved_agent_orchestrator import improved_orchestrator
     from backend.api.async_agent_handler import get_agent_response_async

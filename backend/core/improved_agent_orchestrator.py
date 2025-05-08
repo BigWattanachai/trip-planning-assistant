@@ -4,7 +4,7 @@ Improved Agent Orchestrator: A module that coordinates between multiple agents
 import sys
 import re
 import pathlib
-from typing import Dict, List, Any, Optional, Tuple, AsyncGenerator
+from typing import Any, Tuple, AsyncGenerator
 from google.adk.runners import Runner
 from google.genai.types import Part, Content
 
@@ -12,9 +12,9 @@ from google.genai.types import Part, Content
 try:
     # When running as a module (python -m backend.main)
     from .state_manager import state_manager
-    from ..agents.travel_agent import root_agent
-    from ..agents.activity_search_agent import activity_search_agent
-    from ..agents.restaurant_agent import restaurant_agent
+    from backend.agents.travel.travel_agent import root_agent
+    from backend.agents.activity.activity_search_agent import activity_search_agent
+    from backend.agents.restaurant.restaurant_agent import restaurant_agent
     from ..utils.agent_instructions import get_instructions_for_agent
 except (ImportError, ValueError):
     # When running directly (python main.py)
@@ -25,9 +25,9 @@ except (ImportError, ValueError):
 
     # Use absolute imports
     from backend.core.state_manager import state_manager
-    from backend.agents.travel_agent import root_agent
-    from backend.agents.activity_search_agent import activity_search_agent
-    from backend.agents.restaurant_agent import restaurant_agent
+    from backend.agents.travel.travel_agent import root_agent
+    from backend.agents.activity.activity_search_agent import activity_search_agent
+    from backend.agents.restaurant.restaurant_agent import restaurant_agent
     from backend.utils.agent_instructions import get_instructions_for_agent
 
 class ImprovedAgentOrchestrator:
@@ -62,10 +62,10 @@ class ImprovedAgentOrchestrator:
         # Handle imports for both running as a module and running directly
         try:
             # When running as a module (python -m backend.main)
-            from ..agents.travel_agent import classify_intent
+            from backend.agents.travel.travel_agent import classify_intent
         except (ImportError, ValueError):
             # When running directly (python main.py)
-            from backend.agents.travel_agent import classify_intent
+            from backend.agents.travel.travel_agent import classify_intent
 
         # First, check if this is a follow-up question
         if state_manager.is_follow_up_question(session_id, user_message):
