@@ -16,15 +16,20 @@ class RootAgent:
         """
         results = {}
         results['activity'] = call_activity_agent(query, context)
+        print(f"[DEBUG][RootAgent] activity agent raw result: {results['activity']}")
         results['restaurant'] = call_restaurant_agent(query, context)
+        print(f"[DEBUG][RootAgent] restaurant agent raw result: {results['restaurant']}")
         results['accommodation'] = call_accommodation_agent(query, context)
+        print(f"[DEBUG][RootAgent] accommodation agent raw result: {results['accommodation']}")
         results['transportation'] = call_transportation_agent(query, context)
+        print(f"[DEBUG][RootAgent] transportation agent raw result: {results['transportation']}")
 
         # Extract response text from each sub-agent result
         activity_text = results['activity'].get('response', '')
         restaurant_text = results['restaurant'].get('response', '')
         accommodation_text = results['accommodation'].get('response', '')
         transportation_text = results['transportation'].get('response', '')
+        print(f"[DEBUG][RootAgent] Extracted texts -> Activity: {activity_text!r}, Restaurant: {restaurant_text!r}, Accommodation: {accommodation_text!r}, Transportation: {transportation_text!r}")
 
         # Combine results into a formatted travel plan
         travel_plan = (

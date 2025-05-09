@@ -81,16 +81,17 @@ def call_activity_agent(query: str, context: str = "") -> Dict[str, Any]:
     # Create content object for the agent
     content = Content(role="user", parts=[Part(text=enhanced_query)])
 
-    # Call the activity agent
-    response = activity_runner.run(
+    # Call the activity agent and consume the generator to get the final response
+    response_text = ""
+    for event in activity_runner.run(
         user_id="user_123", 
         session_id="activity_session", 
         new_message=content
-    )
-    print(f"[call_activity_agent] Raw response: {response!r}")
-    response_text = ""
-    if response and hasattr(response, "content") and hasattr(response.content, "parts") and len(response.content.parts) > 0:
-        response_text = response.content.parts[0].text
+    ):
+        if hasattr(event, 'is_final_response') and event.is_final_response():
+            if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
+                response_text = event.content.parts[0].text
+                break
     print(f"[call_activity_agent] Response text: {response_text!r}")
     return {"response": response_text}
 
@@ -114,16 +115,17 @@ def call_restaurant_agent(query: str, context: str = "") -> Dict[str, Any]:
     # Create content object for the agent
     content = Content(role="user", parts=[Part(text=enhanced_query)])
 
-    # Call the restaurant agent
-    response = restaurant_runner.run(
+    # Call the restaurant agent and consume the generator to get the final response
+    response_text = ""
+    for event in restaurant_runner.run(
         user_id="user_123", 
         session_id="restaurant_session", 
         new_message=content
-    )
-    print(f"[call_restaurant_agent] Raw response: {response!r}")
-    response_text = ""
-    if response and hasattr(response, "content") and hasattr(response.content, "parts") and len(response.content.parts) > 0:
-        response_text = response.content.parts[0].text
+    ):
+        if hasattr(event, 'is_final_response') and event.is_final_response():
+            if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
+                response_text = event.content.parts[0].text
+                break
     print(f"[call_restaurant_agent] Response text: {response_text!r}")
     return {"response": response_text}
 
@@ -147,16 +149,17 @@ def call_accommodation_agent(query: str, context: str = "") -> Dict[str, Any]:
     # Create content object for the agent
     content = Content(role="user", parts=[Part(text=enhanced_query)])
 
-    # Call the accommodation agent
-    response = accommodation_runner.run(
+    # Call the accommodation agent and consume the generator to get the final response
+    response_text = ""
+    for event in accommodation_runner.run(
         user_id="user_123", 
         session_id="accommodation_session", 
         new_message=content
-    )
-    print(f"[call_accommodation_agent] Raw response: {response!r}")
-    response_text = ""
-    if response and hasattr(response, "content") and hasattr(response.content, "parts") and len(response.content.parts) > 0:
-        response_text = response.content.parts[0].text
+    ):
+        if hasattr(event, 'is_final_response') and event.is_final_response():
+            if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
+                response_text = event.content.parts[0].text
+                break
     print(f"[call_accommodation_agent] Response text: {response_text!r}")
     return {"response": response_text}
 
@@ -180,15 +183,16 @@ def call_transportation_agent(query: str, context: str = "") -> Dict[str, Any]:
     # Create content object for the agent
     content = Content(role="user", parts=[Part(text=enhanced_query)])
 
-    # Call the transportation agent
-    response = transportation_runner.run(
+    # Call the transportation agent and consume the generator to get the final response
+    response_text = ""
+    for event in transportation_runner.run(
         user_id="user_123", 
         session_id="transportation_session", 
         new_message=content
-    )
-    print(f"[call_transportation_agent] Raw response: {response!r}")
-    response_text = ""
-    if response and hasattr(response, "content") and hasattr(response.content, "parts") and len(response.content.parts) > 0:
-        response_text = response.content.parts[0].text
+    ):
+        if hasattr(event, 'is_final_response') and event.is_final_response():
+            if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
+                response_text = event.content.parts[0].text
+                break
     print(f"[call_transportation_agent] Response text: {response_text!r}")
     return {"response": response_text}
