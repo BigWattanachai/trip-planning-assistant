@@ -62,6 +62,7 @@ transportation_session_service.create_session(
 )
 
 def call_activity_agent(query: str, context: str = "") -> Dict[str, Any]:
+    print(f"[call_activity_agent] Called with query: {query!r}, context: {context!r}")
     """
     Call the activity agent to get information about activities and attractions.
 
@@ -86,15 +87,15 @@ def call_activity_agent(query: str, context: str = "") -> Dict[str, Any]:
         session_id="activity_session", 
         new_message=content
     )
-
-    # Extract the response text
+    print(f"[call_activity_agent] Raw response: {response!r}")
     response_text = ""
     if response and hasattr(response, "content") and hasattr(response.content, "parts") and len(response.content.parts) > 0:
         response_text = response.content.parts[0].text
-
+    print(f"[call_activity_agent] Response text: {response_text!r}")
     return {"response": response_text}
 
 def call_restaurant_agent(query: str, context: str = "") -> Dict[str, Any]:
+    print(f"[call_restaurant_agent] Called with query: {query!r}, context: {context!r}")
     """
     Call the restaurant agent to get information about restaurants and food.
 
@@ -119,15 +120,15 @@ def call_restaurant_agent(query: str, context: str = "") -> Dict[str, Any]:
         session_id="restaurant_session", 
         new_message=content
     )
-
-    # Extract the response text
+    print(f"[call_restaurant_agent] Raw response: {response!r}")
     response_text = ""
     if response and hasattr(response, "content") and hasattr(response.content, "parts") and len(response.content.parts) > 0:
         response_text = response.content.parts[0].text
-
+    print(f"[call_restaurant_agent] Response text: {response_text!r}")
     return {"response": response_text}
 
 def call_accommodation_agent(query: str, context: str = "") -> Dict[str, Any]:
+    print(f"[call_accommodation_agent] Called with query: {query!r}, context: {context!r}")
     """
     Call the accommodation agent to get information about hotels and accommodations.
 
@@ -152,15 +153,15 @@ def call_accommodation_agent(query: str, context: str = "") -> Dict[str, Any]:
         session_id="accommodation_session", 
         new_message=content
     )
-
-    # Extract the response text
+    print(f"[call_accommodation_agent] Raw response: {response!r}")
     response_text = ""
     if response and hasattr(response, "content") and hasattr(response.content, "parts") and len(response.content.parts) > 0:
         response_text = response.content.parts[0].text
-
+    print(f"[call_accommodation_agent] Response text: {response_text!r}")
     return {"response": response_text}
 
 def call_transportation_agent(query: str, context: str = "") -> Dict[str, Any]:
+    print(f"[call_transportation_agent] Called with query: {query!r}, context: {context!r}")
     """
     Call the transportation agent to get information about transportation options.
 
@@ -185,10 +186,9 @@ def call_transportation_agent(query: str, context: str = "") -> Dict[str, Any]:
         session_id="transportation_session", 
         new_message=content
     )
-
-    # Extract the response text
+    print(f"[call_transportation_agent] Raw response: {response!r}")
     response_text = ""
     if response and hasattr(response, "content") and hasattr(response.content, "parts") and len(response.content.parts) > 0:
         response_text = response.content.parts[0].text
-
+    print(f"[call_transportation_agent] Response text: {response_text!r}")
     return {"response": response_text}

@@ -193,7 +193,9 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
         return "travel"
 
 # Import the tools
-from .tools.sub_agent_tools import call_activity_agent, call_restaurant_agent, call_accommodation_agent, call_transportation_agent
+from agents.root_agent import RootAgent
+
+root_agent = RootAgent()
 
 # Create the root agent as an orchestrator
 root_agent = Agent(
@@ -258,5 +260,6 @@ root_agent = Agent(
     the user in planning their travel.
     """,
     # Add the tools to the agent
-    tools=[call_activity_agent, call_restaurant_agent, call_accommodation_agent, call_transportation_agent]
+    # tools are now delegated via root_agent
+tools=[root_agent.delegate]
 )
