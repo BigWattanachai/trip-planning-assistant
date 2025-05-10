@@ -43,7 +43,8 @@ const config: Config = {
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.5s ease-out',
-        'progress': 'progress 1.5s ease-in-out infinite',
+        'progress': 'progress 2s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+        'pulse-bg': 'pulseBackground 2s ease-in-out infinite',
       },
       keyframes: {
         fadeIn: {
@@ -55,9 +56,28 @@ const config: Config = {
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         progress: {
-          '0%': { width: '0%' },
-          '50%': { width: '100%' },
-          '100%': { width: '0%' },
+          '0%': { 
+            width: '0%', 
+            boxShadow: '0 0 5px rgba(14, 165, 233, 0.5)',
+            backgroundColor: '#38bdf8'
+          },
+          '30%': { 
+            width: '50%',
+            backgroundColor: '#0ea5e9'
+          },
+          '60%': { 
+            width: '85%',
+            backgroundColor: '#0284c7'
+          },
+          '100%': { 
+            width: '100%',
+            boxShadow: '0 0 10px rgba(14, 165, 233, 0.8)',
+            backgroundColor: '#38bdf8'
+          },
+        },
+        pulseBackground: {
+          '0%, 100%': { backgroundColor: 'rgba(14, 165, 233, 0.7)' },
+          '50%': { backgroundColor: 'rgba(14, 165, 233, 0.9)' },
         },
       },
     },

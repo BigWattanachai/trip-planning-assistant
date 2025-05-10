@@ -529,12 +529,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
 
                 {isProcessingMessage && (
                     <div className="flex justify-center my-4">
-                        <div className="bg-gray-100 rounded-lg p-3 flex items-center space-x-2">
-                            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                                <div className="bg-primary-500 h-2.5 rounded-full animate-progress"></div>
+                            <div className="flex items-center space-x-2">
+                                <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></div>
+                                <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                                <div className="w-2 h-2 rounded-full bg-primary-600 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                                <span className="text-sm font-medium text-primary-700">Processing your request...</span>
                             </div>
-                            <span className="text-sm text-gray-600">Processing...</span>
-                        </div>
                     </div>
                 )}
 
