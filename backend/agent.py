@@ -202,7 +202,7 @@ def call_sub_agent(agent_type, query, session_id=None):
         prompt = prompts["travel_planner"]
     
     logger.info(f"Calling sub-agent: {agent_type}")
-    logger.info(f"Sub-agent prompt: {prompt[:100]}...")
+    logger.info(f"Sub-agent prompt: {prompt[:500]}...")
     
     try:
         # Generate the response
