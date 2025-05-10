@@ -181,8 +181,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
                 // Set isProcessingMessage to false when we receive the first message
                 setIsProcessingMessage(false);
 
+                console.log("Received message from agent:", text.substring(0, 50) + "...");
+                console.log("Current message ID:", currentMessageId);
+
                 // For a new message from the agent
                 if (currentMessageId === null) {
+                    console.log("Creating new message");
                     const newMessageId = Date.now().toString();
                     setCurrentMessageId(newMessageId);
 
@@ -198,6 +202,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
                         payload: newMessage
                     });
                 } else {
+                    console.log("Appending to existing message:", currentMessageId);
                     // For streaming response, append to existing message
                     const updatedMessages = state.messages.map(msg =>
                         msg.id === currentMessageId
@@ -212,7 +217,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
                 }
             },
             onTurnComplete: () => {
+                console.log("Turn complete handler called, resetting currentMessageId", currentMessageId);
                 setCurrentMessageId(null);
+                setIsProcessingMessage(false);
 
                 // If we're planning a trip, try to extract trip data after turn is complete
                 if (isPlanningTrip) {
@@ -533,7 +540,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
                                 <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></div>
                                 <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                                 <div className="w-2 h-2 rounded-full bg-primary-600 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                                <span className="text-sm font-medium text-primary-700">Processing your request...</span>
+                                <span className="text-sm font-medium text-primary-700">Processing your request</span>
+                                <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse"></div>
+                                <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                                <div className="w-2 h-2 rounded-full bg-primary-600 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                             </div>
                     </div>
                 )}

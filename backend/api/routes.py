@@ -81,7 +81,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
         active_connections[session_id] = websocket
 
         # Send a welcome message to the client
-        welcome_message = "สวัสดีค่ะ! ฉันคือผู้ช่วยวางแผนการเดินทางของคุณ บอกฉันหน่อยว่าคุณอยากไปเที่ยวที่ไหน และมีงบประมาณเท่าไหร่คะ?"
+        welcome_message = "สวัสดีค่ะ! ฉันคือผู้ช่วยวางแผนการเดินทางของคุณ\n\nคุณสามารถพิมพ์ข้อความในรูปแบบนี้:\n\nช่วยวางแผนการเดินทางท่องเที่ยวแบบละเอียดที่สุด ตามเงื่อนไขต่อไปนี้ :\n- ต้นทาง: กรุงเทพ\n- ปลายทาง: เชียงใหม่\n- ช่วงเวลาเดินทาง: วันที่: 2025-05-17 ถึงวันที่ 2025-05-22\n- งบประมาณรวม: ไม่เกิน 20,000 บาท\n\nหรือคุณสามารถถามเกี่ยวกับ:\n- ร้านอาหารแนะนำในจังหวัดต่างๆ\n- ที่พักราคาประหยัดหรือโรงแรมที่น่าสนใจ\n- สถานที่ท่องเที่ยวยอดนิยม\n- การเดินทางระหว่างจังหวัด"
         await websocket.send_text(json.dumps({"message": welcome_message}))
         await websocket.send_text(json.dumps({"turn_complete": True}))
         print(f"[AGENT TO CLIENT]: {welcome_message}")
@@ -115,8 +115,23 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
                     # Store the user message in conversation history
                     state_manager.add_user_message(session_id, user_message)
+                    
+                    # Check if this is a travel planning request
+                    is_travel_plan = "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message
+                    if not is_travel_plan and len(user_message.split()) <= 10:
+                        # Check if this is a follow-up to a travel planning request
+                        previous_messages = state_manager.get_conversation_history(session_id, max_messages=3)
+                        for message in previous_messages:
+                            if message.get("role") == "user":
+                                prev_content = message.get("content", "")
+                                if "ช่วยวางแผนการเดินทางท่องเที่ยว" in prev_content:
+                                    is_travel_plan = True
+                                    break
+                    
+                    print(f"Is travel plan: {is_travel_plan}")
 
                     # Process the message with the root agent
+                    final_message_sent = False
                     async for response in get_agent_response_async(user_message, "travel", session_id, runner):
                         # Check if this is a partial or final response
                         if response.get("partial", False):
@@ -129,6 +144,41 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                             # Get the final response message
                             final_message = response.get("message", "")
 
+                            # Check if this is a travel plan but missing the marker
+                            if is_travel_plan and "===== แผนการเดินทางของคุณ =====" not in final_message:
+                                print("Checking if this is a complete travel plan without marker...")
+                                
+                                # If this is a short response like "please wait" or "I'm searching", treat as partial
+                                if len(final_message) < 500 and any(phrase in final_message for phrase in [
+                                    "รอสักครู่", "กำลังค้นหา", "กำลังวางแผน", "กำลังจัดทำ", "ขออภัย", 
+                                    "ได้รวบรวมข้อมูล", "ดิฉันได้รวบรวม", "จะช่วยวางแผน", "ทำการค้นหา"]):
+                                    print("This appears to be a 'please wait' message, sending as partial")
+                                    await websocket.send_text(json.dumps({
+                                        "message": final_message,
+                                        "partial": True
+                                    }))
+                                    continue
+                                
+                                # If it's asking a question for more details, let it through as final
+                                if "?" in final_message or "คะ?" in final_message or "ไหม" in final_message:
+                                    print("This appears to be a question, sending as final")
+                                    # Let this pass through as a final message
+                                    pass
+                                # For very short responses that are not questions or "please wait", also treat as partial
+                                elif len(final_message) < 300:
+                                    print("This is a very short response, sending as partial")
+                                    await websocket.send_text(json.dumps({
+                                        "message": final_message,
+                                        "partial": True
+                                    }))
+                                    continue
+                                # For longer responses (that are not waiting messages), replace with a structured marker
+                                elif len(final_message) > 1000:
+                                    print("This is a substantial response, adding travel plan marker")
+                                    # Add the missing marker to the message
+                                    if not final_message.startswith("\n===== แผนการเดินทางของคุณ =====\n"):
+                                        final_message = "\n===== แผนการเดินทางของคุณ =====\n" + final_message
+                            
                             # Store the agent response in conversation history
                             state_manager.add_agent_message(session_id, final_message, "travel")
 
@@ -141,6 +191,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                             await websocket.send_text(json.dumps({"turn_complete": True}))
                             print(f"[AGENT TO CLIENT]: {final_message}")
                             print("[TURN COMPLETE]")
+                            final_message_sent = True
 
                 except Exception as e:
                     print(f"Error processing message: {e}")

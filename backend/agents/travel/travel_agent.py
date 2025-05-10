@@ -57,6 +57,13 @@ def classify_intent(user_input: str, session_id: str = None) -> str:
     Returns:
         String indicating the intent: "restaurant", "activity", or "travel"
     """
+    # Check for full travel planning request first
+    if ("ช่วยวางแผนการเดินทางท่องเที่ยว" in user_input and 
+        "ต้นทาง" in user_input and 
+        "ปลายทาง" in user_input and 
+        "ช่วงเวลาเดินทาง" in user_input):
+        return "travel_plan"  # Special flag for complete travel planning
+        
     # Import state manager here to avoid circular imports
     try:
         # First try direct import
