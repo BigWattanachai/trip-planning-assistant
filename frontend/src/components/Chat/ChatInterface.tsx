@@ -102,6 +102,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
     const [currentMessageId, setCurrentMessageId] = useState<string | null>(null);
     const [isPlanningTrip, setIsPlanningTrip] = useState(false);
     const [processingTimer, setProcessingTimer] = useState<NodeJS.Timeout | null>(null);
+    const [isProcessingMessage, setIsProcessingMessage] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const wsRef = useRef<WebSocketService | null>(null);
@@ -177,6 +178,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
                 console.log('WebSocket connected');
             },
             onMessage: (text: string) => {
+                // Set isProcessingMessage to false when we receive the first message
+                setIsProcessingMessage(false);
+
                 // For a new message from the agent
                 if (currentMessageId === null) {
                     const newMessageId = Date.now().toString();
@@ -228,12 +232,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
             },
             onClose: () => {
                 setIsConnected(false);
+                setIsProcessingMessage(false);
                 console.log('WebSocket disconnected');
             },
             onError: (error: any) => {
                 setConnectionError('Connection to the assistant failed. Please try again.');
                 setIsConnecting(false);
                 setIsConnected(false);
+                setIsProcessingMessage(false);
                 console.error('WebSocket error:', error);
             }
         };
@@ -303,6 +309,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
             payload: userMessage
         });
 
+        // Set processing message state to true
+        setIsProcessingMessage(true);
+
         // Send message to WebSocket
         if (wsRef.current) {
             try {
@@ -310,6 +319,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
             } catch (error) {
                 console.error('Failed to send message:', error);
                 setConnectionError('Failed to send message. Please try again.');
+                setIsProcessingMessage(false);
                 if (isTripPlanningQuery) {
                     dispatch({type: 'SET_LOADING', payload: false});
                     onPlanningComplete();
@@ -323,6 +333,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
             }
         } else {
             setConnectionError('Not connected to the assistant. Please refresh the page.');
+            setIsProcessingMessage(false);
             if (isTripPlanningQuery) {
                 dispatch({type: 'SET_LOADING', payload: false});
                 onPlanningComplete();
@@ -396,6 +407,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
             payload: userMessage
         });
 
+        // Set processing message state to true
+        setIsProcessingMessage(true);
+
         // Send the trip planning request to the backend via WebSocket
         if (wsRef.current) {
             try {
@@ -403,6 +417,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
             } catch (error) {
                 console.error('Failed to send trip planning request:', error);
                 setConnectionError('Failed to send trip planning request. Please try again.');
+                setIsProcessingMessage(false);
 
                 // Still use the sample data to show something
                 setTimeout(() => {
@@ -420,6 +435,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
             }
         } else {
             setConnectionError('Not connected to the assistant. Please refresh the page.');
+            setIsProcessingMessage(false);
 
             // Still use the sample data to show something
             setTimeout(() => {
@@ -510,6 +526,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({onPlanningStart, onPlannin
                         </div>
                     </div>
                 ))}
+
+                {isProcessingMessage && (
+                    <div className="flex justify-center my-4">
+                        <div className="bg-gray-100 rounded-lg p-3 flex items-center space-x-2">
+                            <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                                <div className="bg-primary-500 h-2.5 rounded-full animate-progress"></div>
+                            </div>
+                            <span className="text-sm text-gray-600">Processing...</span>
+                        </div>
+                    </div>
+                )}
+
                 <div ref={messagesEndRef}/>
             </div>
 
