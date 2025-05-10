@@ -1,270 +1,331 @@
 """
-Async Agent Handler: Module for handling asynchronous agent responses with improved state management
+Async Agent Handler: Module for handling asynchronous agent responses
 """
+import os
 import sys
 import pathlib
+import logging
+import google.generativeai as genai
 from typing import Dict, Any, AsyncGenerator
-from google.adk.runners import Runner
+from dotenv import load_dotenv
 
-# Handle imports for both running as a module and running directly
+# Setup basic logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
+
+# Add the parent directory to sys.path to allow imports
+parent_dir = str(pathlib.Path(__file__).parent.parent.parent.absolute())
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+# Add the current directory's parent to sys.path
+current_parent = str(pathlib.Path(__file__).parent.parent.absolute())
+if current_parent not in sys.path:
+    sys.path.append(current_parent)
+
+# Determine if using Vertex AI or direct Gemini API
+USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
+MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash-002")
+
+# Configure the Gemini API
+api_key = os.getenv("GOOGLE_API_KEY")
+if api_key:
+    logger.info("Configuring Gemini API with provided key")
+    genai.configure(api_key=api_key)
+else:
+    logger.warning("GOOGLE_API_KEY not set. Direct API mode may not work.")
+
+# Initialize the Gemini model for direct API access
 try:
-    # When running as a module (python -m backend.main)
-    from ..core.improved_agent_orchestrator import improved_orchestrator
-except (ImportError, ValueError):
-    # When running directly (python main.py)
-    # Add the parent directory to sys.path
-    parent_dir = str(pathlib.Path(__file__).parent.parent.parent.absolute())
-    if parent_dir not in sys.path:
-        sys.path.append(parent_dir)
+    gemini_model = genai.GenerativeModel(MODEL)
+    logger.info(f"Initialized Gemini model: {MODEL}")
+except Exception as e:
+    logger.error(f"Failed to initialize Gemini model: {e}")
+    gemini_model = None
 
-    # Use absolute imports
-    from backend.core.improved_agent_orchestrator import improved_orchestrator
+# Conditional imports based on mode
+if USE_VERTEX_AI:
+    try:
+        # Try to import relative first
+        try:
+            from agent import root_agent
+        except ImportError:
+            # Then try with backend prefix
+            from backend.agent import root_agent
+            
+        from vertexai.preview.reasoning_engines import AdkApp
+        
+        # Import only if ADK is available
+        try:
+            adk_app = AdkApp(agent=root_agent, enable_tracing=True)
+            logger.info("ADK App initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize ADK App: {e}")
+            adk_app = None
+    except ImportError as e:
+        logger.error(f"Failed to import ADK components: {e}")
+        USE_VERTEX_AI = False
+        adk_app = None
+else:
+    logger.info("Running in direct API mode (no ADK)")
+    adk_app = None
+    
+    # Import the call_sub_agent function for direct API mode
+    try:
+        from agent import call_sub_agent
+    except ImportError:
+        try:
+            from backend.agent import call_sub_agent
+        except ImportError:
+            logger.error("Failed to import call_sub_agent function")
+            
+            # Define a basic version in case imports fail
+            def call_sub_agent(agent_type, query, session_id=None):
+                logger.error(f"Fallback call_sub_agent: {agent_type}")
+                return f"Could not call {agent_type} agent"
 
 async def get_agent_response_async(
     user_message: str, 
     agent_type: str = "travel", 
     session_id: str = None,
-    runner: Runner = None,
+    runner = None,
     retry_count: int = 0
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """
-    Gets a response from the agent asynchronously using Google ADK
+    Gets a response from the agent asynchronously
 
     Args:
         user_message: The user's message
-        agent_type: The type of agent to use (ignored, always uses root_agent)
+        agent_type: The type of agent to use
         session_id: Session identifier
-        runner: The runner instance to use
+        runner: The runner instance (for ADK mode)
         retry_count: Number of times this function has been retried
 
     Yields:
         Dictionary containing response parts
     """
     try:
-        accumulated_text = ""
-        final_response = ""
-        partial_count = 0  # Track number of partial updates to avoid excessive streaming
-        complete_response = ""  # Track the complete response by accumulating all text
-        has_function_calls = False  # Flag to track if function calls have been made
-        has_function_responses = False  # Flag to track if function responses have been received
+        # Check if we should use ADK or direct Gemini API
+        if USE_VERTEX_AI and adk_app:
+            logger.info(f"Using ADK to process message for session {session_id}")
+            
+            user_id = f"user_{session_id}"
+            accumulated_text = ""
+            
+            try:
+                # Process the message through ADK app
+                for event in adk_app.stream_query(
+                    user_id=user_id,
+                    session_id=session_id,
+                    message=user_message
+                ):
+                    if "content" in event:
+                        if "parts" in event["content"]:
+                            parts = event["content"]["parts"]
+                            for part in parts:
+                                if "text" in part:
+                                    text_part = part["text"]
+                                    accumulated_text += text_part
+                                    yield {"message": text_part, "partial": True}
 
-        try:
-            # Create content object for the agent
-            from google.genai.types import Part, Content
-            content = Content(role="user", parts=[Part(text=user_message)])
-
-            # Run the agent directly without the orchestrator
-            async for event in runner.run_async(user_id="user_123", session_id=session_id, new_message=content):
-                # Check if this is a partial response - only send every 3rd partial to reduce message count
-                if hasattr(event, 'is_partial') and event.is_partial():
-                    if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
-                        partial_text = event.content.parts[0].text
-                        accumulated_text += partial_text
-                        complete_response += partial_text
-                        partial_count += 1
-
-                        # Only send partial updates occasionally to avoid flooding
-                        if partial_count % 3 == 0 and len(partial_text) > 5:
-                            yield {"message": partial_text, "partial": True}
-
-                # Process function calls if any - but don't send to client
-                if hasattr(event, 'get_function_calls'):
-                    function_calls = event.get_function_calls()
-                    if function_calls:
-                        has_function_calls = True  # Set the flag when function calls are detected
-                        print(f"Function calls detected: {function_calls}")
-                        # Add a partial response to let the user know we're working on their travel plan
-                        if "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message or len(user_message.split()) <= 10:
-                            print(f"กำลังค้นหาข้อมูลและจัดทำแผนการเดินทางของคุณ กรุณารอสักครู่..")
-                            planning_message = "กำลังค้นหาข้อมูลและจัดทำแผนการเดินทางของคุณ กรุณารอสักครู่..."
-                            yield {"message": planning_message, "partial": True}
-
-                # Process function responses if any - but don't send to client
-                if hasattr(event, 'get_function_responses'):
-                    function_responses = event.get_function_responses()
-                    if function_responses:
-                        has_function_responses = True  # Set the flag when function responses are received
-                        print(f"Function responses received: {function_responses}")
-                        # Add a partial response to show progress
-                        if "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message or len(user_message.split()) <= 10:
-                            print(f"ได้รับข้อมูลเพิ่มเติมแล้ว กำลังจัดทำแผนการเดินทางที่สมบูรณ์...")
-                            progress_message = "ได้รับข้อมูลเพิ่มเติมแล้ว กำลังจัดทำแผนการเดินทางที่สมบูรณ์..."
-                            yield {"message": progress_message, "partial": True}
-
-                # Check if this is the final response
-                if hasattr(event, 'is_final_response') and event.is_final_response():
-                    if event.content and hasattr(event.content, 'parts') and len(event.content.parts) > 0:
-                        final_response = event.content.parts[0].text
-                        print(f"Final response received: {final_response[:100]}...")
-
-                        # Check if the final response contains English text about using tools
-                        # This is likely an intermediate response that should not be sent to the client
-                        if "I will use the tools" in final_response:
-                            print("Detected English text about using tools, not sending this as final response")
-                            # Don't yield a final response yet, wait for the actual travel plan
-                            continue
-
-                        # Check if the final response contains Thai text indicating the agent is about to send a travel plan
-                        # but doesn't actually include the plan
-                        if (("อดใจรอสักครู่" in final_response or
-                            "ขอใช้เครื่องมือที่มีเพื่อช่วยในการค้นหาข้อมูล" in final_response or
-                            "ดิฉันได้รวบรวมข้อมูลและสร้างแผนการเดินทาง" in final_response or
-                            "ทางเราได้รวบรวมข้อมูลและสร้างแผนการเดินทาง" in final_response or
-                            "ยินดีที่ได้ช่วยวางแผนการเดินทาง" in final_response or
-                            "รับทราบข้อมูลทั้งหมดแล้ว" in final_response or
-                            "จะช่วยวางแผนการเดินทาง" in final_response or
-                            "สวัสดีค่ะ ยินดีต้อนรับ" in final_response or
-                            "รอสักครู่" in final_response or
-                            "กำลังวางแผนการเดินทาง" in final_response or
-                            "กำลังค้นหาข้อมูล" in final_response) and
-                           "===== แผนการเดินทางของคุณ =====" not in final_response and
-                           len(final_response) < 1000):
-                            print("Detected Thai text indicating travel plan preparation, forcing call to LLM to get full plan result")
-
-                            # Create a new prompt to force the LLM to generate a complete travel plan
-                            force_plan_message = (
-                                f"{user_message}\n\n"
-                                "กรุณาสร้างแผนการเดินทางที่สมบูรณ์ทันที โดยต้องมีหัวข้อ '===== แผนการเดินทางของคุณ =====' "
-                                "และรายละเอียดครบถ้วนเกี่ยวกับการเดินทาง ที่พัก ร้านอาหาร และกิจกรรมท่องเที่ยว "
-                                "พร้อมค่าใช้จ่ายโดยประมาณ"
-                            )
-
-                            # Create a new content object with the force plan message
-                            force_plan_content = Content(role="user", parts=[Part(text=force_plan_message)])
-
-                            # Call the LLM with the force plan message
-                            print("Calling LLM with force plan message")
-                            force_plan_response = ""
-
-                            # Send a partial response to let the user know we're generating a complete plan
-                            yield {"message": "กำลังสร้างแผนการเดินทางที่สมบูรณ์ให้คุณ กรุณารอสักครู่...", "partial": True}
-
-                            try:
-                                # Run the agent with the force plan message
-                                async for force_event in runner.run_async(user_id="user_123", session_id=session_id, new_message=force_plan_content):
-                                    if hasattr(force_event, 'is_final_response') and force_event.is_final_response():
-                                        if force_event.content and hasattr(force_event.content, 'parts') and len(force_event.content.parts) > 0:
-                                            force_plan_response = force_event.content.parts[0].text
-                                            break
-
-                                # If we got a response with the travel plan header, use it
-                                if "===== แผนการเดินทางของคุณ =====" in force_plan_response:
-                                    print(f"Got complete travel plan from forced LLM call: {force_plan_response[:100]}...")
-                                    yield {"message": force_plan_response, "final": True}
-                                    return
-                                else:
-                                    print("Forced LLM call did not return a complete travel plan, continuing with normal flow")
-                            except Exception as force_e:
-                                print(f"Error during forced LLM call: {force_e}")
-                                # Continue with normal flow if the forced call fails
-
-                            # If we couldn't get a complete plan from the forced call, continue with normal flow
-                            continue
-
-                        # Add final response to complete_response
-                        complete_response += final_response
-
-                        # If we have function calls but no function responses yet, don't send the final response
-                        # This is likely the initial response saying the agent will use tools to search for information
-                        if has_function_calls and not has_function_responses:
-                            print("Function calls detected but no responses yet, waiting for complete travel plan")
-                            # Don't yield a final response yet, wait for function responses
-                        # Check if the final response is complete (not truncated)
-                        elif len(final_response) > 100 and len(complete_response) <= len(final_response) * 1.1:
-                            # If final response is substantial and not much shorter than complete_response, use it
-                            print(f"Using final response, length: {len(final_response)}")
-                            yield {"message": final_response, "final": True}
-                        else:
-                            # If final response seems incomplete, use complete_response instead
-                            print(f"Final response may be incomplete, using complete response: {complete_response[:100]}...")
-                            print(f"Final response length: {len(final_response)}, Complete response length: {len(complete_response)}")
-                            yield {"message": complete_response, "final": True}
-
-        except Exception as inner_e:
-            print(f"Error during run_async: {inner_e}")
-            yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดขณะประมวลผล: {str(inner_e)}", "final": True}
-            return
-
-        # If we have function calls but no function responses after a while, return what we have
-        if has_function_calls and not has_function_responses:
-            print("Function calls detected but no responses received, sending interim response")
-
-            # First, send a partial response indicating the agent is still processing
-            waiting_message = "ขออภัยค่ะ ฉันกำลังค้นหาข้อมูลเพื่อวางแผนการเดินทางให้คุณ กรุณารอสักครู่นะคะ"
-            print(f"Sending waiting message: {waiting_message}")
-            yield {"message": waiting_message, "partial": True}
-
-            # Then send something as a final response so the user isn't left hanging
-            # If we have any accumulated content, use that; otherwise, provide a simple acknowledgment
-            if complete_response and len(complete_response) > 200:
-                prepared_message = "\n===== แผนการเดินทางของคุณ =====\n" + complete_response
-                print(f"Sending accumulated content as final response: {prepared_message[:100]}...")
-                yield {"message": prepared_message, "final": True}
+                # If we have accumulated text, send it as the final response
+                if accumulated_text:
+                    yield {"message": accumulated_text, "final": True}
+                else:
+                    # Fallback response if no text was accumulated
+                    yield {"message": "ขออภัยค่ะ ฉันไม่สามารถประมวลผลคำขอของคุณได้ในขณะนี้ กรุณาลองใหม่อีกครั้งค่ะ", "final": True}
+            except Exception as e:
+                logger.error(f"Error processing with ADK: {str(e)}")
+                # Fall back to direct API if ADK fails
+                yield {"message": "ขออภัยค่ะ มีปัญหาในการประมวลผล กำลังลองวิธีอื่น...", "partial": True}
+                async for response in process_with_direct_api(user_message, session_id):
+                    yield response
+                
+        else:
+            # Use direct Gemini API
+            logger.info(f"Using direct Gemini API for session {session_id}")
+            
+            # Check if this is a travel planning request
+            is_travel_plan = "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message
+            
+            if is_travel_plan:
+                # Call sub-agents for a complete travel plan
+                yield {"message": "กำลังวิเคราะห์คำขอของคุณและรวบรวมข้อมูลจากผู้เชี่ยวชาญด้านต่างๆ...", "partial": True}
+                
+                # Call each sub-agent in sequence
+                logger.info("Calling transportation sub-agent")
+                transportation_response = call_sub_agent("transportation", user_message, session_id)
+                yield {"message": "กำลังหาข้อมูลเกี่ยวกับการเดินทาง...", "partial": True}
+                
+                logger.info("Calling accommodation sub-agent")
+                accommodation_response = call_sub_agent("accommodation", user_message, session_id)
+                yield {"message": "กำลังรวบรวมข้อมูลที่พัก...", "partial": True}
+                
+                logger.info("Calling restaurant sub-agent")
+                restaurant_response = call_sub_agent("restaurant", user_message, session_id)
+                yield {"message": "กำลังหาร้านอาหารที่น่าสนใจ...", "partial": True}
+                
+                logger.info("Calling activity sub-agent")
+                activity_response = call_sub_agent("activity", user_message, session_id)
+                yield {"message": "กำลังรวบรวมข้อมูลสถานที่ท่องเที่ยวและกิจกรรมที่น่าสนใจ...", "partial": True}
+                
+                # Finally, call the travel planner to create a comprehensive plan
+                logger.info("Calling travel planner sub-agent")
+                # Include info from other sub-agents in the travel planner's input
+                enhanced_query = f"""
+                {user_message}
+                
+                ข้อมูลการเดินทาง:
+                {transportation_response[:500] if transportation_response else "ไม่มีข้อมูล"}
+                
+                ข้อมูลที่พัก:
+                {accommodation_response[:500] if accommodation_response else "ไม่มีข้อมูล"}
+                
+                ข้อมูลร้านอาหาร:
+                {restaurant_response[:500] if restaurant_response else "ไม่มีข้อมูล"}
+                
+                ข้อมูลสถานที่ท่องเที่ยวและกิจกรรม:
+                {activity_response[:500] if activity_response else "ไม่มีข้อมูล"}
+                """
+                
+                yield {"message": "กำลังจัดทำแผนการเดินทางแบบสมบูรณ์...", "partial": True}
+                
+                travel_plan = call_sub_agent("travel_planner", enhanced_query, session_id)
+                
+                # Ensure the travel plan has the proper format
+                if travel_plan and "===== แผนการเดินทางของคุณ =====" not in travel_plan:
+                    travel_plan = "===== แผนการเดินทางของคุณ =====\n\n" + travel_plan
+                
+                # Log the complete travel plan
+                logger.info(f"Travel plan created: {travel_plan[:100]}...")
+                
+                # Send the final comprehensive travel plan - CRITICAL FIX: ensure this is marked as final
+                yield {"message": travel_plan, "final": True}
             else:
-                fallback_message = (
-                    "\n===== แผนการเดินทางของคุณ =====\n"
-                    f"\n📍 ข้อมูลทั่วไป:\n"
-                    f"- ต้นทาง: กรุงเทพ\n"
-                    f"- ปลายทาง: เลย\n"
-                    f"- วันที่เดินทาง: 2025-05-17 ถึง 2025-05-22\n"
-                    f"- งบประมาณ: ไม่เกิน 15,000 บาท\n"
-                    f"\n🚗 การเดินทาง (Transportation):\n"
-                    f"- รถโดยสารประจำทาง: กรุงเทพฯ-เลย (ราคาประมาณ 450-600 บาท, ใช้เวลาประมาณ 8-10 ชั่วโมง)\n"
-                    f"- เครื่องบิน: สนามบินดอนเมือง-สนามบินเลย (ราคาประมาณ 1,200-2,000 บาท, ใช้เวลาประมาณ 1 ชั่วโมง 10 นาที)\n"
-                    f"\n🏨 ที่พักแนะนำ:\n"
-                    f"- โรงแรมเลยพาเลซ: ห้องพักมาตรฐาน 900-1,200 บาทต่อคืน\n"
-                    f"- เลยน้ำหวาน รีสอร์ท: ห้องพัก 800-1,000 บาทต่อคืน\n"
-                    f"\n🍴 ร้านอาหารแนะนำ:\n"
-                    f"- ร้านครัวเลย: อาหารพื้นเมือง (300-400 บาทต่อคน)\n"
-                    f"- ร้านข้าวแลง: อาหารอีสาน (200-300 บาทต่อคน)\n"
-                    f"\n🏝️ สถานที่ท่องเที่ยวแนะนำ:\n"
-                    f"- ภูกระดึง\n"
-                    f"- วัดผาตากเสื้อ\n"
-                    f"- ภูเรือ\n"
-                    f"- แก่งคุดคู้\n"
-                    f"\n📋 แผนเบื้องต้น: ฉันจะส่งแผนละเอียดให้ในข้อความถัดไปนะคะ\n"
-                    f"\n💰 ยอดค่าใช้จ่ายทั้งหมดโดยประมาณ: 12,000-15,000 บาท\n"
-                    f"\n✅ เคล็ดลับและข้อควรระวัง:\n"
-                    f"- ควรเตรียมเสื้อกันหนาวสำหรับช่วงเช้าและกลางคืน\n"
-                    f"- จองที่พักล่วงหน้าโดยเฉพาะในช่วงเทศกาล\n"
-                    f"- เตรียมครีมกันแดดสำหรับกิจกรรมกลางแจ้ง\n"
-                    f"- ควรมีรถส่วนตัวหรือเช่ารถสำหรับเดินทางในจังหวัด\n"
-                    f"- เตรียมยาประจำตัวและยาสามัญไว้เสมอ\n"
-                    f"\n==============================\n"
-                    f"\nขออภัยค่ะ ระบบกำลังประมวลผลข้อมูลเพิ่มเติม คุณสามารถถามเพิ่มเติมเกี่ยวกับสถานที่ท่องเที่ยวหรือที่พักที่น่าสนใจในจังหวัดเลยได้ค่ะ"
-                )
-                print(f"Sending fallback travel plan")
-                yield {"message": fallback_message, "final": True}
-            return
-
-        # If we don't get a final response, use the complete_response, accumulated text, or a default message
-        elif not final_response:
-            # Ensure we have a final response, using complete_response if accumulated
-            if complete_response and len(complete_response) > 300:
-                print(f"No final response received, using complete response: {complete_response[:100]}...")
-
-                # Check if this appears to be a travel plan - if so, add the marker
-                if "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message and len(complete_response) > 1000:
-                    if not complete_response.startswith("\n===== แผนการเดินทางของคุณ =====\n"):
-                        complete_response = "\n===== แผนการเดินทางของคุณ =====\n" + complete_response
-
-                yield {"message": complete_response, "final": True}
-            else:
-                final_message = accumulated_text or "ขออภัยค่ะ ฉันยังไม่เข้าใจคำถามของคุณ กรุณาถามใหม่อีกครั้งค่ะ"
-                print(f"No complete response available, using accumulated text: {final_message[:100]}...")
-                yield {"message": final_message, "final": True}
-        # If the final response is very short (likely truncated), use the complete_response instead
-        elif len(final_response) < 500 and len(complete_response) > len(final_response) * 2:
-            print(f"Final response seems too short, using complete response instead. Final: {len(final_response)}, Complete: {len(complete_response)}")
-
-            # Check if this appears to be a travel plan - if so, add the marker
-            if "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message and len(complete_response) > 1000:
-                if not complete_response.startswith("\n===== แผนการเดินทางของคุณ =====\n"):
-                    complete_response = "\n===== แผนการเดินทางของคุณ =====\n" + complete_response
-
-            yield {"message": complete_response, "final": True}
-
+                # Process regular queries directly
+                async for response in process_with_direct_api(user_message, session_id):
+                    yield response
+                
     except Exception as e:
-        print(f"Error getting agent response asynchronously: {e}")
+        logger.error(f"Error getting agent response: {str(e)}")
         # Fallback response in case of error
         yield {"message": f"ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้น: {str(e)}", "final": True}
+
+async def process_with_direct_api(user_message: str, session_id: str = None) -> AsyncGenerator[Dict[str, Any], None]:
+    """Process the message using direct Gemini API"""
+    try:
+        if not gemini_model:
+            raise ValueError("Gemini model not initialized")
+            
+        # Determine if this is a specialized query
+        query_type = classify_query(user_message)
+        logger.info(f"Query classified as: {query_type}")
+        
+        if query_type != "general":
+            # Call appropriate sub-agent for specialized queries
+            specialized_response = call_sub_agent(query_type, user_message, session_id)
+            
+            # Ensure we have a complete response
+            if specialized_response:
+                logger.info(f"Specialized response from {query_type} agent received: {specialized_response[:100]}...")
+                # Make sure the response is properly formatted if it's a travel plan
+                if query_type == "travel_planner" and "===== แผนการเดินทางของคุณ =====" not in specialized_response:
+                    specialized_response = "===== แผนการเดินทางของคุณ =====\n\n" + specialized_response
+                yield {"message": specialized_response, "final": True}
+            else:
+                logger.error(f"Empty response from {query_type} agent")
+                yield {"message": "ขออภัยค่ะ ไม่สามารถประมวลผลคำขอได้ กรุณาลองใหม่อีกครั้ง", "final": True}
+            return
+            
+        # Create a prompt for general queries
+        prompt = f"""คุณคือผู้ช่วยวางแผนการเดินทางท่องเที่ยว
+
+คำถาม: {user_message}
+
+โปรดให้คำแนะนำที่เป็นประโยชน์ที่สุดในการตอบคำถามนี้ โดยให้ข้อมูลเกี่ยวกับการท่องเที่ยว ที่พัก ร้านอาหาร หรือกิจกรรมต่างๆ ตามที่เหมาะสม
+"""
+
+        logger.info(f"Sending prompt to Gemini API: {prompt[:100]}...")
+
+        # Generate response from Gemini API
+        response = await gemini_model.generate_content_async(
+            prompt,
+            generation_config={
+                "temperature": 0.7,
+                "top_p": 0.95,
+                "top_k": 40,
+                "max_output_tokens": 8192,
+            },
+        )
+        
+        # Get the complete response
+        if hasattr(response, 'text'):
+            # Direct response without streaming
+            full_response = response.text
+            logger.info(f"Complete response received: {full_response[:100]}...")
+            yield {"message": full_response, "final": True}
+        else:
+            # Try to stream the response
+            try:
+                full_response = ""
+                async for chunk in response:
+                    if hasattr(chunk, 'text') and chunk.text:
+                        full_response += chunk.text
+                        
+                logger.info(f"Streamed response completed: {full_response[:100]}...")
+                # Send the complete response
+                if full_response:
+                    yield {"message": full_response, "final": True}
+                else:
+                    yield {"message": "ขออภัยค่ะ ฉันไม่สามารถประมวลผลคำขอของคุณได้ในขณะนี้ กรุณาลองใหม่อีกครั้งค่ะ", "final": True}
+            except Exception as e:
+                logger.error(f"Error streaming response: {e}")
+                yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดในการประมวลผล: {str(e)}", "final": True}
+            
+    except Exception as e:
+        logger.error(f"Error with direct API: {str(e)}")
+        yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดในการประมวลผล: {str(e)}", "final": True}
+
+def classify_query(query: str) -> str:
+    """
+    Classify the user query to determine which sub-agent to use
+    
+    Args:
+        query: The user's query
+        
+    Returns:
+        The type of sub-agent to use: "accommodation", "activity", "restaurant", "transportation", "travel_planner", or "general"
+    """
+    query_lower = query.lower()
+    
+    # Travel planning
+    if "ช่วยวางแผนการเดินทางท่องเที่ยว" in query_lower or "แผนการเดินทาง" in query_lower:
+        logger.info("Query classified as travel planning")
+        return "travel_planner"
+        
+    # Accommodation
+    if any(word in query_lower for word in ["ที่พัก", "โรงแรม", "รีสอร์ท", "โฮสเทล"]):
+        logger.info("Query classified as accommodation")
+        return "accommodation"
+        
+    # Activities
+    if any(word in query_lower for word in ["ที่เที่ยว", "สถานที่ท่องเที่ยว", "กิจกรรม", "เที่ยวที่ไหนดี"]):
+        logger.info("Query classified as activity")
+        return "activity"
+        
+    # Restaurants
+    if any(word in query_lower for word in ["ร้านอาหาร", "อาหาร", "ที่กิน", "ร้านอร่อย"]):
+        logger.info("Query classified as restaurant")
+        return "restaurant"
+        
+    # Transportation
+    if any(word in query_lower for word in ["การเดินทาง", "รถ", "เครื่องบิน", "รถไฟ", "รถทัวร์"]):
+        logger.info("Query classified as transportation")
+        return "transportation"
+        
+    # Default to general
+    logger.info("Query classified as general")
+    return "general"

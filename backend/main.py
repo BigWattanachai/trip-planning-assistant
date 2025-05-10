@@ -1,32 +1,49 @@
 """
-Travel A2A Backend: Main application entry point
+Travel Agent Backend: Main application entry point
 """
 import os
 import sys
 import pathlib
+import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Handle imports for both running as a module and running directly
-try:
-    # When running as a module (python -m backend.main)
-    from .api.routes import router
-except ImportError:
-    # When running directly (python main.py)
-    # Add the parent directory to sys.path
-    parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
-    if parent_dir not in sys.path:
-        sys.path.append(parent_dir)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+)
+logger = logging.getLogger(__name__)
 
-    # Use absolute imports
-    from backend.api.routes import router
-
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 
+# Add the parent directory to sys.path to allow imports
+parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+# Add the current directory to sys.path
+current_dir = str(pathlib.Path(__file__).parent.absolute())
+if current_dir not in sys.path:
+    sys.path.append(current_dir)
+
+# Use direct imports when running within the backend directory
+try:
+    # First try relative import in case we're running as a package
+    from api.routes import router 
+except ImportError:
+    # If that fails, try an absolute import
+    from backend.api.routes import router
+
+# Log the environment configuration
+USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
+MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash-002")
+logger.info(f"Starting Travel Agent Backend - Mode: {'Vertex AI' if USE_VERTEX_AI else 'Direct API'}, Model: {MODEL}")
+
 # Create FastAPI application
-app = FastAPI(title="Travel A2A Backend")
+app = FastAPI(title="Travel Agent Backend")
 
 # Enable CORS
 app.add_middleware(
@@ -42,16 +59,11 @@ app.include_router(router, prefix="/api")
 
 if __name__ == "__main__":
     import uvicorn
-    import sys
-    import pathlib
-
-    # Add the parent directory to sys.path to allow running directly
-    parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
-    if parent_dir not in sys.path:
-        sys.path.append(parent_dir)
 
     port = int(os.getenv("PORT", "8000"))
     host = os.getenv("HOST", "0.0.0.0")
+    
+    logger.info(f"Starting server on {host}:{port}")
 
-    # When running directly, use the module path
-    uvicorn.run("backend.main:app", host=host, port=port, reload=True)
+    # When running directly, use the direct path
+    uvicorn.run("main:app", host=host, port=port, reload=True)
