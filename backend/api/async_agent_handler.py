@@ -5,6 +5,7 @@ import os
 import sys
 import pathlib
 import logging
+import json
 import google.generativeai as genai
 from typing import Dict, Any, AsyncGenerator
 from dotenv import load_dotenv
@@ -86,6 +87,24 @@ else:
             def call_sub_agent(agent_type, query, session_id=None):
                 logger.error(f"Fallback call_sub_agent: {agent_type}")
                 return f"Could not call {agent_type} agent"
+                
+    # Try to import YouTube search tools for direct API mode
+    try:
+        from tools.youtube.youtube_tool import search_youtube_for_travel, format_youtube_insights_for_agent
+        logger.info("Successfully imported YouTube search functions for direct API mode")
+    except ImportError:
+        try:
+            from backend.tools.youtube.youtube_tool import search_youtube_for_travel, format_youtube_insights_for_agent
+            logger.info("Successfully imported YouTube search functions using backend path")
+        except ImportError:
+            logger.warning("Failed to import YouTube search functions, creating placeholder")
+            # Create placeholder functions
+            def search_youtube_for_travel(query, destination="", max_results=3, language="th"):
+                logger.warning(f"YouTube search called but not properly imported: {query}")
+                return {"videos": [], "insights": {}, "success": False}
+                
+            def format_youtube_insights_for_agent(insights):
+                return "ไม่พบข้อมูลจาก YouTube เนื่องจากระบบค้นหาไม่พร้อมใช้งาน"
 
 async def get_agent_response_async(
     user_message: str, 
@@ -155,6 +174,30 @@ async def get_agent_response_async(
                 # Call sub-agents for a complete travel plan
                 yield {"message": "กำลังวิเคราะห์คำขอของคุณและรวบรวมข้อมูลจากผู้เชี่ยวชาญด้านต่างๆ...", "partial": True}
                 
+                # Extract destination information from the query
+                from agent import extract_travel_info
+                travel_info = extract_travel_info(user_message)
+                destination = travel_info.get("destination", "")
+                
+                # Search YouTube for travel insights
+                youtube_insights = ""
+                if destination and destination != "ไม่ระบุ" and destination != "ภายในประเทศไทย":
+                    logger.info(f"Searching YouTube for destination: {destination}")
+                    yield {"message": "กำลังค้นหาข้อมูลจาก YouTube เกี่ยวกับจุดหมายปลายทาง...", "partial": True}
+                    
+                    youtube_results = search_youtube_for_travel(
+                        query="travel guide tips",
+                        destination=destination,
+                        max_results=3,
+                        language="th"
+                    )
+                    
+                    if youtube_results.get("success") and youtube_results.get("insights"):
+                        youtube_insights = format_youtube_insights_for_agent(youtube_results.get("insights", {}))
+                        logger.info(f"YouTube insights found: {len(youtube_insights)}")
+                    else:
+                        logger.warning("No YouTube insights found")
+                
                 # Call each sub-agent in sequence
                 logger.info("Calling transportation sub-agent")
                 transportation_response = call_sub_agent("transportation", user_message, session_id)
@@ -189,6 +232,9 @@ async def get_agent_response_async(
                 
                 ข้อมูลสถานที่ท่องเที่ยวและกิจกรรม:
                 {activity_response[:500] if activity_response else "ไม่มีข้อมูล"}
+                
+                ข้อมูลเพิ่มเติมจาก YouTube:
+                {youtube_insights if youtube_insights else "ไม่พบข้อมูลเพิ่มเติมจาก YouTube"}
                 """
                 
                 yield {"message": "กำลังจัดทำแผนการเดินทางแบบสมบูรณ์...", "partial": True}
