@@ -141,6 +141,12 @@ async def get_agent_response_async(
             accumulated_text = ""
 
             try:
+                # Ensure ADK session exists before processing
+                try:
+                    adk_app.create_session(user_id=user_id, session_id=session_id)
+                    logger.info(f"Created ADK session for user_id={user_id}, session_id={session_id}")
+                except Exception as create_err:
+                    logger.info(f"ADK session may already exist or failed to create: {create_err}")
                 # Process the message through ADK app
                 for event in adk_app.stream_query(
                     user_id=user_id,
@@ -193,7 +199,7 @@ async def get_agent_response_async(
                     yield {"message": "กำลังค้นหาข้อมูลจาก YouTube เกี่ยวกับจุดหมายปลายทาง...", "partial": True}
 
                     youtube_results = search_youtube_for_travel(
-                        query="สถานที่เที่ยว ที่พัก ที่กิน แนะนำการเดินทาง",
+                        query="สถานที่เที่ยว ที่พัก ที่กิน แนะนำการเดินทาง 2025",
                         destination=destination,
                         max_results=3,
                         language="th"

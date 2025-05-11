@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
     try:
         import warnings
-        from google.adk.agents import Agent, AgentTool
+        from google.adk.agents import Agent
         from google.adk.tools import ToolContext
         
         warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")

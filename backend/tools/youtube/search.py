@@ -77,7 +77,7 @@ def search_youtube_videos(
     try:
         # Prepare the search query - use Thai terms for better results
         if language == "th":
-            search_query = f"{query} ท่องเที่ยว คู่มือ เคล็ดลับ"
+            search_query = f"{query} 2025"
         else:
             search_query = f"travel guide tips {query}"
 
