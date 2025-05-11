@@ -19,6 +19,21 @@ if parent_dir not in sys.path:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import Tavily search function from activity agent
+try:
+    from sub_agents.activity_agent import activity_tavily_search
+    TAVILY_AVAILABLE = activity_tavily_search is not None
+    if TAVILY_AVAILABLE:
+        logger.info("Successfully imported Tavily search function")
+        print("Successfully imported Tavily search function")
+    else:
+        logger.warning("Tavily search function is not available")
+        print("Tavily search function is not available")
+except ImportError as e:
+    logger.warning(f"Could not import Tavily search function: {e}")
+    print(f"Could not import Tavily search function: {e}")
+    TAVILY_AVAILABLE = False
+
 # Only import ADK components if we're using Vertex AI
 if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
     try:
@@ -173,6 +188,47 @@ def call_sub_agent(agent_type, query, session_id=None):
     travel_info = extract_travel_info(query)
     logger.info(f"Extracted travel info: {travel_info}")
     
+    # Special handling for activity agent when Tavily is available
+    if agent_type == "activity" and TAVILY_AVAILABLE:
+        try:
+            # Use Tavily search to enhance results
+            logger.info("Using Tavily search to enhance activity recommendations")
+            print("Using Tavily search to enhance activity recommendations")
+            
+            destination = travel_info['destination']
+            # Perform searches for different categories of activities
+            search_queries = [
+                f"สถานที่ท่องเที่ยวยอดนิยมใน  {destination} 2025",
+                f"กิจกรรมทางวัฒนธรรมที่น่าสนใจใน {destination}",
+                f"กิจกรรมท่องเที่ยวธรรมชาติและกลางแจ้งใน  {destination}",
+                f"ประสบการณ์ท้องถิ่นที่ไม่เหมือนใครใน  {destination}",
+            ]
+            
+            search_results = {}
+            for search_query in search_queries:
+                logger.info(f"Searching Tavily for: {search_query}")
+                result = activity_tavily_search(search_query)
+                if result:
+                    category = search_query.split(" in ")[0]
+                    search_results[category] = result
+                    logger.info(f"Got Tavily results for: {category}")
+            
+            # Append search results to query for the model
+            if search_results:
+                activity_info = "\n\nAdditional information from real-time search:\n"
+                for category, result in search_results.items():
+                    summary = str(result)[:1000]  # Truncate long results
+                    activity_info += f"\n--- {category} ---\n{summary}\n"
+                
+                logger.info("Adding Tavily search results to prompt")
+            else:
+                activity_info = "\n\nNote: Attempted to search for additional information, but no results were found."
+        except Exception as e:
+            logger.error(f"Error using Tavily search: {e}")
+            activity_info = "\n\nNote: Attempted to search for additional information, but encountered an error."
+    else:
+        activity_info = ""
+    
     # Create specialized queries for different sub-agents
     specialized_queries = {
         "accommodation": f"""
@@ -243,7 +299,7 @@ def call_sub_agent(agent_type, query, session_id=None):
 6. เวลาที่ใช้สำหรับแต่ละกิจกรรม
 
 จัดเรียงกิจกรรมตามความสำคัญ และแนะนำแผนการท่องเที่ยวที่เหมาะสมสำหรับระยะเวลา {travel_info['start_date']} ถึง {travel_info['end_date']}
-ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน โดยมุ่งเน้นตัวเลือกที่น่าสนใจและเหมาะกับงบประมาณ {travel_info['budget']} บาท""",
+ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน โดยมุ่งเน้นตัวเลือกที่น่าสนใจและเหมาะกับงบประมาณ {travel_info['budget']} บาท{activity_info}""",
         
         "restaurant": f"""คุณคือผู้เชี่ยวชาญด้านอาหารและร้านอาหาร ให้คำแนะนำร้านอาหารตามความต้องการของผู้ใช้
 คำขอ: {specialized_queries.get(agent_type, query)}

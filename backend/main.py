@@ -20,6 +20,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Set specific loggers to DEBUG level
+logging.getLogger('sub_agents.activity_agent').setLevel(logging.DEBUG)
+logging.getLogger('langchain_community').setLevel(logging.DEBUG)
+
+# Log the Tavily API key status
+tavily_api_key = os.getenv("TAVILY_API_KEY")
+if tavily_api_key:
+    logger.info(f"TAVILY_API_KEY is set with length {len(tavily_api_key)}")
+else:
+    logger.warning("TAVILY_API_KEY environment variable is not set.")
+
 # Load environment variables from .env file
 load_dotenv()
 
