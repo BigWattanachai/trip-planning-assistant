@@ -45,7 +45,7 @@ GOOGLE_CLOUD_PROJECT=your_project_id
 GOOGLE_CLOUD_PROJECT_NUMBER=your_project_number
 GOOGLE_CLOUD_LOCATION=us-central1
 GOOGLE_CLOUD_STORAGE_BUCKET=your_bucket_name
-GOOGLE_GENAI_MODEL=gemini-1.5-pro-001
+GOOGLE_GENAI_MODEL=gemini-2.0-flash
 ```
 
 ### Installation

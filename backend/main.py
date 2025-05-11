@@ -39,7 +39,7 @@ except ImportError:
 
 # Log the environment configuration
 USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
-MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash-002")
+MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
 logger.info(f"Starting Travel Agent Backend - Mode: {'Vertex AI' if USE_VERTEX_AI else 'Direct API'}, Model: {MODEL}")
 
 # Create FastAPI application

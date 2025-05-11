@@ -48,7 +48,7 @@ if not USE_VERTEX_AI:
         logger.warning("GOOGLE_API_KEY not set. Gemini API initialization failed.")
 
 # Set the model to use
-MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash")
+MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
 logger.info(f"Using model: {MODEL}")
 
 # Define a simplified Agent class that can work with both Gemini API and ADK

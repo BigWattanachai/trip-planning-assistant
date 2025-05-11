@@ -28,7 +28,7 @@ if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
         
         warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
         
-        MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash-002")
+        MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
         logger.info(f"ADK Mode: Using model {MODEL}")
         
         # Simple tool to store state
@@ -166,7 +166,7 @@ def call_sub_agent(agent_type, query, session_id=None):
     genai.configure(api_key=api_key)
     
     # Get the model to use
-    model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash-002")
+    model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
     model = genai.GenerativeModel(model_name)
     
     # Extract travel information from the query

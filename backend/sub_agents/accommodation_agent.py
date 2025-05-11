@@ -24,7 +24,7 @@ if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
             from .. import MODEL
         except (ImportError, ValueError):
             # Fall back to absolute import
-            MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-1.5-flash-002")
+            MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
         
         # Import tools and callbacks
         try:
