@@ -138,32 +138,54 @@ def search_youtube_for_travel(
     """
     logger.info(f"YouTube search in direct API mode: {query}, destination: {destination}")
 
-    # Build the search query
-    search_query = query
-    if destination and destination not in query:
-        search_query = f"{destination} {query}"
+    try:
+        # Build the search query
+        search_query = query
+        if destination and destination not in query:
+            search_query = f"{destination} {query}"
 
-    # Determine the region code based on language
-    region_code = "TH" if language == "th" else "US"
+        logger.info(f"Final YouTube search query: {search_query}")
 
-    # Search for videos with transcripts
-    search_results = search_youtube_with_transcripts(
-        search_query,
-        max_results=max_results,
-        language=language,
-        region_code=region_code,
-        get_transcripts=True
-    )
+        # Determine the region code based on language
+        region_code = "TH" if language == "th" else "US"
 
-    # Extract travel insights
-    insights = extract_travel_insights(search_results.get("videos", []))
+        # Search for videos with transcripts
+        search_results = search_youtube_with_transcripts(
+            search_query,
+            max_results=max_results,
+            language=language,
+            region_code=region_code,
+            get_transcripts=True
+        )
 
-    # Return combined results
-    return {
-        "videos": search_results.get("videos", []),
-        "insights": insights.get("insights", {}),
-        "success": insights.get("success", False)
-    }
+        # Log search results
+        video_count = len(search_results.get("videos", []))
+        logger.info(f"Found {video_count} videos with transcripts for {destination}")
+
+        # Extract travel insights
+        insights = extract_travel_insights(search_results.get("videos", []))
+
+        # Log insights
+        insight_categories = insights.get("insights", {})
+        total_insights = sum(len(insight_categories.get(cat, [])) for cat in insight_categories)
+        logger.info(f"Extracted {total_insights} total insights across {len(insight_categories)} categories")
+
+        # Return combined results
+        result = {
+            "videos": search_results.get("videos", []),
+            "insights": insights.get("insights", {}),
+            "success": insights.get("success", False)
+        }
+
+        return result
+    except Exception as e:
+        logger.error(f"Error in search_youtube_for_travel: {e}")
+        return {
+            "videos": [],
+            "insights": {},
+            "success": False,
+            "error": str(e)
+        }
 
 def format_youtube_insights_for_agent(insights: Dict[str, List[str]]) -> str:
     """

@@ -186,11 +186,14 @@ async def get_agent_response_async(
                     yield {"message": "กำลังค้นหาข้อมูลจาก YouTube เกี่ยวกับจุดหมายปลายทาง...", "partial": True}
 
                     youtube_results = search_youtube_for_travel(
-                        query="สถานที่เที่ยว ที่พัก ที่กิน แนะนำการเดินทาง ",
+                        query="สถานที่เที่ยว ที่พัก ที่กิน แนะนำการเดินทาง",
                         destination=destination,
                         max_results=3,
                         language="th"
                     )
+
+                    # Log the YouTube search results for debugging
+                    logger.info(f"YouTube search results: {youtube_results.get('success')}, videos: {len(youtube_results.get('videos', []))}, insights: {len(youtube_results.get('insights', {}))}")
 
                     if youtube_results.get("success") and youtube_results.get("insights"):
                         youtube_insights = format_youtube_insights_for_agent(youtube_results.get("insights", {}))
@@ -222,20 +225,23 @@ async def get_agent_response_async(
                 {user_message}
 
                 ข้อมูลการเดินทาง:
-                {transportation_response[:500] if transportation_response else "ไม่มีข้อมูล"}
+                {transportation_response[:1000] if transportation_response else "ไม่มีข้อมูล"}
 
                 ข้อมูลที่พัก:
-                {accommodation_response[:500] if accommodation_response else "ไม่มีข้อมูล"}
+                {accommodation_response[:1000] if accommodation_response else "ไม่มีข้อมูล"}
 
                 ข้อมูลร้านอาหาร:
-                {restaurant_response[:500] if restaurant_response else "ไม่มีข้อมูล"}
+                {restaurant_response[:1000] if restaurant_response else "ไม่มีข้อมูล"}
 
                 ข้อมูลสถานที่ท่องเที่ยวและกิจกรรม:
-                {activity_response[:500] if activity_response else "ไม่มีข้อมูล"}
+                {activity_response[:1000] if activity_response else "ไม่มีข้อมูล"}
 
                 ข้อมูลเพิ่มเติมจาก YouTube:
                 {youtube_insights if youtube_insights else "ไม่พบข้อมูลเพิ่มเติมจาก YouTube"}
                 """
+
+                # Log the enhanced query for debugging
+                logger.info(f"Enhanced query for travel planner: {enhanced_query[:10000]}...")
 
                 yield {"message": "กำลังจัดทำแผนการเดินทางแบบสมบูรณ์...", "partial": True}
 
