@@ -56,9 +56,9 @@ if USE_VERTEX_AI:
         except ImportError:
             # Then try with backend prefix
             from backend.agent import root_agent
-            
+
         from vertexai.preview.reasoning_engines import AdkApp
-        
+
         # Import only if ADK is available
         try:
             adk_app = AdkApp(agent=root_agent, enable_tracing=True)
@@ -73,7 +73,7 @@ if USE_VERTEX_AI:
 else:
     logger.info("Running in direct API mode (no ADK)")
     adk_app = None
-    
+
     # Import the call_sub_agent function for direct API mode
     try:
         from agent import call_sub_agent
@@ -82,12 +82,12 @@ else:
             from backend.agent import call_sub_agent
         except ImportError:
             logger.error("Failed to import call_sub_agent function")
-            
+
             # Define a basic version in case imports fail
             def call_sub_agent(agent_type, query, session_id=None):
                 logger.error(f"Fallback call_sub_agent: {agent_type}")
                 return f"Could not call {agent_type} agent"
-                
+
     # Try to import YouTube search tools for direct API mode
     try:
         from tools.youtube.youtube_tool import search_youtube_for_travel, format_youtube_insights_for_agent
@@ -102,13 +102,13 @@ else:
             def search_youtube_for_travel(query, destination="", max_results=3, language="th"):
                 logger.warning(f"YouTube search called but not properly imported: {query}")
                 return {"videos": [], "insights": {}, "success": False}
-                
+
             def format_youtube_insights_for_agent(insights):
                 return "ไม่พบข้อมูลจาก YouTube เนื่องจากระบบค้นหาไม่พร้อมใช้งาน"
 
 async def get_agent_response_async(
-    user_message: str, 
-    agent_type: str = "travel", 
+    user_message: str,
+    agent_type: str = "travel",
     session_id: str = None,
     runner = None,
     retry_count: int = 0
@@ -130,10 +130,10 @@ async def get_agent_response_async(
         # Check if we should use ADK or direct Gemini API
         if USE_VERTEX_AI and adk_app:
             logger.info(f"Using ADK to process message for session {session_id}")
-            
+
             user_id = f"user_{session_id}"
             accumulated_text = ""
-            
+
             try:
                 # Process the message through ADK app
                 for event in adk_app.stream_query(
@@ -162,99 +162,99 @@ async def get_agent_response_async(
                 yield {"message": "ขออภัยค่ะ มีปัญหาในการประมวลผล กำลังลองวิธีอื่น...", "partial": True}
                 async for response in process_with_direct_api(user_message, session_id):
                     yield response
-                
+
         else:
             # Use direct Gemini API
             logger.info(f"Using direct Gemini API for session {session_id}")
-            
+
             # Check if this is a travel planning request
             is_travel_plan = "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message
-            
+
             if is_travel_plan:
                 # Call sub-agents for a complete travel plan
                 yield {"message": "กำลังวิเคราะห์คำขอของคุณและรวบรวมข้อมูลจากผู้เชี่ยวชาญด้านต่างๆ...", "partial": True}
-                
+
                 # Extract destination information from the query
                 from agent import extract_travel_info
                 travel_info = extract_travel_info(user_message)
                 destination = travel_info.get("destination", "")
-                
+
                 # Search YouTube for travel insights
                 youtube_insights = ""
                 if destination and destination != "ไม่ระบุ" and destination != "ภายในประเทศไทย":
                     logger.info(f"Searching YouTube for destination: {destination}")
                     yield {"message": "กำลังค้นหาข้อมูลจาก YouTube เกี่ยวกับจุดหมายปลายทาง...", "partial": True}
-                    
+
                     youtube_results = search_youtube_for_travel(
-                        query="travel guide tips",
+                        query="สถานที่เที่ยว ที่พัก ที่กิน แนะนำการเดินทาง ",
                         destination=destination,
                         max_results=3,
                         language="th"
                     )
-                    
+
                     if youtube_results.get("success") and youtube_results.get("insights"):
                         youtube_insights = format_youtube_insights_for_agent(youtube_results.get("insights", {}))
                         logger.info(f"YouTube insights found: {len(youtube_insights)}")
                     else:
                         logger.warning("No YouTube insights found")
-                
+
                 # Call each sub-agent in sequence
                 logger.info("Calling transportation sub-agent")
                 transportation_response = call_sub_agent("transportation", user_message, session_id)
                 yield {"message": "กำลังหาข้อมูลเกี่ยวกับการเดินทาง...", "partial": True}
-                
+
                 logger.info("Calling accommodation sub-agent")
                 accommodation_response = call_sub_agent("accommodation", user_message, session_id)
                 yield {"message": "กำลังรวบรวมข้อมูลที่พัก...", "partial": True}
-                
+
                 logger.info("Calling restaurant sub-agent")
                 restaurant_response = call_sub_agent("restaurant", user_message, session_id)
                 yield {"message": "กำลังหาร้านอาหารที่น่าสนใจ...", "partial": True}
-                
+
                 logger.info("Calling activity sub-agent")
                 activity_response = call_sub_agent("activity", user_message, session_id)
                 yield {"message": "กำลังรวบรวมข้อมูลสถานที่ท่องเที่ยวและกิจกรรมที่น่าสนใจ...", "partial": True}
-                
+
                 # Finally, call the travel planner to create a comprehensive plan
                 logger.info("Calling travel planner sub-agent")
                 # Include info from other sub-agents in the travel planner's input
                 enhanced_query = f"""
                 {user_message}
-                
+
                 ข้อมูลการเดินทาง:
                 {transportation_response[:500] if transportation_response else "ไม่มีข้อมูล"}
-                
+
                 ข้อมูลที่พัก:
                 {accommodation_response[:500] if accommodation_response else "ไม่มีข้อมูล"}
-                
+
                 ข้อมูลร้านอาหาร:
                 {restaurant_response[:500] if restaurant_response else "ไม่มีข้อมูล"}
-                
+
                 ข้อมูลสถานที่ท่องเที่ยวและกิจกรรม:
                 {activity_response[:500] if activity_response else "ไม่มีข้อมูล"}
-                
+
                 ข้อมูลเพิ่มเติมจาก YouTube:
                 {youtube_insights if youtube_insights else "ไม่พบข้อมูลเพิ่มเติมจาก YouTube"}
                 """
-                
+
                 yield {"message": "กำลังจัดทำแผนการเดินทางแบบสมบูรณ์...", "partial": True}
-                
+
                 travel_plan = call_sub_agent("travel_planner", enhanced_query, session_id)
-                
+
                 # Ensure the travel plan has the proper format
                 if travel_plan and "===== แผนการเดินทางของคุณ =====" not in travel_plan:
                     travel_plan = "===== แผนการเดินทางของคุณ =====\n\n" + travel_plan
-                
+
                 # Log the complete travel plan
                 logger.info(f"Travel plan created: {travel_plan[:100]}...")
-                
+
                 # Send the final comprehensive travel plan - CRITICAL FIX: ensure this is marked as final
                 yield {"message": travel_plan, "final": True}
             else:
                 # Process regular queries directly
                 async for response in process_with_direct_api(user_message, session_id):
                     yield response
-                
+
     except Exception as e:
         logger.error(f"Error getting agent response: {str(e)}")
         # Fallback response in case of error
@@ -265,15 +265,15 @@ async def process_with_direct_api(user_message: str, session_id: str = None) -> 
     try:
         if not gemini_model:
             raise ValueError("Gemini model not initialized")
-            
+
         # Determine if this is a specialized query
         query_type = classify_query(user_message)
         logger.info(f"Query classified as: {query_type}")
-        
+
         if query_type != "general":
             # Call appropriate sub-agent for specialized queries
             specialized_response = call_sub_agent(query_type, user_message, session_id)
-            
+
             # Ensure we have a complete response
             if specialized_response:
                 logger.info(f"Specialized response from {query_type} agent received: {specialized_response[:100]}...")
@@ -285,7 +285,7 @@ async def process_with_direct_api(user_message: str, session_id: str = None) -> 
                 logger.error(f"Empty response from {query_type} agent")
                 yield {"message": "ขออภัยค่ะ ไม่สามารถประมวลผลคำขอได้ กรุณาลองใหม่อีกครั้ง", "final": True}
             return
-            
+
         # Create a prompt for general queries
         prompt = f"""คุณคือผู้ช่วยวางแผนการเดินทางท่องเที่ยว
 
@@ -306,7 +306,7 @@ async def process_with_direct_api(user_message: str, session_id: str = None) -> 
                 "max_output_tokens": 8192,
             },
         )
-        
+
         # Get the complete response
         if hasattr(response, 'text'):
             # Direct response without streaming
@@ -320,7 +320,7 @@ async def process_with_direct_api(user_message: str, session_id: str = None) -> 
                 async for chunk in response:
                     if hasattr(chunk, 'text') and chunk.text:
                         full_response += chunk.text
-                        
+
                 logger.info(f"Streamed response completed: {full_response[:100]}...")
                 # Send the complete response
                 if full_response:
@@ -330,7 +330,7 @@ async def process_with_direct_api(user_message: str, session_id: str = None) -> 
             except Exception as e:
                 logger.error(f"Error streaming response: {e}")
                 yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดในการประมวลผล: {str(e)}", "final": True}
-            
+
     except Exception as e:
         logger.error(f"Error with direct API: {str(e)}")
         yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดในการประมวลผล: {str(e)}", "final": True}
@@ -338,40 +338,40 @@ async def process_with_direct_api(user_message: str, session_id: str = None) -> 
 def classify_query(query: str) -> str:
     """
     Classify the user query to determine which sub-agent to use
-    
+
     Args:
         query: The user's query
-        
+
     Returns:
         The type of sub-agent to use: "accommodation", "activity", "restaurant", "transportation", "travel_planner", or "general"
     """
     query_lower = query.lower()
-    
+
     # Travel planning
     if "ช่วยวางแผนการเดินทางท่องเที่ยว" in query_lower or "แผนการเดินทาง" in query_lower:
         logger.info("Query classified as travel planning")
         return "travel_planner"
-        
+
     # Accommodation
     if any(word in query_lower for word in ["ที่พัก", "โรงแรม", "รีสอร์ท", "โฮสเทล"]):
         logger.info("Query classified as accommodation")
         return "accommodation"
-        
+
     # Activities
     if any(word in query_lower for word in ["ที่เที่ยว", "สถานที่ท่องเที่ยว", "กิจกรรม", "เที่ยวที่ไหนดี"]):
         logger.info("Query classified as activity")
         return "activity"
-        
+
     # Restaurants
     if any(word in query_lower for word in ["ร้านอาหาร", "อาหาร", "ที่กิน", "ร้านอร่อย"]):
         logger.info("Query classified as restaurant")
         return "restaurant"
-        
+
     # Transportation
     if any(word in query_lower for word in ["การเดินทาง", "รถ", "เครื่องบิน", "รถไฟ", "รถทัวร์"]):
         logger.info("Query classified as transportation")
         return "transportation"
-        
+
     # Default to general
     logger.info("Query classified as general")
     return "general"
