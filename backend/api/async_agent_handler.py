@@ -76,35 +76,41 @@ else:
 
     # Import the call_sub_agent function for direct API mode
     try:
-        from agent import call_sub_agent
-    except ImportError:
+        # Try to import from backend.agent first for consistency
         try:
             from backend.agent import call_sub_agent
+            logger.info("Successfully imported call_sub_agent from backend.agent")
         except ImportError:
-            logger.error("Failed to import call_sub_agent function")
+            # If that fails, try direct import
+            from agent import call_sub_agent
+            logger.info("Successfully imported call_sub_agent from agent")
+    except ImportError:
+        logger.error("Failed to import call_sub_agent function")
 
-            # Define a basic version in case imports fail
-            def call_sub_agent(agent_type, query, session_id=None):
-                logger.error(f"Fallback call_sub_agent: {agent_type}")
-                return f"Could not call {agent_type} agent"
+        # Define a basic version in case imports fail
+        def call_sub_agent(agent_type, query, session_id=None):
+            logger.error(f"Fallback call_sub_agent: {agent_type}")
+            return f"Could not call {agent_type} agent"
 
     # Try to import YouTube search tools for direct API mode
     try:
-        from tools.youtube.youtube_tool import search_youtube_for_travel, format_youtube_insights_for_agent
-        logger.info("Successfully imported YouTube search functions for direct API mode")
-    except ImportError:
+        # Try to import from backend path first for consistency
         try:
             from backend.tools.youtube.youtube_tool import search_youtube_for_travel, format_youtube_insights_for_agent
             logger.info("Successfully imported YouTube search functions using backend path")
         except ImportError:
-            logger.warning("Failed to import YouTube search functions, creating placeholder")
-            # Create placeholder functions
-            def search_youtube_for_travel(query, destination="", max_results=3, language="th"):
-                logger.warning(f"YouTube search called but not properly imported: {query}")
-                return {"videos": [], "insights": {}, "success": False}
+            # If that fails, try direct import
+            from tools.youtube.youtube_tool import search_youtube_for_travel, format_youtube_insights_for_agent
+            logger.info("Successfully imported YouTube search functions for direct API mode")
+    except ImportError:
+        logger.warning("Failed to import YouTube search functions, creating placeholder")
+        # Create placeholder functions
+        def search_youtube_for_travel(query, destination="", max_results=3, language="th"):
+            logger.warning(f"YouTube search called but not properly imported: {query}")
+            return {"videos": [], "insights": {}, "success": False}
 
-            def format_youtube_insights_for_agent(insights):
-                return "ไม่พบข้อมูลจาก YouTube เนื่องจากระบบค้นหาไม่พร้อมใช้งาน"
+        def format_youtube_insights_for_agent(insights):
+            return "ไม่พบข้อมูลจาก YouTube เนื่องจากระบบค้นหาไม่พร้อมใช้งาน"
 
 async def get_agent_response_async(
     user_message: str,
@@ -175,9 +181,10 @@ async def get_agent_response_async(
                 yield {"message": "กำลังวิเคราะห์คำขอของคุณและรวบรวมข้อมูลจากผู้เชี่ยวชาญด้านต่างๆ...", "partial": True}
 
                 # Extract destination information from the query
-                from agent import extract_travel_info
+                from backend.agent import extract_travel_info
                 travel_info = extract_travel_info(user_message)
                 destination = travel_info.get("destination", "")
+                logger.info(f"Extracted destination: {destination}")
 
                 # Search YouTube for travel insights
                 youtube_insights = ""
