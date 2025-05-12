@@ -8,6 +8,8 @@ import logging
 # Configure logging
 logger = logging.getLogger(__name__)
 
+from backend.tools.tavily_search import initialize_tavily_search, get_tavily_tool_instance
+
 # Add the parent directory to sys.path to allow imports
 parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
 if parent_dir not in sys.path:

@@ -5,6 +5,21 @@ import os
 import sys
 import pathlib
 import logging
+
+# --- PATCH OpenTelemetry context detach to suppress ValueError on cross-context detach ---
+try:
+    import opentelemetry.context.contextvars_context
+    _original_detach = opentelemetry.context.contextvars_context.ContextVarsRuntimeContext.detach
+    def safe_detach(self, token):
+        try:
+            _original_detach(self, token)
+        except ValueError as e:
+            logging.getLogger("opentelemetry.context").warning(f"Suppressed context detach error: {e}")
+    opentelemetry.context.contextvars_context.ContextVarsRuntimeContext.detach = safe_detach
+except ImportError:
+    pass
+# --- END PATCH ---
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
