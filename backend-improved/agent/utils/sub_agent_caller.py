@@ -10,6 +10,30 @@ from typing import Any, Dict, Optional
 from config import settings
 from services.session import get_session_manager
 from agent.tools.extract_info import extract_travel_info
+from agent.tools.tavily_search import tavily_search
+
+# Import sub-agents
+try:
+    from sub_agents import (
+        AccommodationAgent, accommodation_tavily_search,
+        ActivityAgent, activity_tavily_search,
+        RestaurantAgent, restaurant_tavily_search,
+        TransportationAgent, transportation_tavily_search,
+        TravelPlannerAgent, travel_planner_tavily_search
+    )
+except ImportError as e:
+    logger.warning(f"Could not import some sub-agents: {e}")
+    # Set default values for missing imports
+    AccommodationAgent = None
+    accommodation_tavily_search = None
+    ActivityAgent = None
+    activity_tavily_search = None
+    RestaurantAgent = None
+    restaurant_tavily_search = None
+    TransportationAgent = None
+    transportation_tavily_search = None
+    TravelPlannerAgent = None
+    travel_planner_tavily_search = None
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +76,56 @@ def call_sub_agent(
             for key, value in travel_info.items():
                 session_manager.store_state(session_id, key, value)
     
+    # Check if we're using Vertex AI mode
+    vertex_ai_mode = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
+    
+    # Try to use ADK agents if in Vertex AI mode
+    if vertex_ai_mode:
+        # Map agent_type to the corresponding ADK agent
+        adk_agents = {
+            "accommodation": AccommodationAgent,
+            "activity": ActivityAgent,
+            "restaurant": RestaurantAgent,
+            "transportation": TransportationAgent,
+            "travel_planner": TravelPlannerAgent
+        }
+        
+        # Get the appropriate agent
+        agent = adk_agents.get(agent_type)
+        
+        if agent:
+            try:
+                logger.info(f"Using ADK agent for {agent_type}")
+                
+                # Create tool context for state management
+                tool_context = {
+                    "state": state,
+                    "session_id": session_id
+                }
+                
+                # Call the agent with the query and tool context
+                response = agent.generate_content(query, tool_context=tool_context)
+                
+                # Get the response text
+                response_text = response.text
+                
+                # Store the response in session state if session_id is provided
+                if session_id:
+                    session_manager.store_state(session_id, f"{agent_type}_response", response_text)
+                    
+                    # For travel planner, also store as last_response for output_key compatibility
+                    if agent_type == "travel_planner":
+                        session_manager.store_state(session_id, "last_response", response_text)
+                
+                logger.info(f"ADK {agent_type} agent response: {response_text[:100]}...")
+                return response_text
+            except Exception as e:
+                logger.error(f"Error using ADK {agent_type} agent: {e}")
+                # Fall back to direct API mode
+                logger.info(f"Falling back to direct API mode for {agent_type}")
+    
+    # If we're here, we're using direct API mode or ADK mode failed
+    
     # Get API key from environment
     api_key = settings.GOOGLE_API_KEY
     if not api_key:
@@ -64,51 +138,101 @@ def call_sub_agent(
     # Get the model to use
     model = genai.GenerativeModel(settings.MODEL)
     
-    # Special handling for activity agent when Tavily is available
-    activity_info = ""
-    if agent_type == "activity" and settings.TAVILY_API_KEY:
+    # Prepare search results for each agent type
+    search_info = ""
+    destination = state.get('destination', '')
+    origin = state.get('origin', '')
+    
+    # Only perform searches if Tavily API key is available and destination is specified
+    if settings.TAVILY_API_KEY and destination and destination not in ["ไม่ระบุ", "ภายในประเทศไทย"]:
         try:
-            # Import Tavily search function
-            from agent.tools.tavily_search import tavily_search
+            logger.info(f"Using Tavily search for {agent_type} agent with destination: {destination}")
             
-            destination = state.get('destination', '')
-            if destination and destination not in ["ไม่ระบุ", "ภายในประเทศไทย"]:
-                logger.info(f"Using Tavily search for destination: {destination}")
+            # Define search queries based on agent type
+            search_queries = []
+            
+            if agent_type == "accommodation":
+                search_queries = [
+                    f"ที่พักยอดนิยมใน {destination} 2025",
+                    f"โรงแรมราคาประหยัดใน {destination}",
+                    f"รีสอร์ทและโรงแรมบูติคใน {destination}",
+                    f"โฮสเทลและเกสต์เฮาส์ใน {destination}"
+                ]
                 
-                # Perform searches for different categories of activities
+                # Use the accommodation_tavily_search function if available
+                search_function = accommodation_tavily_search if accommodation_tavily_search else tavily_search
+                
+            elif agent_type == "activity":
                 search_queries = [
                     f"สถานที่ท่องเที่ยวยอดนิยมใน {destination} 2025",
                     f"กิจกรรมทางวัฒนธรรมที่น่าสนใจใน {destination}",
                     f"กิจกรรมท่องเที่ยวธรรมชาติและกลางแจ้งใน {destination}",
-                    f"ประสบการณ์ท้องถิ่นที่ไม่เหมือนใครใน {destination}",
+                    f"ประสบการณ์ท้องถิ่นที่ไม่เหมือนใครใน {destination}"
                 ]
                 
-                search_results = {}
-                for search_query in search_queries:
-                    logger.info(f"Searching Tavily for: {search_query}")
-                    result = tavily_search(search_query)
-                    if result:
-                        category = search_query.split(" in ")[0]
-                        search_results[category] = result
-                        logger.info(f"Got Tavily results for: {category}")
+                # Use the activity_tavily_search function if available
+                search_function = activity_tavily_search if activity_tavily_search else tavily_search
                 
-                # Append search results to query for the model
-                if search_results:
-                    activity_info = "\n\nAdditional information from real-time search:\n"
-                    for category, result in search_results.items():
-                        summary = str(result)[:1000]  # Truncate long results
-                        activity_info += f"\n--- {category} ---\n{summary}\n"
-                    
-                    logger.info("Adding Tavily search results to prompt")
-                    
-                    # Store in session state if session_id is provided
-                    if session_id:
-                        session_manager.store_state(session_id, "tavily_search_results", search_results)
-                else:
-                    activity_info = "\n\nNote: Attempted to search for additional information, but no results were found."
+            elif agent_type == "restaurant":
+                search_queries = [
+                    f"ร้านอาหารยอดนิยมใน {destination} 2025",
+                    f"อาหารท้องถิ่นที่ต้องลองใน {destination}",
+                    f"ร้านอาหารราคาประหยัดใน {destination}",
+                    f"ร้านอาหารระดับพรีเมียมใน {destination}"
+                ]
+                
+                # Use the restaurant_tavily_search function if available
+                search_function = restaurant_tavily_search if restaurant_tavily_search else tavily_search
+                
+            elif agent_type == "transportation":
+                search_queries = [
+                    f"วิธีเดินทางจาก {origin} ไป {destination}",
+                    f"ขนส่งสาธารณะใน {destination}",
+                    f"บริการเช่ารถและรถจักรยานยนต์ใน {destination}",
+                    f"ค่าโดยสารและตารางเวลาเดินทางไป {destination}"
+                ]
+                
+                # Use the transportation_tavily_search function if available
+                search_function = transportation_tavily_search if transportation_tavily_search else tavily_search
+                
+            elif agent_type == "travel_planner":
+                search_queries = [
+                    f"แผนการท่องเที่ยว {destination} 3 วัน",
+                    f"สถานที่ท่องเที่ยวยอดนิยมใน {destination}",
+                    f"ที่พักและร้านอาหารแนะนำใน {destination}",
+                    f"เคล็ดลับการท่องเที่ยว {destination} 2025"
+                ]
+                
+                # Use the travel_planner_tavily_search function if available
+                search_function = travel_planner_tavily_search if travel_planner_tavily_search else tavily_search
+            
+            # Perform searches for the queries
+            search_results = {}
+            for search_query in search_queries:
+                logger.info(f"Searching Tavily for {agent_type}: {search_query}")
+                result = search_function(search_query)
+                if result:
+                    category = search_query.split(" in ")[0] if " in " in search_query else search_query
+                    search_results[category] = result
+                    logger.info(f"Got Tavily results for {agent_type}: {category}")
+            
+            # Append search results to query for the model
+            if search_results:
+                search_info = "\n\nAdditional information from real-time search:\n"
+                for category, result in search_results.items():
+                    summary = str(result)[:1000]  # Truncate long results
+                    search_info += f"\n--- {category} ---\n{summary}\n"
+                
+                logger.info(f"Adding Tavily search results to {agent_type} prompt")
+                
+                # Store in session state if session_id is provided
+                if session_id:
+                    session_manager.store_state(session_id, f"{agent_type}_search_results", search_results)
+            else:
+                search_info = "\n\nNote: Attempted to search for additional information, but no results were found."
         except Exception as e:
-            logger.error(f"Error using Tavily search: {e}")
-            activity_info = "\n\nNote: Attempted to search for additional information, but encountered an error."
+            logger.error(f"Error using Tavily search for {agent_type}: {e}")
+            search_info = "\n\nNote: Attempted to search for additional information, but encountered an error."
     
     # Create specialized queries for different sub-agents
     specialized_queries = {
@@ -127,7 +251,7 @@ def call_sub_agent(
             มีงบประมาณทั้งหมด {state.get('budget', 'ไม่ระบุ')} บาท
             
             ช่วยแนะนำสถานที่ท่องเที่ยวสำคัญและกิจกรรมที่น่าสนใจได้ไหม?
-            ต้องการเน้นสถานที่สำคัญทางวัฒนธรรม ธรรมชาติ และจุดถ่ายรูปยอดนิยม
+            ต้องการเน้นสถานที่สำคัญทางวัฒนธรรม ธรรมชาติ และจุดถ่ายรูปยอดนิยม{search_info}
         """,
         
         "restaurant": f"""
@@ -166,7 +290,7 @@ def call_sub_agent(
 5. ข้อพิจารณาพิเศษตามบริบทการเดินทาง
 
 แนะนำที่พักอย่างน้อย 3-5 แห่ง พร้อมราคาและจุดเด่น โดยเลือกให้เหมาะกับงบประมาณ 
-ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน โดยมุ่งเน้นตัวเลือกที่เหมาะกับความต้องการและความชอบของผู้ใช้มากที่สุด""",
+ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน โดยมุ่งเน้นตัวเลือกที่เหมาะกับความต้องการและความชอบของผู้ใช้มากที่สุด{search_info}""",
         
         "activity": f"""คุณคือผู้เชี่ยวชาญด้านกิจกรรมและสถานที่ท่องเที่ยว ให้คำแนะนำเกี่ยวกับกิจกรรมที่น่าสนใจตามความต้องการของผู้ใช้
 คำขอ: {specialized_queries.get(agent_type, query)}
@@ -180,7 +304,7 @@ def call_sub_agent(
 6. เวลาที่ใช้สำหรับแต่ละกิจกรรม
 
 จัดเรียงกิจกรรมตามความสำคัญ และแนะนำแผนการท่องเที่ยวที่เหมาะสมสำหรับระยะเวลา {state.get('start_date', 'ไม่ระบุ')} ถึง {state.get('end_date', 'ไม่ระบุ')}
-ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน โดยมุ่งเน้นตัวเลือกที่น่าสนใจและเหมาะกับงบประมาณ {state.get('budget', 'ไม่ระบุ')} บาท{activity_info}""",
+ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน โดยมุ่งเน้นตัวเลือกที่น่าสนใจและเหมาะกับงบประมาณ {state.get('budget', 'ไม่ระบุ')} บาท{search_info}""",
         
         "restaurant": f"""คุณคือผู้เชี่ยวชาญด้านอาหารและร้านอาหาร ให้คำแนะนำร้านอาหารตามความต้องการของผู้ใช้
 คำขอ: {specialized_queries.get(agent_type, query)}
@@ -193,7 +317,7 @@ def call_sub_agent(
 5. เมนูแนะนำและราคาโดยประมาณต่อมื้อ (บาท)
 
 แนะนำร้านอาหารอย่างน้อย 8-10 ร้าน ที่มีความหลากหลายทั้งประเภทอาหารและราคา เน้นร้านที่มีชื่อเสียงและอาหารท้องถิ่น
-ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน ระบุทำเลที่ตั้งของร้านโดยคร่าวๆ เพื่อให้ผู้ใช้เดินทางได้สะดวก""",
+ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน ระบุทำเลที่ตั้งของร้านโดยคร่าวๆ เพื่อให้ผู้ใช้เดินทางได้สะดวก{search_info}""",
         
         "transportation": f"""คุณคือผู้เชี่ยวชาญด้านการเดินทาง ให้คำแนะนำเกี่ยวกับการเดินทางตามความต้องการของผู้ใช้
 คำขอ: {specialized_queries.get(agent_type, query)}
@@ -217,7 +341,7 @@ def call_sub_agent(
    • การจองตั๋วล่วงหน้า
    • เคล็ดลับประหยัดค่าเดินทาง
 
-ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน เน้นตัวเลือกที่สะดวก ปลอดภัย และเหมาะกับงบประมาณ {state.get('budget', 'ไม่ระบุ')} บาท""",
+ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน เน้นตัวเลือกที่สะดวก ปลอดภัย และเหมาะกับงบประมาณ {state.get('budget', 'ไม่ระบุ')} บาท{search_info}""",
         
         "travel_planner": f"""คุณคือผู้วางแผนการเดินทางผู้เชี่ยวชาญ สร้างแผนการเดินทางแบบครบวงจร
 คำขอ: {query}
@@ -237,7 +361,7 @@ def call_sub_agent(
 8. คำแนะนำและข้อควรระวังเพื่อความปลอดภัยและประทับใจ
 
 จัดทำตารางเวลาแบบวันต่อวันที่ชัดเจน คำนวณค่าใช้จ่ายรวมให้ไม่เกินงบประมาณ {state.get('budget', 'ไม่ระบุ')} บาท
-กรุณาจัดรูปแบบด้วยหัวข้อ "===== แผนการเดินทางของคุณ =====" และใช้การจัดรูปแบบที่อ่านง่าย
+กรุณาจัดรูปแบบด้วยหัวข้อ "===== แผนการเดินทางของคุณ =====" และใช้การจัดรูปแบบที่อ่านง่าย{search_info}
 """
     }
     
