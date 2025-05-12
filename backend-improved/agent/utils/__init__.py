@@ -1,3 +1,3 @@
 """
-Utility functions for the agent module.
+Utility modules for the Travel Agent Backend.
 """

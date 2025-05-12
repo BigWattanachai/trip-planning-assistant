@@ -1,38 +1,23 @@
-# Core Web Framework
-fastapi==0.110.2
-uvicorn[standard]==0.29.0
+# Core dependencies
+fastapi>=0.104.0
+uvicorn>=0.23.2
+pydantic>=2.4.2
+pydantic-settings>=2.0.3
+python-dotenv>=1.0.0
 
-# Google Generative AI (Gemini)
-google-generativeai>=0.3.0
+# Google AI dependencies
+google-generativeai>=0.3.1
 
-# Google ADK (Agent Development Kit) - for Vertex AI mode
-google-adk>=0.2.0
+# For Vertex AI mode with ADK
+google-cloud-aiplatform>=1.36.0
+google-adk>=0.2.0  # Add when using VertexAI
 
-# Environment and config
-dotenv==0.9.9
-python-dotenv==1.1.0
+# For web search capabilities
+langchain>=0.0.327
+langchain-community>=0.0.9
+tavily-python>=0.2.7
+google-api-python-client>=2.108.0
 
-# Logging
-loguru==0.7.2
-
-# Typing and utilities
-typing-extensions>=4.5.0
-
-# For HTTP requests (if needed by tools)
-httpx==0.27.0
-
-# Optional: for CORS, etc.
-starlette==0.37.2
-
-# Optional: for running as a package
-setuptools>=68.0.0
-
-# Optional: for data validation
-pydantic==2.7.1
-
-# Optional: for async tasks
-anyio>=3.7.0
-
-# Optional: for code quality
-black>=24.3.0
-isort>=5.13.2
+# Optional dependencies for production
+redis>=5.0.1  # For Redis session storage
+firebase-admin>=6.2.0  # For Firestore session storage

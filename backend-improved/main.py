@@ -23,6 +23,9 @@ except ImportError:
     pass
 # --- END PATCH ---
 
+# Load environment variables from .env file
+load_dotenv()
+
 # Configure logging to both file and console
 logging.basicConfig(
     level=logging.INFO,
@@ -38,9 +41,6 @@ logger = logging.getLogger(__name__)
 logging.getLogger('agent.sub_agents.activity_agent').setLevel(logging.DEBUG)
 logging.getLogger('langchain_community').setLevel(logging.DEBUG)
 
-# Load environment variables from .env file
-load_dotenv()
-
 # Add the parent directory to sys.path to allow imports
 current_dir = str(pathlib.Path(__file__).parent.absolute())
 if current_dir not in sys.path:
@@ -48,11 +48,45 @@ if current_dir not in sys.path:
 
 # Import key modules
 from config import settings
-from api.routes import create_router
-from agent.root_agent import create_root_agent, initialize_agents
+
+# Configure Vertex AI if needed
+if settings.USE_VERTEX_AI:
+    # Set up Google Cloud authentication
+    if settings.GOOGLE_APPLICATION_CREDENTIALS:
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
+        logger.info(f"Using Google credentials from: {settings.GOOGLE_APPLICATION_CREDENTIALS}")
+    
+    # Set project ID and region if provided
+    if settings.GOOGLE_CLOUD_PROJECT:
+        logger.info(f"Using Google Cloud Project: {settings.GOOGLE_CLOUD_PROJECT}")
+    
+    if settings.VERTEX_AI_REGION:
+        logger.info(f"Using Vertex AI Region: {settings.VERTEX_AI_REGION}")
+    
+    # Initialize Vertex AI
+    try:
+        from vertexai.preview.reasoning_engines import AdkApp
+        logger.info("Successfully imported VertexAI AdkApp")
+    except ImportError as e:
+        logger.error(f"Failed to import VertexAI components: {e}")
+        if "Cannot find Vertex AI SDK. Please install it using `pip install google-cloud-aiplatform[reasoningengine]`" in str(e):
+            logger.error("You need to install the Vertex AI SDK: pip install google-cloud-aiplatform[reasoningengine]")
+        settings.USE_VERTEX_AI = False
+        logger.warning("Falling back to direct API mode")
+
+# Check Tavily API key
+tavily_api_key = settings.TAVILY_API_KEY
+if tavily_api_key:
+    logger.info(f"TAVILY_API_KEY is set with length {len(tavily_api_key)}")
+else:
+    logger.warning("TAVILY_API_KEY environment variable is not set.")
 
 # Log the environment configuration
 logger.info(f"Starting Travel Agent Backend - Mode: {'Vertex AI' if settings.USE_VERTEX_AI else 'Direct API'}, Model: {settings.MODEL}")
+
+# Import remaining modules after configuration
+from api.routes import create_router
+from agent.root_agent import create_root_agent, initialize_agents
 
 # Create FastAPI application
 app = FastAPI(title="Travel Agent Backend")

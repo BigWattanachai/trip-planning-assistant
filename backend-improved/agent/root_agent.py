@@ -1,16 +1,17 @@
 """
 Root agent module for Travel Agent Backend.
 Handles the creation and configuration of the root agent that coordinates sub-agents.
+Supports both Vertex AI (ADK) and direct API modes.
 """
 import os
 import logging
-import google.generativeai as genai
 from typing import Any, Dict, List, Optional, Union
 
 from config import settings
 from services.session import initialize_adk_session_service
 from agent.prompts.root_agent_prompt import ROOT_AGENT_PROMPT
 from agent.tools.extract_info import extract_travel_info
+from agent.utils.callbacks import rate_limit_callback, sensitive_info_filter_callback
 
 logger = logging.getLogger(__name__)
 
@@ -30,47 +31,56 @@ def initialize_agents() -> bool:
     """
     # Configure the Google Generative AI client if we're not in Vertex AI mode
     if not settings.USE_VERTEX_AI:
-        api_key = settings.GOOGLE_API_KEY
-        if api_key:
-            logger.info("Configuring Gemini API with provided key")
-            genai.configure(api_key=api_key)
-        else:
-            logger.warning("GOOGLE_API_KEY not set. Direct API mode may not work.")
+        try:
+            import google.generativeai as genai
+            
+            api_key = settings.GOOGLE_API_KEY
+            if api_key:
+                logger.info("Configuring Gemini API with provided key")
+                genai.configure(api_key=api_key)
+            else:
+                logger.warning("GOOGLE_API_KEY not set. Direct API mode may not work.")
+        except ImportError as e:
+            logger.error(f"Failed to import Google Generative AI: {e}")
+            return False
             
     # Load sub-agents
-    _initialize_sub_agents()
-    
-    return True
+    sub_agents = _initialize_sub_agents()
+    if sub_agents or not settings.USE_VERTEX_AI:
+        # In direct API mode, we don't need sub-agents to be loaded
+        return True
+    else:
+        return False
 
-def _initialize_sub_agents() -> None:
+def _initialize_sub_agents() -> Dict[str, Any]:
     """
     Initialize all sub-agents.
     Called during application startup.
+    
+    Returns:
+        Dictionary mapping agent types to agent objects
     """
+    global _all_sub_agents
+    
     # Import sub-agents differently based on mode
     if settings.USE_VERTEX_AI:
         try:
-            from agent.sub_agents import (
-                AccommodationAgent,
-                ActivityAgent,
-                RestaurantAgent,
-                TransportationAgent,
-                TravelPlannerAgent
-            )
+            # Import the sub-agents module
+            from agent.sub_agents import initialize_sub_agents
             
-            _all_sub_agents["accommodation"] = AccommodationAgent
-            _all_sub_agents["activity"] = ActivityAgent
-            _all_sub_agents["restaurant"] = RestaurantAgent
-            _all_sub_agents["transportation"] = TransportationAgent
-            _all_sub_agents["travel_planner"] = TravelPlannerAgent
+            # Initialize the sub-agents
+            _all_sub_agents = initialize_sub_agents()
             
             logger.info(f"Initialized {len(_all_sub_agents)} ADK sub-agents")
+            return _all_sub_agents
         except ImportError as e:
-            logger.error(f"Failed to import ADK sub-agents: {e}")
+            logger.error(f"Failed to import sub-agents module: {e}")
+            return {}
     else:
         # In direct API mode, we don't need to preload anything, 
         # as direct mode uses function calls
         logger.info("Direct API Mode: No sub-agents preloaded")
+        return {}
 
 def create_root_agent() -> Any:
     """
@@ -89,7 +99,6 @@ def create_root_agent() -> Any:
             from google.adk.agents import Agent
             from google.adk.tools import ToolContext
             from google.adk.sessions import InMemorySessionService
-            from google.adk.runners import Runner
             
             warnings.filterwarnings("ignore", category=UserWarning, module=".*pydantic.*")
             
@@ -107,10 +116,16 @@ def create_root_agent() -> Any:
                 logger.info(f"Extracting travel info from: {query[:50]}...")
                 travel_info = extract_travel_info(query)
                 logger.info(f"Extracted travel info: {travel_info}")
+                # Update the tool context state
                 tool_context.state.update(travel_info)
                 return {"status": "ok", "info": travel_info}
             
             extract_info_tool.description = "Extract travel information from the query and store it in the state."
+            
+            # Get the list of sub-agents
+            sub_agent_list = list(_all_sub_agents.values())
+            if not sub_agent_list:
+                logger.warning("No sub-agents available. Root agent will have limited functionality.")
             
             # Create the root agent with all sub-agents
             _root_agent = Agent(
@@ -119,7 +134,8 @@ def create_root_agent() -> Any:
                 description="Travel planning agent that creates comprehensive travel plans",
                 instruction=ROOT_AGENT_PROMPT,
                 tools=[store_state_tool, extract_info_tool],
-                sub_agents=list(_all_sub_agents.values()),
+                sub_agents=sub_agent_list,
+                before_model_callback=sensitive_info_filter_callback,
                 output_key="last_response"  # Store the agent's response
             )
             

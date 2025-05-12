@@ -1,1 +1,3 @@
-# Makes the prompts directory a package.
+"""
+Prompts for the Travel Agent Backend.
+"""

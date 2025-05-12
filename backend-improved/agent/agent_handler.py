@@ -6,6 +6,7 @@ import os
 import logging
 import google.generativeai as genai
 from typing import Any, Dict, List, AsyncGenerator
+import traceback
 
 from config import settings
 from services.session import get_session_manager
@@ -59,33 +60,58 @@ async def get_agent_response_async(
                 # Ensure the session exists in the ADK session service
                 session_manager.ensure_adk_session(session_id)
                 
+                # Try to log the event 
+                logger.info(f"Attempting to stream query with user_id={user_id}, session_id={session_id}")
+                logger.info(f"Query: {user_message[:50]}...")
+                
                 # Stream the response from the ADK app
-                for event in adk_app.stream_query(
-                    user_id=user_id,
-                    session_id=session_id,
-                    message=user_message
-                ):
-                    if "content" in event:
-                        if "parts" in event["content"]:
-                            parts = event["content"]["parts"]
-                            for part in parts:
-                                if "text" in part:
-                                    text_part = part["text"]
-                                    accumulated_text += text_part
-                                    yield {"message": text_part, "partial": True}
+                try:
+                    for event in adk_app.stream_query(
+                        user_id=user_id,
+                        session_id=session_id,
+                        message=user_message
+                    ):
+                        if "content" in event:
+                            if "parts" in event["content"]:
+                                parts = event["content"]["parts"]
+                                for part in parts:
+                                    if "text" in part:
+                                        text_part = part["text"]
+                                        accumulated_text += text_part
+                                        yield {"message": text_part, "partial": True}
+                except Exception as streaming_error:
+                    logger.error(f"Error during ADK streaming: {streaming_error}")
+                    logger.error(traceback.format_exc())
+                    # Fall back to regular query if streaming fails
+                    try:
+                        logger.info("Falling back to non-streaming query")
+                        response = adk_app.query(
+                            user_id=user_id,
+                            session_id=session_id,
+                            message=user_message
+                        )
+                        if response and response.content and response.content.parts:
+                            response_text = response.content.parts[0].text
+                            accumulated_text = response_text
+                    except Exception as query_error:
+                        logger.error(f"Error during ADK query fallback: {query_error}")
+                        logger.error(traceback.format_exc())
                 
                 # If we have accumulated text, send it as the final response
                 if accumulated_text:
                     yield {"message": accumulated_text, "final": True}
                 else:
                     # Fallback response if no text was accumulated
-                    yield {"message": "ขออภัยค่ะ ฉันไม่สามารถประมวลผลคำขอของคุณได้ในขณะนี้ กรุณาลองใหม่อีกครั้งค่ะ", "final": True}
+                    logger.error("No response from ADK, falling back to direct API")
+                    async for response in _process_with_direct_api(user_message, session_id):
+                        yield response
             
             except Exception as e:
                 logger.error(f"Error processing with ADK: {str(e)}")
+                logger.error(traceback.format_exc())
                 # Fall back to direct API if ADK fails
                 yield {"message": "ขออภัยค่ะ มีปัญหาในการประมวลผล กำลังลองวิธีอื่น...", "partial": True}
-                async for response in process_with_direct_api(user_message, session_id):
+                async for response in _process_with_direct_api(user_message, session_id):
                     yield response
         
         else:
@@ -125,7 +151,7 @@ async def get_agent_response_async(
                         )
                         
                         # Log the YouTube search results for debugging
-                        logger.info(f"YouTube search results: {youtube_results.get('success')}, videos: {len(youtube_results.get('videos', []))}, insights: {len(youtube_results.get('insights', {}))}")
+                        logger.info(f"YouTube search results: {youtube_results.get('success')}, videos: {len(youtube_results.get('videos', []))}")
                         
                         if youtube_results.get("success") and youtube_results.get("insights"):
                             youtube_insights = format_youtube_insights(youtube_results.get("insights", {}))
@@ -199,15 +225,16 @@ async def get_agent_response_async(
             
             else:
                 # Process regular queries directly
-                async for response in process_with_direct_api(user_message, session_id):
+                async for response in _process_with_direct_api(user_message, session_id):
                     yield response
     
     except Exception as e:
         logger.error(f"Error getting agent response: {str(e)}")
+        logger.error(traceback.format_exc())
         # Fallback response in case of error
         yield {"message": f"ขออภัยค่ะ มีข้อผิดพลาดเกิดขึ้น: {str(e)}", "final": True}
 
-async def process_with_direct_api(user_message: str, session_id: str = None) -> AsyncGenerator[Dict[str, Any], None]:
+async def _process_with_direct_api(user_message: str, session_id: str = None) -> AsyncGenerator[Dict[str, Any], None]:
     """
     Process the message using direct Gemini API.
     
@@ -248,50 +275,102 @@ async def process_with_direct_api(user_message: str, session_id: str = None) -> 
                 yield {"message": "ขออภัยค่ะ ไม่สามารถประมวลผลคำขอได้ กรุณาลองใหม่อีกครั้ง", "final": True}
             return
         
-        # Create a prompt for general queries
+        # Get session manager to access state
+        session_manager = get_session_manager()
+        
+        # Get previous context from session state if available
+        previous_responses = []
+        if session_id:
+            history = session_manager.get_conversation_history(session_id, max_messages=6)
+            for msg in history:
+                role = "user" if msg.get("role") == "user" else "model"
+                content = msg.get("content", "")
+                if content:
+                    previous_responses.append({"role": role, "parts": [{"text": content}]})
+        
+        # Create a prompt for general queries with history context
+        context = ""
+        if previous_responses:
+            context = "\n\nContext from previous conversation:\n"
+            for msg in previous_responses:
+                if msg["role"] == "user":
+                    context += f"User: {msg['parts'][0]['text']}\n"
+                else:
+                    context += f"Assistant: {msg['parts'][0]['text']}\n"
+        
         prompt = f"""คุณคือผู้ช่วยวางแผนการเดินทางท่องเที่ยว
 
 คำถาม: {user_message}
 
-โปรดให้คำแนะนำที่เป็นประโยชน์ที่สุดในการตอบคำถามนี้ โดยให้ข้อมูลเกี่ยวกับการท่องเที่ยว ที่พัก ร้านอาหาร หรือกิจกรรมต่างๆ ตามที่เหมาะสม
+{context}
+
+คุณสามารถตอบคำถามเกี่ยวกับ:
+- แนะนำสถานที่ท่องเที่ยว
+- วิธีการเดินทาง
+- ที่พักแนะนำ
+- ร้านอาหารที่น่าสนใจ
+- การวางแผนการเดินทาง
+- เคล็ดลับการท่องเที่ยว
+
+โปรดให้คำแนะนำที่เป็นประโยชน์ที่สุดในการตอบคำถามนี้ โดยใช้ภาษาไทยตอบกลับ
 """
         
         logger.info(f"Sending prompt to Gemini API: {prompt[:100]}...")
         
-        # Generate response from Gemini API
-        response = await gemini_model.generate_content_async(
-            prompt,
-            generation_config={
-                "temperature": 0.7,
-                "top_p": 0.95,
-                "top_k": 40,
-                "max_output_tokens": 8192,
-            },
-        )
-        
-        # Get the complete response
-        if hasattr(response, 'text'):
-            # Direct response without streaming
-            full_response = response.text
-            logger.info(f"Complete response received: {full_response[:100]}...")
-            yield {"message": full_response, "final": True}
-        else:
-            # Try to stream the response
-            try:
-                full_response = ""
-                async for chunk in response:
-                    if hasattr(chunk, 'text') and chunk.text:
-                        full_response += chunk.text
+        try:
+            # Generate complete response using history, if available
+            if previous_responses:
+                # Start with the history
+                response = await gemini_model.generate_content_async(
+                    contents=previous_responses + [{"role": "user", "parts": [{"text": user_message}]}],
+                    generation_config={
+                        "temperature": 0.7,
+                        "top_p": 0.95,
+                        "top_k": 40,
+                        "max_output_tokens": 8192,
+                    },
+                )
+            else:
+                # No history, use the prompt
+                response = await gemini_model.generate_content_async(
+                    prompt,
+                    generation_config={
+                        "temperature": 0.7,
+                        "top_p": 0.95,
+                        "top_k": 40,
+                        "max_output_tokens": 8192,
+                    },
+                )
                 
-                logger.info(f"Streamed response completed: {full_response[:100]}...")
-                # Send the complete response
-                if full_response:
-                    yield {"message": full_response, "final": True}
-                else:
-                    yield {"message": "ขออภัยค่ะ ฉันไม่สามารถประมวลผลคำขอของคุณได้ในขณะนี้ กรุณาลองใหม่อีกครั้งค่ะ", "final": True}
-            except Exception as e:
-                logger.error(f"Error streaming response: {e}")
-                yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดในการประมวลผล: {str(e)}", "final": True}
+            # Get the complete response
+            if hasattr(response, 'text'):
+                # Direct response without streaming
+                full_response = response.text
+                logger.info(f"Complete response received: {full_response[:100]}...")
+                yield {"message": full_response, "final": True}
+            else:
+                # Try to stream the response
+                try:
+                    full_response = ""
+                    async for chunk in response:
+                        if hasattr(chunk, 'text') and chunk.text:
+                            partial_text = chunk.text
+                            full_response += partial_text
+                            yield {"message": partial_text, "partial": True}
+                    
+                    logger.info(f"Streamed response completed: {full_response[:100]}...")
+                    # Send the complete response as final
+                    if full_response:
+                        yield {"message": full_response, "final": True}
+                    else:
+                        yield {"message": "ขออภัยค่ะ ฉันไม่สามารถประมวลผลคำขอของคุณได้ในขณะนี้ กรุณาลองใหม่อีกครั้งค่ะ", "final": True}
+                except Exception as e:
+                    logger.error(f"Error streaming response: {e}")
+                    yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดในการประมวลผล: {str(e)}", "final": True}
+                    
+        except Exception as e:
+            logger.error(f"Error generating response: {e}")
+            yield {"message": f"ขออภัยค่ะ เกิดข้อผิดพลาดในการประมวลผล: {str(e)}", "final": True}
     
     except Exception as e:
         logger.error(f"Error with direct API: {str(e)}")

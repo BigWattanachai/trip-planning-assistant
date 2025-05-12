@@ -1,89 +1,96 @@
 """
-Tavily search integration for the Travel Agent Backend.
-Provides real-time search capabilities for enhancing agent responses.
+Tavily search tool for retrieving real-time information.
+Provides search capabilities for both ADK and direct API modes.
 """
 import os
 import logging
-import json
-from typing import Any, Dict, List, Optional, Union
-import requests
+from typing import Optional, Dict, Any, Union
 
+# Import settings
 from config import settings
 
 logger = logging.getLogger(__name__)
 
-def tavily_search(query: str, search_depth: str = "basic", max_results: int = 5) -> Dict[str, Any]:
+def initialize_tavily_search():
     """
-    Perform a search using the Tavily Search API.
+    Initialize the Tavily search tool for direct API mode.
     
-    Args:
-        query: The search query
-        search_depth: The depth of the search ("basic" or "advanced")
-        max_results: Maximum number of results to return
-        
     Returns:
-        Dictionary containing search results or error message
+        A Tavily search tool object or None if initialization fails
     """
-    api_key = settings.TAVILY_API_KEY
-    if not api_key:
-        logger.error("TAVILY_API_KEY not set. Cannot perform search.")
-        return {"error": "TAVILY_API_KEY not set"}
+    # Check if Tavily API key is set
+    tavily_api_key = settings.TAVILY_API_KEY
+    if not tavily_api_key:
+        logger.warning("TAVILY_API_KEY not set. Search capabilities will be limited.")
+        return None
     
     try:
-        logger.info(f"Performing Tavily search for: {query}")
+        # Import Tavily search
+        from langchain_community.tools.tavily_search import TavilySearchResults
         
-        # Prepare the request
-        url = "https://api.tavily.com/search"
-        headers = {
-            "content-type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        }
-        payload = {
-            "query": query,
-            "search_depth": search_depth,
-            "max_results": max_results,
-            "include_answer": True,
-            "include_domains": [],
-            "exclude_domains": []
-        }
+        # Set up Tavily search tool
+        tavily_search = TavilySearchResults(
+            api_key=tavily_api_key,
+            max_results=5,
+            include_domains=[],
+            exclude_domains=[],
+            max_characters=4000  # Limit the response size
+        )
         
-        # Make the request
-        response = requests.post(url, json=payload, headers=headers)
-        
-        # Check if the request was successful
-        if response.status_code == 200:
-            result = response.json()
-            logger.info(f"Tavily search successful. Found {len(result.get('results', []))} results.")
-            return result
-        else:
-            logger.error(f"Tavily search failed with status code {response.status_code}: {response.text}")
-            return {"error": f"Search failed with status code {response.status_code}"}
-    
+        logger.info("Tavily search tool initialized successfully")
+        return tavily_search
+    except ImportError as e:
+        logger.error(f"Failed to import Tavily search: {e}")
+        return None
     except Exception as e:
-        logger.error(f"Error performing Tavily search: {e}")
-        return {"error": str(e)}
+        logger.error(f"Error initializing Tavily search: {e}")
+        return None
 
-def tavily_search_with_tool_context(query: str, search_depth: str = "basic", max_results: int = 5, tool_context=None) -> Dict[str, Any]:
+def initialize_tavily_search_tool():
     """
-    Perform a search using the Tavily Search API with ADK ToolContext support.
+    Initialize the Tavily search tool for ADK mode.
+    
+    Returns:
+        A Tavily search tool object or None if initialization fails
+    """
+    return initialize_tavily_search()
+
+def tavily_search(query: str, search_depth: str = "basic") -> Dict[str, Any]:
+    """
+    Perform a Tavily search with the given query.
+    This is a wrapper around the Tavily search tool for direct API mode.
     
     Args:
         query: The search query
-        search_depth: The depth of the search ("basic" or "advanced")
-        max_results: Maximum number of results to return
-        tool_context: ToolContext object (provided automatically by ADK)
+        search_depth: The search depth, either "basic" or "deep"
         
     Returns:
-        Dictionary containing search results or error message
+        Search results as a dictionary
     """
-    # Perform the search
-    result = tavily_search(query, search_depth, max_results)
+    # Initialize Tavily search if needed
+    tavily_search_instance = initialize_tavily_search()
     
-    # Store the result in the tool context if available
-    if tool_context and "error" not in result:
-        # Store the search query and results in the session state
-        tool_context.state["last_search_query"] = query
-        tool_context.state["last_search_results"] = result
-        logger.info(f"Stored Tavily search results in session state for query: {query}")
+    if not tavily_search_instance:
+        logger.warning(f"Tavily search not available for query: {query}")
+        return {"error": "Tavily search not available", "results": []}
     
-    return result
+    try:
+        # Call Tavily search
+        results = tavily_search_instance.invoke(query, search_depth=search_depth)
+        logger.info(f"Tavily search successful for query: {query}")
+        
+        # For safety and format consistency, convert the results to a dictionary
+        if isinstance(results, str):
+            # Sometimes Tavily returns a string instead of a dictionary
+            results_dict = {"results": [{"content": results}]}
+        elif isinstance(results, dict):
+            results_dict = results
+        elif isinstance(results, list):
+            results_dict = {"results": results}
+        else:
+            results_dict = {"results": [{"content": str(results)}]}
+        
+        return results_dict
+    except Exception as e:
+        logger.error(f"Error during Tavily search for query '{query}': {e}")
+        return {"error": str(e), "results": []}
