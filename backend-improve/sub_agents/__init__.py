@@ -30,6 +30,7 @@ if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
     RestaurantAgent = None
     TransportationAgent = None
     TravelPlannerAgent = None
+    YouTubeInsightAgent = None
     
     # Try to import each sub-agent individually
     try:
@@ -66,6 +67,13 @@ if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
     except ImportError as e:
         logger.warning(f"Failed to import TravelPlannerAgent: {e}")
         TravelPlannerAgent = None
+        
+    try:
+        from .youtube_insight_agent import YouTubeInsightAgent
+        logger.info("Successfully imported YouTubeInsightAgent")
+    except ImportError as e:
+        logger.warning(f"Failed to import YouTubeInsightAgent: {e}")
+        YouTubeInsightAgent = None
     
     # Create a list of successfully imported sub-agents
     __all__ = []
@@ -74,6 +82,7 @@ if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
     if RestaurantAgent: __all__.append('RestaurantAgent')
     if TransportationAgent: __all__.append('TransportationAgent')
     if TravelPlannerAgent: __all__.append('TravelPlannerAgent')
+    if YouTubeInsightAgent: __all__.append('YouTubeInsightAgent')
     
     logger.info(f"Imported {len(__all__)} sub-agents successfully")
 else:
@@ -83,5 +92,6 @@ else:
     RestaurantAgent = None
     TransportationAgent = None
     TravelPlannerAgent = None
+    YouTubeInsightAgent = None
     
     __all__ = []

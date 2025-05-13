@@ -132,7 +132,8 @@ if USE_VERTEX_AI:
                     ActivityAgent,
                     RestaurantAgent,
                     TransportationAgent,
-                    TravelPlannerAgent
+                    TravelPlannerAgent,
+                    YouTubeInsightAgent
                 )
                 logger.info("Imported sub-agents using backend_improve prefix")
             except ImportError:
@@ -142,7 +143,8 @@ if USE_VERTEX_AI:
                     ActivityAgent,
                     RestaurantAgent,
                     TransportationAgent,
-                    TravelPlannerAgent
+                    TravelPlannerAgent,
+                    YouTubeInsightAgent
                 )
                 logger.info("Imported sub-agents using direct import")
             
@@ -163,6 +165,9 @@ if USE_VERTEX_AI:
             if 'TravelPlannerAgent' in locals() and TravelPlannerAgent is not None:
                 sub_agents.append(TravelPlannerAgent)
                 logger.info("Added TravelPlannerAgent to sub-agents list")
+            if 'YouTubeInsightAgent' in locals() and YouTubeInsightAgent is not None:
+                sub_agents.append(YouTubeInsightAgent)
+                logger.info("Added YouTubeInsightAgent to sub-agents list")
             
             # Create the root agent with valid sub-agents
             if sub_agents:
@@ -255,6 +260,20 @@ def extract_travel_info(query: str) -> Dict[str, Any]:
     if budget_match:
         travel_info["budget"] = budget_match.group(1).strip()
     
+    # Calculate duration if start_date and end_date are available
+    if travel_info["start_date"] != "ไม่ระบุ" and travel_info["end_date"] != "ไม่ระบุ":
+        try:
+            from datetime import datetime
+            start = datetime.strptime(travel_info["start_date"], "%Y-%m-%d")
+            end = datetime.strptime(travel_info["end_date"], "%Y-%m-%d")
+            duration = (end - start).days + 1  # +1 to include the start day
+            travel_info["duration"] = str(duration)
+        except Exception as e:
+            logger.warning(f"Could not calculate duration: {e}")
+            travel_info["duration"] = "ไม่ระบุ"
+    else:
+        travel_info["duration"] = "ไม่ระบุ"
+    
     return travel_info
 
 def search_destination_info(destination: str, query_type: str = "travel") -> Dict[str, Any]:
@@ -325,6 +344,24 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
     travel_info = extract_travel_info(query)
     logger.info(f"Extracted travel info: {travel_info}")
     
+    # Ensure all required keys have default values to prevent KeyError
+    default_values = {
+        "origin": "กรุงเทพ",
+        "destination": "ภายในประเทศไทย",
+        "start_date": "ไม่ระบุ",
+        "end_date": "ไม่ระบุ",
+        "budget": "ไม่ระบุ",
+        "duration": "ไม่ระบุ",
+        "num_travelers": 1,
+        "preferences": []
+    }
+    
+    # Fill in any missing keys with default values
+    for key, default_value in default_values.items():
+        if key not in travel_info or travel_info[key] is None:
+            travel_info[key] = default_value
+            logger.info(f"Using default value for {key}: {default_value}")
+    
     # Search for destination information using Tavily if available
     additional_info = ""
     if TAVILY_AVAILABLE and travel_info["destination"] != "ไม่ระบุ" and travel_info["destination"] != "ภายในประเทศไทย":
@@ -337,7 +374,8 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
                 "activity": "activities",
                 "restaurant": "food",
                 "transportation": "transportation",
-                "travel_planner": "travel"
+                "travel_planner": "travel",
+                "youtube_insight": "travel videos"
             }
             search_type = search_type_map.get(agent_type, "travel")
             
@@ -393,7 +431,28 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
             รวมทั้งวิธีเดินทางในพื้นที่ {travel_info['destination']}
         """,
         
-        "travel_planner": query  # Travel planner still gets the full query
+        "travel_planner": f"""
+            ช่วยสร้างแผนการเดินทางไป {travel_info['destination']} 
+            เป็นเวลา {travel_info['duration']} วัน 
+            งบประมาณ {travel_info['budget']} บาท
+            เริ่มวันที่ {travel_info['start_date']} ถึง {travel_info['end_date']}
+            
+            ต้องการแผนการเดินทางแบบละเอียดแบ่งตามวัน พร้อมสถานที่ท่องเที่ยว ที่พัก ร้านอาหาร
+            และการเดินทางภายในเมือง พร้อมประมาณการค่าใช้จ่ายในแต่ละวัน
+        """,
+
+        "youtube_insight": f"""
+            ฉันต้องการข้อมูลเชิงลึกเกี่ยวกับการท่องเที่ยวที่ {travel_info['destination']} จากวิดีโอ YouTube
+            
+            ช่วยวิเคราะห์วิดีโอท่องเที่ยวเกี่ยวกับ {travel_info['destination']} และให้ข้อมูลเกี่ยวกับ:
+            1. สถานที่ท่องเที่ยวยอดนิยมที่ถูกกล่าวถึงบ่อยในวิดีโอ
+            2. กิจกรรมท่องเที่ยวที่ถูกแนะนำโดย YouTuber ท่องเที่ยว
+            3. ข้อมูลความรู้สึกทั่วไปเกี่ยวกับจุดหมายปลายทาง (ด้านบวก/ลบ)
+            4. ช่อง YouTube ยอดนิยมที่มีเนื้อหาเกี่ยวกับ {travel_info['destination']}
+            5. เกร็ดน่ารู้และเคล็ดลับการท่องเที่ยวที่กล่าวถึงในวิดีโอ
+            
+            หากมีข้อมูลเฉพาะเกี่ยวกับการท่องเที่ยวในช่วง {travel_info['start_date']} ถึง {travel_info['end_date']} ก็จะเป็นประโยชน์มาก
+        """
     }
     
     # Define prompts for different sub-agents
@@ -460,7 +519,38 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
    • การจองตั๋วล่วงหน้า
    • เคล็ดลับประหยัดค่าเดินทาง
 
-ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน เน้นตัวเลือกที่สะดวก ปลอดภัย และเหมาะกับงบประมาณ {travel_info['budget']} บาท{additional_info}""",
+ให้คำแนะนำที่กระชับแต่มีข้อมูลครบถ้วน โดยมุ่งเน้นความสะดวกและความคุ้มค่าของการเดินทาง{additional_info}""",
+        
+        "youtube_insight": f"""คุณคือผู้เชี่ยวชาญด้านการวิเคราะห์เนื้อหาท่องเที่ยวจาก YouTube ช่วยวิเคราะห์วิดีโอและให้ข้อมูลเชิงลึกสำหรับนักท่องเที่ยว
+คำขอ: {specialized_queries.get(agent_type, query)}
+
+โปรดวิเคราะห์และให้ข้อมูลเกี่ยวกับการท่องเที่ยวที่ {travel_info['destination']} จากเนื้อหาวิดีโอ YouTube โดยครอบคลุม:
+
+1. สถานที่ท่องเที่ยวยอดนิยม
+   • สถานที่ที่ถูกกล่าวถึงบ่อยในวิดีโอต่างๆ
+   • สถานที่ที่ได้รับการแนะนำจาก YouTuber ท่องเที่ยวที่มีชื่อเสียง
+   • สถานที่ถ่ายรูปหรือจุดชมวิวที่สวยงาม
+
+2. กิจกรรมท่องเที่ยวที่น่าสนใจ
+   • กิจกรรมที่ได้รับการแนะนำมากที่สุดในวิดีโอ
+   • ประสบการณ์ท้องถิ่นที่ไม่ควรพลาด
+   • กิจกรรมที่เหมาะกับช่วงเวลาเดินทางของผู้ใช้
+
+3. การวิเคราะห์ความรู้สึก
+   • ด้านบวก: สิ่งที่นักท่องเที่ยวและ YouTuber ชื่นชมเกี่ยวกับ {travel_info['destination']}
+   • ด้านลบ: ข้อควรระวังหรือปัญหาที่อาจพบในการท่องเที่ยว
+   • ข้อมูลความคุ้มค่าและราคา
+
+4. ช่อง YouTube ที่แนะนำ
+   • ช่องท่องเที่ยวยอดนิยมที่มีเนื้อหาเกี่ยวกับ {travel_info['destination']}
+   • วิดีโอที่น่าชมสำหรับการวางแผนท่องเที่ยว
+
+5. เคล็ดลับพิเศษ
+   • เกร็ดความรู้ที่ไม่ค่อยทราบกันทั่วไป
+   • เคล็ดลับประหยัดเงินจากนักท่องเที่ยวที่มีประสบการณ์
+   • คำแนะนำสำหรับการเดินทางในช่วง {travel_info['start_date']} ถึง {travel_info['end_date']}
+
+ให้ข้อมูลที่เป็นประโยชน์และทันสมัย พร้อมระบุแหล่งที่มาจากวิดีโอ โดยเน้นข้อมูลที่จะช่วยให้การท่องเที่ยวของผู้ใช้ที่ {travel_info['destination']} สมบูรณ์และน่าจดจำมากที่สุด{additional_info}""",
         
         "travel_planner": f"""คุณคือผู้วางแผนการเดินทางผู้เชี่ยวชาญ สร้างแผนการเดินทางแบบครบวงจร
 คำขอ: {query}
@@ -486,7 +576,12 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
     
     # Determine which sub-agent to use based on the type
     if agent_type in prompts:
-        prompt = prompts[agent_type]
+        try:
+            prompt = prompts[agent_type]
+        except Exception as e:
+            logger.error(f"Error preparing prompt for {agent_type}: {e}")
+            # Fall back to a simple prompt if formatting fails
+            prompt = f"""คุณคือผู้ช่วยด้านการท่องเที่ยว โปรดให้ข้อมูลเกี่ยวกับการท่องเที่ยวที่ {travel_info.get('destination', 'ไทย')}\n\n{query}"""
     else:
         # Default to travel planner if agent type not recognized
         logger.warning(f"Unknown agent type: {agent_type}, using travel_planner")

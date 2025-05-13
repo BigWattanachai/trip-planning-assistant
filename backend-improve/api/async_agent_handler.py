@@ -245,6 +245,11 @@ async def get_agent_response_async(
                 logger.info("Calling activity sub-agent")
                 activity_response = call_sub_agent("activity", user_message, session_id)
                 yield {"message": "กำลังรวบรวมข้อมูลสถานที่ท่องเที่ยวและกิจกรรมที่น่าสนใจ...", "partial": True}
+                
+                # Call our new YouTube insight agent
+                logger.info("Calling YouTube insight sub-agent")
+                youtube_insight_response = call_sub_agent("youtube_insight", user_message, session_id)
+                yield {"message": "กำลังวิเคราะห์ข้อมูลจากวิดีโอ YouTube เกี่ยวกับจุดหมายปลายทาง...", "partial": True}
 
                 # Finally, call the travel planner to create a comprehensive plan
                 logger.info("Calling travel planner sub-agent")
@@ -266,6 +271,9 @@ async def get_agent_response_async(
 
                 ข้อมูลสถานที่ท่องเที่ยวและกิจกรรม:
                 {activity_response[:1000] if activity_response else "ไม่มีข้อมูล"}
+                
+                ข้อมูลเชิงลึกจาก YouTube:
+                {youtube_insight_response[:1000] if youtube_insight_response else "ไม่มีข้อมูล"}
                 """
 
                 # Log the enhanced query for debugging
@@ -425,7 +433,7 @@ def classify_query(query: str) -> str:
         query: The user's query
 
     Returns:
-        The type of sub-agent to use: "accommodation", "activity", "restaurant", "transportation", "travel_planner", or "general"
+        The type of sub-agent to use: "accommodation", "activity", "restaurant", "transportation", "travel_planner", "youtube_insight", or "general"
     """
     query_lower = query.lower()
 
@@ -453,6 +461,11 @@ def classify_query(query: str) -> str:
     if any(word in query_lower for word in ["การเดินทาง", "รถ", "เครื่องบิน", "รถไฟ", "รถทัวร์"]):
         logger.info("Query classified as transportation")
         return "transportation"
+        
+    # YouTube Insights
+    if any(word in query_lower for word in ["youtube", "วิดีโอ", "ยูทูป", "คลิป", "รีวิว", "vlog", "วล็อก"]):
+        logger.info("Query classified as youtube_insight")
+        return "youtube_insight"
 
     # Default to general
     logger.info("Query classified as general")
