@@ -399,18 +399,47 @@ def get_youtube_insights(destination: str) -> str:
                 "videos": []
             })
             
-        # Extract video IDs for further processing
-        video_ids = [video.get('id', {}).get('videoId') for video in videos if video.get('id', {}).get('videoId')]
+        # Extract video IDs for further processing with robust type checking
+        video_ids = []
+        for video in videos:
+            # Handle different possible formats of video objects
+            if isinstance(video, dict):
+                # YouTube API v3 format with nested id object
+                if isinstance(video.get('id'), dict):
+                    video_id = video.get('id', {}).get('videoId')
+                    if video_id:
+                        video_ids.append(video_id)
+                # Direct id format
+                elif video.get('id'):
+                    video_ids.append(video.get('id'))
+            # Handle case where the video itself might be a string ID
+            elif isinstance(video, str):
+                video_ids.append(video)
         logger.info(f"[get_youtube_insights] Found {len(video_ids)} video IDs")
         
         # 2. Get insights from these videos (limit to 5 to avoid rate limiting)
         insights = extract_travel_insights(video_ids[:5])
         
         # 3. Get sentiment analysis
-        sentiment = get_destination_sentiment(destination, video_ids[:3])
+        # Make sure video_ids is not empty and get_destination_sentiment exists
+        try:
+            sentiment = get_destination_sentiment(destination, video_ids[:3] if video_ids else [])
+        except Exception as e:
+            logger.error(f"[get_youtube_insights] Error getting sentiment: {e}")
+            sentiment = {
+                "overall_sentiment": "Unknown",
+                "rating": 0.0
+            }
         
         # 4. Get popular channels
-        channels = get_popular_travel_channels(destination, max_results=3)
+        try:
+            channels = get_popular_travel_channels(destination, max_results=3)
+        except Exception as e:
+            logger.error(f"[get_youtube_insights] Error getting popular channels: {e}")
+            channels = [{
+                "channel": "ไม่พบข้อมูลช่อง",
+                "description": "ไม่สามารถเข้าถึงข้อมูลได้"
+            }]
         
         # Compile results
         result = {
@@ -420,10 +449,17 @@ def get_youtube_insights(destination: str) -> str:
             "channels": channels,
             "videos": [
                 {
-                    "title": video.get('snippet', {}).get('title', 'Unknown Title'),
-                    "channel": video.get('snippet', {}).get('channelTitle', 'Unknown Channel'),
-                    "url": f"https://www.youtube.com/watch?v={video.get('id', {}).get('videoId')}"
-                } for video in videos[:5] if video.get('id', {}).get('videoId')
+                    "title": video.get('snippet', {}).get('title', 'Unknown Title') if isinstance(video, dict) else 'Unknown Title',
+                    "channel": video.get('snippet', {}).get('channelTitle', 'Unknown Channel') if isinstance(video, dict) else 'Unknown Channel',
+                    "url": f"https://www.youtube.com/watch?v={video.get('id', {}).get('videoId')}" if isinstance(video, dict) and isinstance(video.get('id'), dict) else
+                          f"https://www.youtube.com/watch?v={video.get('id')}" if isinstance(video, dict) and isinstance(video.get('id'), str) else
+                          f"https://www.youtube.com/watch?v={video}" if isinstance(video, str) else ''
+                } for video in videos[:5] if (
+                    (isinstance(video, dict) and 
+                     ((isinstance(video.get('id'), dict) and video.get('id', {}).get('videoId')) or 
+                      (isinstance(video.get('id'), str) and video.get('id'))))
+                    or isinstance(video, str)
+                )
             ]
         }
         
