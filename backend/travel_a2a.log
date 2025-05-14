@@ -1,0 +1,704 @@
+2025-05-14 23:31:19,589 - api.routes - INFO - Client #sn3brjj8d8 disconnected
+2025-05-14 23:31:19,589 - api.routes - INFO - Client #qlpf34sb4r disconnected
+2025-05-14 23:31:19,620 - api.routes - INFO - Client #f5zpymckch5 connected
+2025-05-14 23:31:19,621 - api.routes - INFO - [AGENT TO CLIENT]: สวัสดีค่ะ! ฉันคือผู้ช่วยวางแผนการเดินทางของคุณ
+
+คุ...
+2025-05-14 23:31:19,621 - api.routes - INFO - [TURN COMPLETE]
+2025-05-14 23:31:19,632 - api.routes - INFO - Client #ptatsw4bl1 connected
+2025-05-14 23:31:19,633 - api.routes - INFO - [AGENT TO CLIENT]: สวัสดีค่ะ! ฉันคือผู้ช่วยวางแผนการเดินทางของคุณ
+
+คุ...
+2025-05-14 23:31:19,633 - api.routes - INFO - [TURN COMPLETE]
+2025-05-14 23:31:23,959 - api.routes - INFO - [CLIENT TO AGENT]: ช่วยวางแผนการเดินทางท่องเที่ยวแบบละเอียดที่สุด ตาม...
+2025-05-14 23:31:23,959 - api.routes - INFO - Sent loading message for travel plan: กำลังวิเคราะห์คำขอของคุณและรวบรวมข้อมูล กรุณารอสักครู่...
+2025-05-14 23:31:23,960 - api.async_agent_handler - INFO - Using direct Gemini API for session f5zpymckch5
+2025-05-14 23:31:23,960 - api.routes - INFO - Sent status update: กำลังวิเคราะห์คำขอของคุณและรวบรวมข้อมูลจากผู้เชี่ย...
+2025-05-14 23:31:23,966 - api.async_agent_handler - INFO - Extracted destination: เชียงราย
+2025-05-14 23:31:23,966 - api.async_agent_handler - INFO - Searching for information about เชียงราย
+2025-05-14 23:31:23,967 - api.routes - INFO - Sent status update: กำลังค้นหาข้อมูลเกี่ยวกับ เชียงราย......
+2025-05-14 23:31:23,992 - tools.tavily_search - INFO - === TAVILY SEARCH START ===
+2025-05-14 23:31:23,992 - tools.tavily_search - INFO - Query: travel guide tourist information เชียงราย 2025
+2025-05-14 23:31:23,992 - tools.tavily_search - INFO - Location: เชียงราย
+2025-05-14 23:31:23,992 - tools.tavily_search - INFO - Max results: 5
+2025-05-14 23:31:23,992 - tools.tavily_search - INFO - Starting Tavily search tool initialization
+2025-05-14 23:31:23,992 - tools.tavily_search - INFO - Found Tavily API key with length 41
+2025-05-14 23:31:24,124 - tools.tavily_search - INFO - Successfully imported TavilySearchResults
+2025-05-14 23:31:24,124 - tools.tavily_search - INFO - Successfully created Tavily search instance
+2025-05-14 23:31:24,124 - tools.tavily_search - INFO - Testing Tavily search with a sample query...
+2025-05-14 23:31:27,964 - tools.tavily_search - INFO - Tavily test query successful!
+2025-05-14 23:31:27,964 - tools.tavily_search - INFO - Formatted search query: travel guide tourist information เชียงราย 2025
+2025-05-14 23:31:27,964 - tools.tavily_search - INFO - Using Tavily API key (masked): tvly...o6FQ (length: 41)
+2025-05-14 23:31:27,965 - tools.tavily_search - INFO - Executing Tavily search invoke() for query: 'travel guide tourist information เชียงราย 2025'
+2025-05-14 23:31:31,345 - tools.tavily_search - INFO - Tavily search completed in 3.38 seconds
+2025-05-14 23:31:31,346 - tools.tavily_search - INFO - Raw Tavily response type: <class 'list'>
+2025-05-14 23:31:31,346 - tools.tavily_search - INFO - Tavily returned a list with 5 items
+2025-05-14 23:31:31,346 - tools.tavily_search - INFO - First result keys: dict_keys(['title', 'url', 'content', 'score', 'raw_content'])
+2025-05-14 23:31:31,346 - tools.tavily_search - INFO - First result sample: {"title": "Chiang Rai Travel Guide: Everything You Need To Know In 2025", "url": "https://catisoutoftheoffice.com/chiang-rai-travel-guide/", "content": "6. Visit the Giant Goddess of Mercy (Wat Huay Pla Kang): Features Thailand\u2019s largest Guanyin Buddha statue, with an elevator to the 25th floor for views for 40 baht ($1.09 USD). Stop at Lallita Cafe on your way back to town.\n7. Hike to Khun Korn Waterfall: A lush 3.1 km (1.9 miles) trail leads to the highest waterfall in Chiang Rai. Swim in the cold, refreshing falls.\n8. Take a Thai Cooking Class: Learn to make authentic Thai dishes and visit a local market \u2013 a fun, social experience. [...] 9. Enjoy Incredible Cafes: Lalitta Cafe\u2019s enchanted forest vibe and popular spots like Cat \u2018n\u2019 A Cup Cafe and Chivit Thamma Da Coffee House.\n10. Explore the Night Markets: The vibrant Saturday Night Market on Thanalai Road offers local dishes, performances, and unique items. Try hot pot at the daily Night Bazaar.\n11. Vis...(truncated)
+2025-05-14 23:31:31,347 - tools.tavily_search - INFO - Processing Tavily list response with 5 items
+2025-05-14 23:31:31,347 - tools.tavily_search - INFO - Added result from list: Chiang Rai Travel Guide: Everything You Need To Know In 2025 (https://catisoutoftheoffice.com/chiang-rai-travel-guide/)
+2025-05-14 23:31:31,347 - tools.tavily_search - INFO - Added result from list: ที่เที่ยวเชียงราย 2025 จุดเช็กอินใหม่ & สถานที่ท่องเที่ยวสุดฮิต (https://thailandonthebeach.com/chiangrai-travel-guide-2025/)
+2025-05-14 23:31:31,347 - tools.tavily_search - INFO - Added result from list: CHIANG RAI TRAVEL GUIDE 2025: "Cultural Capitals and Coastal ... (https://www.amazon.com/CHIANG-RAI-TRAVEL-GUIDE-2025/dp/B0DQWDH2X2)
+2025-05-14 23:31:31,347 - tools.tavily_search - INFO - Added result from list: Chiang Rai Travel Guide - Expedia (https://www.expedia.com.au/Chiang-Rai.dx6094729)
+2025-05-14 23:31:31,348 - tools.tavily_search - INFO - Added result from list: 30 ที่เที่ยวเชียงราย 2025 เที่ยวเชียงราย ได้ทั้งปี [พฤษภาคม 2025] (https://roijang.com/ที่เที่ยวเชียงราย/)
+2025-05-14 23:31:31,349 - tools.tavily_search - INFO - Tavily search SUCCESS for 'travel guide tourist information เชียงราย 2025'. Found 5 results.
+2025-05-14 23:31:31,349 - tools.tavily_search - INFO - === TAVILY SEARCH COMPLETE ===
+2025-05-14 23:31:31,349 - api.async_agent_handler - INFO - Found destination information: 1934 characters
+2025-05-14 23:31:31,349 - api.async_agent_handler - INFO - Calling transportation sub-agent
+2025-05-14 23:31:31,350 - agent - INFO - Extracted travel info: {'origin': 'กรุงเทพ', 'destination': 'เชียงราย', 'start_date': '2025-05-21', 'end_date': '2025-05-26', 'budget': '15,000', 'num_travelers': 1, 'preferences': [], 'duration': '6'}
+2025-05-14 23:31:31,350 - agent - INFO - Searching for transportation information about เชียงราย
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - === TAVILY SEARCH START ===
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - Query: การเดินทางและวิธีการสัญจรใน เชียงราย 2025
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - Location: เชียงราย
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - Max results: 5
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - Starting Tavily search tool initialization
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - Found Tavily API key with length 41
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - Successfully imported TavilySearchResults
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - Successfully created Tavily search instance
+2025-05-14 23:31:31,350 - tools.tavily_search - INFO - Testing Tavily search with a sample query...
+2025-05-14 23:31:34,967 - tools.tavily_search - INFO - Tavily test query successful!
+2025-05-14 23:31:34,967 - tools.tavily_search - INFO - Formatted search query: การเดินทางและวิธีการสัญจรใน เชียงราย 2025
+2025-05-14 23:31:34,968 - tools.tavily_search - INFO - Using Tavily API key (masked): tvly...o6FQ (length: 41)
+2025-05-14 23:31:34,968 - tools.tavily_search - INFO - Executing Tavily search invoke() for query: 'การเดินทางและวิธีการสัญจรใน เชียงราย 2025'
+2025-05-14 23:31:38,375 - tools.tavily_search - INFO - Tavily search completed in 3.41 seconds
+2025-05-14 23:31:38,375 - tools.tavily_search - INFO - Raw Tavily response type: <class 'list'>
+2025-05-14 23:31:38,375 - tools.tavily_search - INFO - Tavily returned a list with 5 items
+2025-05-14 23:31:38,375 - tools.tavily_search - INFO - First result keys: dict_keys(['title', 'url', 'content', 'score', 'raw_content'])
+2025-05-14 23:31:38,376 - tools.tavily_search - INFO - First result sample: {"title": "\u0e17\u0e35\u0e48\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 2025 \u0e08\u0e38\u0e14\u0e40\u0e0a\u0e47\u0e01\u0e2d\u0e34\u0e19\u0e43\u0e2b\u0e21\u0e48 & \u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e48\u0e2d\u0e07\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e2a\u0e38\u0e14\u0e2e\u0e34\u0e15", "url": "https://thailandonthebeach.com/chiangrai-travel-guide-2025/", "content": "\u0e01\u0e32\u0e23\u0e40\u0e14\u0e34\u0e19\u0e17\u0e32\u0e07: \u0e02\u0e31\u0e1a\u0e23\u0e16\u0e08\u0e32\u0e01\u0e15\u0e31\u0e27\u0e40\u0e21\u0e37\u0e2d\u0e07\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22\u0e1b\u0e23\u0e30\u0e21\u0e32\u0e13 1.5 \u0e0a\u0e31\u0e48\u0e27\u0e42\u0e21\u0e07\n3. \u0e44\u0e23\u0e48\u0e0a\u0e32\u0e09\u0e38\u0e22\u0e1f\u0e07 \u2013 \u0e2a\u0e27\u0e23\u0e23\u0e04\u0e4c\u0e02\u0e2d\u0e07\u0e04\u0e19\u0e23\u0e31\u0e01\u0e0a\u0e32\n \u0e17\u0e35\u0e48\u0e15\u0e31\u0e49\u0e07: \u0e2d\u0e33\u0e40\u0e20\u0e2d\u0e41\u0e21\u0e48\u0e08\u0e31\u0e19...(truncated)
+2025-05-14 23:31:38,376 - tools.tavily_search - INFO - Processing Tavily list response with 5 items
+2025-05-14 23:31:38,376 - tools.tavily_search - INFO - Added result from list: ที่เที่ยวเชียงราย 2025 จุดเช็กอินใหม่ & สถานที่ท่องเที่ยวสุดฮิต (https://thailandonthebeach.com/chiangrai-travel-guide-2025/)
+2025-05-14 23:31:38,376 - tools.tavily_search - INFO - Added result from list: สถานที่ท่องเที่ยวแนะนำในเชียงราย ปี 2025 (อัปเดตเดือนพฤษภาคม) (https://th.trip.com/moments/theme/destination-chiang-rai-551-attractions-993137/)
+2025-05-14 23:31:38,376 - tools.tavily_search - INFO - Added result from list: แผนเที่ยวเชียงราย 2025: สถานที่น่าสนใจและประสบการณ์ไม่ควรพลาด (https://www.lemon8-app.com/@chomp00_cp/7466382712107024913?region=th)
+2025-05-14 23:31:38,377 - tools.tavily_search - INFO - Added result from list: เชียงราย: สถานที่ท่องเที่ยวใหม่ๆ ในปี 2025 (https://thai.newsbytesapp.com/news/lifestyle/chiang-rai-new-tourist-attractions-in-2025/story)
+2025-05-14 23:31:38,377 - tools.tavily_search - INFO - Added result from list: 25 ที่เที่ยวเชียงราย 2025 ไหว้พระ ชมธรรมชาติ สัมผัสวิถีชีวิตชาวเขา ที่ ... (https://www.checkinchill.com/content/chiangrai-travel)
+2025-05-14 23:31:38,377 - tools.tavily_search - INFO - Tavily search SUCCESS for 'การเดินทางและวิธีการสัญจรใน เชียงราย 2025'. Found 5 results.
+2025-05-14 23:31:38,377 - tools.tavily_search - INFO - === TAVILY SEARCH COMPLETE ===
+2025-05-14 23:31:38,377 - agent - INFO - Added search results for transportation agent
+2025-05-14 23:31:38,377 - agent - INFO - Calling sub-agent: transportation
+2025-05-14 23:31:50,686 - agent - INFO - Sub-agent transportation response generated
+2025-05-14 23:31:50,687 - api.routes - INFO - Sent status update: กำลังหาข้อมูลเกี่ยวกับการเดินทาง......
+2025-05-14 23:31:50,687 - api.async_agent_handler - INFO - Calling accommodation sub-agent
+2025-05-14 23:31:50,688 - agent - INFO - Extracted travel info: {'origin': 'กรุงเทพ', 'destination': 'เชียงราย', 'start_date': '2025-05-21', 'end_date': '2025-05-26', 'budget': '15,000', 'num_travelers': 1, 'preferences': [], 'duration': '6'}
+2025-05-14 23:31:50,689 - agent - INFO - Searching for accommodation information about เชียงราย
+2025-05-14 23:31:50,689 - tools.tavily_search - INFO - === TAVILY SEARCH START ===
+2025-05-14 23:31:50,689 - tools.tavily_search - INFO - Query: ที่พัก โฮสเทล และโรงแรมแนะนำในเชียงราย 2025
+2025-05-14 23:31:50,689 - tools.tavily_search - INFO - Location: เชียงราย
+2025-05-14 23:31:50,689 - tools.tavily_search - INFO - Max results: 5
+2025-05-14 23:31:50,692 - tools.tavily_search - INFO - Starting Tavily search tool initialization
+2025-05-14 23:31:50,692 - tools.tavily_search - INFO - Found Tavily API key with length 41
+2025-05-14 23:31:50,692 - tools.tavily_search - INFO - Successfully imported TavilySearchResults
+2025-05-14 23:31:50,692 - tools.tavily_search - INFO - Successfully created Tavily search instance
+2025-05-14 23:31:50,693 - tools.tavily_search - INFO - Testing Tavily search with a sample query...
+2025-05-14 23:31:54,177 - tools.tavily_search - INFO - Tavily test query successful!
+2025-05-14 23:31:54,177 - tools.tavily_search - INFO - Formatted search query: ที่พัก โฮสเทล และโรงแรมแนะนำในเชียงราย 2025
+2025-05-14 23:31:54,177 - tools.tavily_search - INFO - Using Tavily API key (masked): tvly...o6FQ (length: 41)
+2025-05-14 23:31:54,177 - tools.tavily_search - INFO - Executing Tavily search invoke() for query: 'ที่พัก โฮสเทล และโรงแรมแนะนำในเชียงราย 2025'
+2025-05-14 23:31:57,135 - tools.tavily_search - INFO - Tavily search completed in 2.96 seconds
+2025-05-14 23:31:57,135 - tools.tavily_search - INFO - Raw Tavily response type: <class 'list'>
+2025-05-14 23:31:57,136 - tools.tavily_search - INFO - Tavily returned a list with 5 items
+2025-05-14 23:31:57,136 - tools.tavily_search - INFO - First result keys: dict_keys(['title', 'url', 'content', 'score', 'raw_content'])
+2025-05-14 23:31:57,137 - tools.tavily_search - INFO - First result sample: {"title": "16 \u0e42\u0e23\u0e07\u0e41\u0e23\u0e21\u0e17\u0e35\u0e48\u0e1e\u0e31\u0e01 \u0e43\u0e19\u0e40\u0e21\u0e37\u0e2d\u0e07\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 \u0e43\u0e01\u0e25\u0e49\u0e16\u0e19\u0e19\u0e04\u0e19\u0e40\u0e14\u0e34\u0e19 \u0e2b\u0e2d\u0e19\u0e32\u0e2c\u0e34\u0e01\u0e32 \u0e44\u0e19\u0e17\u0e4c\u0e1a\u0e32\u0e0b\u0e32\u0e23\u0e4c", "url": "https://www.chiangmaiexpert.com/walking-street-hotel-chiang-rai/", "content": "\u2013 \u0e42\u0e23\u0e07\u0e41\u0e23\u0e21 \u0e43\u0e01\u0e25\u0e49\u0e42\u0e23\u0e07\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25 \u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22\n\u2013 \u0e42\u0e23\u0e07\u0e41\u0e23\u0e21 \u0e14\u0e2d\u0e22\u0e41\u0e21\u0e48\u0e2a\u0e25\u0e2d\u0e07 \u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22\n\u2013 \u0e42\u0e23\u0e07\u0e41\u0e23\u0e21 \u0e2d.\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e02\u0e2d\u0e07 \u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22\n\u2013 \u0e42\u0e23\u0e07\u0e41\u0e23\u0e21 \u0e2d.\u0e41\u0e21\u0...(truncated)
+2025-05-14 23:31:57,137 - tools.tavily_search - INFO - Processing Tavily list response with 5 items
+2025-05-14 23:31:57,137 - tools.tavily_search - INFO - Added result from list: 16 โรงแรมที่พัก ในเมืองเชียงราย ใกล้ถนนคนเดิน หอนาฬิกา ไนท์บาซาร์ (https://www.chiangmaiexpert.com/walking-street-hotel-chiang-rai/)
+2025-05-14 23:31:57,137 - tools.tavily_search - INFO - Added result from list: 20 ที่พักเชียงราย 2025/2568 บรรยากาศสุดฟิน มุมถ่ายรูปปัง (https://www.whanjai.com/chiang-rai/)
+2025-05-14 23:31:57,138 - tools.tavily_search - INFO - Added result from list: 10 ที่พักเชียงราย 2568 ที่พักเชียงรายในเมือง 2025 โรงแรมเชียงราย แนะนำ ... (https://www.gobuddy.in.th/chiang-rai-hotel-ที่พักเชียงราย/)
+2025-05-14 23:31:57,138 - tools.tavily_search - INFO - Added result from list: 10 ที่พักเชียงราย ในตัวเมือง 2025 ถิ่นล้านนา เหนือสุดสยาม (https://www.checkinchill.com/en/content/chiang-rai-hotel)
+2025-05-14 23:31:57,138 - tools.tavily_search - INFO - Added result from list: แนะนำ 25 ที่พักเชียงรายในเมือง 2025 ห้องสวย ราคาน่ารัก (https://roijang.com/ที่พักเชียงรายในเมือง/)
+2025-05-14 23:31:57,138 - tools.tavily_search - INFO - Tavily search SUCCESS for 'ที่พัก โฮสเทล และโรงแรมแนะนำในเชียงราย 2025'. Found 5 results.
+2025-05-14 23:31:57,138 - tools.tavily_search - INFO - === TAVILY SEARCH COMPLETE ===
+2025-05-14 23:31:57,138 - agent - INFO - Added search results for accommodation agent
+2025-05-14 23:31:57,138 - agent - INFO - Calling sub-agent: accommodation
+2025-05-14 23:32:08,732 - agent - INFO - Sub-agent accommodation response generated
+2025-05-14 23:32:08,733 - api.routes - INFO - Sent status update: กำลังรวบรวมข้อมูลที่พัก......
+2025-05-14 23:32:08,734 - api.async_agent_handler - INFO - Calling restaurant sub-agent
+2025-05-14 23:32:08,735 - agent - INFO - Extracted travel info: {'origin': 'กรุงเทพ', 'destination': 'เชียงราย', 'start_date': '2025-05-21', 'end_date': '2025-05-26', 'budget': '15,000', 'num_travelers': 1, 'preferences': [], 'duration': '6'}
+2025-05-14 23:32:08,736 - agent - INFO - Searching for food information about เชียงราย
+2025-05-14 23:32:08,736 - tools.tavily_search - INFO - === TAVILY SEARCH START ===
+2025-05-14 23:32:08,736 - tools.tavily_search - INFO - Query: ร้านอาหารแนะนำ และ อาหารท้องถิ่นใน เชียงราย 2025
+2025-05-14 23:32:08,736 - tools.tavily_search - INFO - Location: เชียงราย
+2025-05-14 23:32:08,738 - tools.tavily_search - INFO - Max results: 5
+2025-05-14 23:32:08,738 - tools.tavily_search - INFO - Starting Tavily search tool initialization
+2025-05-14 23:32:08,739 - tools.tavily_search - INFO - Found Tavily API key with length 41
+2025-05-14 23:32:08,739 - tools.tavily_search - INFO - Successfully imported TavilySearchResults
+2025-05-14 23:32:08,740 - tools.tavily_search - INFO - Successfully created Tavily search instance
+2025-05-14 23:32:08,740 - tools.tavily_search - INFO - Testing Tavily search with a sample query...
+2025-05-14 23:32:11,533 - tools.tavily_search - INFO - Tavily test query successful!
+2025-05-14 23:32:11,534 - tools.tavily_search - INFO - Formatted search query: ร้านอาหารแนะนำ และ อาหารท้องถิ่นใน เชียงราย 2025
+2025-05-14 23:32:11,534 - tools.tavily_search - INFO - Using Tavily API key (masked): tvly...o6FQ (length: 41)
+2025-05-14 23:32:11,534 - tools.tavily_search - INFO - Executing Tavily search invoke() for query: 'ร้านอาหารแนะนำ และ อาหารท้องถิ่นใน เชียงราย 2025'
+2025-05-14 23:32:15,684 - tools.tavily_search - INFO - Tavily search completed in 4.15 seconds
+2025-05-14 23:32:15,684 - tools.tavily_search - INFO - Raw Tavily response type: <class 'list'>
+2025-05-14 23:32:15,685 - tools.tavily_search - INFO - Tavily returned a list with 5 items
+2025-05-14 23:32:15,685 - tools.tavily_search - INFO - First result keys: dict_keys(['title', 'url', 'content', 'score', 'raw_content'])
+2025-05-14 23:32:15,686 - tools.tavily_search - INFO - First result sample: {"title": "25 \u0e23\u0e49\u0e32\u0e19\u0e2d\u0e32\u0e2b\u0e32\u0e23\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 \u0e2d\u0e23\u0e48\u0e2d\u0e22\u0e25\u0e33\u0e02\u0e19\u0e32\u0e14 \u0e1b\u0e23\u0e30\u0e08\u0e33\u0e1b\u0e35 2025 - Drivehub", "url": "https://www.drivehub.com/blog/chiang-rai-restaurants/", "content": "\u0e02\u0e2d\u0e1a\u0e04\u0e38\u0e13\u0e23\u0e39\u0e1b\u0e20\u0e32\u0e1e\u0e08\u0e32\u0e01 Facebook \u0e1c\u0e32\u0e21 PAAM\n\u0e23\u0e49\u0e32\u0e19\u0e2d\u0e23\u0e48\u0e2d\u0e22\u0e15\u0e49\u0e2d\u0e07\u0e41\u0e19\u0e30\u0e19\u0e33\u0e02\u0e2d\u0e07\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22\u0e2d\u0e35\u0e01\u0e2b\u0e19\u0e36\u0e48\u0e07\u0e23\u0e49\u0e32\u0e19 \u0e15\u0e49\u0e2d\u0e07\u0e22\u0e01\u0e43\u0e2b\u0e49\u0e23\u0e49\u0e32\u0e19\u0e1c\u0e32\u0e21\u0e44\u0e2a\u0e49\u0e2d\u0e31\u0e48\u0e27\u0e04\u0e23\u0e31\u0e1a \u0e41\u0e19\u0e48\u0e19\u0e2d\u0e19\u0e27\u0e48\u0e32\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22\u0e17...(truncated)
+2025-05-14 23:32:15,686 - tools.tavily_search - INFO - Processing Tavily list response with 5 items
+2025-05-14 23:32:15,687 - tools.tavily_search - INFO - Added result from list: 25 ร้านอาหารเชียงราย อร่อยลำขนาด ประจำปี 2025 - Drivehub (https://www.drivehub.com/blog/chiang-rai-restaurants/)
+2025-05-14 23:32:15,687 - tools.tavily_search - INFO - Added result from list: 20 ร้านอาหารเชียงราย ในเมือง อร่อยได้ทั้งวัน ต้องแนะนำในปี 2025 - KTC (https://www.ktc.co.th/article/dining/restaurant/20-best-restaurants-in-chiang-rai)
+2025-05-14 23:32:15,687 - tools.tavily_search - INFO - Added result from list: ร้านอาหารแนะนำในจังหวัดเชียงราย ปี 2025 (อัปเดตเดือนมีนาคม) - Trip.com (https://th.trip.com/moments/theme/destination-chiang-rai-province-24575-restaurants-993134/)
+2025-05-14 23:32:15,687 - tools.tavily_search - INFO - Added result from list: 10 ร้านอาหารที่ดีที่สุดในจังหวัดเชียงราย (2025) - Tripadvisor (https://th.tripadvisor.com/Restaurants-g1396421-Chiang_Rai_Province.html)
+2025-05-14 23:32:15,687 - tools.tavily_search - INFO - Added result from list: ร้านอาหาร เชียงราย ต้อนรับปี 2025 อร่อยลำแต๊ๆ สไตล์พื้นเมือง - Ryoii (https://www.ryoiireview.com/article/chiang-rai-restaurants/)
+2025-05-14 23:32:15,687 - tools.tavily_search - INFO - Tavily search SUCCESS for 'ร้านอาหารแนะนำ และ อาหารท้องถิ่นใน เชียงราย 2025'. Found 5 results.
+2025-05-14 23:32:15,687 - tools.tavily_search - INFO - === TAVILY SEARCH COMPLETE ===
+2025-05-14 23:32:15,688 - agent - INFO - Added search results for restaurant agent
+2025-05-14 23:32:15,688 - agent - INFO - Calling sub-agent: restaurant
+2025-05-14 23:32:29,199 - agent - INFO - Sub-agent restaurant response generated
+2025-05-14 23:32:29,200 - api.routes - INFO - Sent status update: กำลังหาร้านอาหารที่น่าสนใจ......
+2025-05-14 23:32:29,200 - api.async_agent_handler - INFO - Calling activity sub-agent
+2025-05-14 23:32:29,201 - agent - INFO - Extracted travel info: {'origin': 'กรุงเทพ', 'destination': 'เชียงราย', 'start_date': '2025-05-21', 'end_date': '2025-05-26', 'budget': '15,000', 'num_travelers': 1, 'preferences': [], 'duration': '6'}
+2025-05-14 23:32:29,201 - agent - INFO - Searching for activities information about เชียงราย
+2025-05-14 23:32:29,204 - tools.tavily_search - INFO - === TAVILY SEARCH START ===
+2025-05-14 23:32:29,204 - tools.tavily_search - INFO - Query: สถานที่ท่องเที่ยวและกิจกรรมยอดนิยมใน เชียงราย 2025
+2025-05-14 23:32:29,205 - tools.tavily_search - INFO - Location: เชียงราย
+2025-05-14 23:32:29,205 - tools.tavily_search - INFO - Max results: 5
+2025-05-14 23:32:29,205 - tools.tavily_search - INFO - Starting Tavily search tool initialization
+2025-05-14 23:32:29,205 - tools.tavily_search - INFO - Found Tavily API key with length 41
+2025-05-14 23:32:29,206 - tools.tavily_search - INFO - Successfully imported TavilySearchResults
+2025-05-14 23:32:29,206 - tools.tavily_search - INFO - Successfully created Tavily search instance
+2025-05-14 23:32:29,206 - tools.tavily_search - INFO - Testing Tavily search with a sample query...
+2025-05-14 23:32:32,943 - tools.tavily_search - INFO - Tavily test query successful!
+2025-05-14 23:32:32,944 - tools.tavily_search - INFO - Formatted search query: สถานที่ท่องเที่ยวและกิจกรรมยอดนิยมใน เชียงราย 2025
+2025-05-14 23:32:32,944 - tools.tavily_search - INFO - Using Tavily API key (masked): tvly...o6FQ (length: 41)
+2025-05-14 23:32:32,944 - tools.tavily_search - INFO - Executing Tavily search invoke() for query: 'สถานที่ท่องเที่ยวและกิจกรรมยอดนิยมใน เชียงราย 2025'
+2025-05-14 23:32:36,750 - tools.tavily_search - INFO - Tavily search completed in 3.81 seconds
+2025-05-14 23:32:36,751 - tools.tavily_search - INFO - Raw Tavily response type: <class 'list'>
+2025-05-14 23:32:36,751 - tools.tavily_search - INFO - Tavily returned a list with 5 items
+2025-05-14 23:32:36,751 - tools.tavily_search - INFO - First result keys: dict_keys(['title', 'url', 'content', 'score'])
+2025-05-14 23:32:36,751 - tools.tavily_search - INFO - First result sample: {"title": "10 \u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e48\u0e2d\u0e07\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e17\u0e35\u0e48\u0e14\u0e35\u0e17\u0e35\u0e48\u0e2a\u0e38\u0e14\u0e43\u0e19 \u0e08\u0e31\u0e07\u0e2b\u0e27\u0e31\u0e14\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 (2025) - Tripadvisor", "url": "https://th.tripadvisor.com/Attractions-g1396421-Activities-zft11306-Chiang_Rai_Province.html", "content": "\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e48\u0e2d\u0e07\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27 \u0e08\u0e31\u0e07\u0e2b\u0e27\u0e31\u0e14\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 \u00b7 1. \u0e27\u0e31\u0e14\u0e23\u0e48\u0e2d\u0e07\u0e02\u0e38\u0e48\u0e19 \u00b7 2. \u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 \u0e44\u0e19\u0e17\u0e4c\u0e1a\u0e32\u0e23\u0e4c\u0e0b\u0e32 \u00b7 3. \u0e27\u0e31\u0e14\u0e23\u0e48\u0e2d\u0e07\u0e40\u0e2a\u0e37\u0e2d\u0e40\u0e15\u0e49\u0e19 \u00b7 4. \u0e27\u0e31\u0e14\u0e2b\u0e49\u0e27\u0e22\u0e1b\u0e25\u0e32\u0e01\u0e31\u...(truncated)
+2025-05-14 23:32:36,752 - tools.tavily_search - INFO - Processing Tavily list response with 5 items
+2025-05-14 23:32:36,752 - tools.tavily_search - INFO - Added result from list: 10 สถานที่ท่องเที่ยวที่ดีที่สุดใน จังหวัดเชียงราย (2025) - Tripadvisor (https://th.tripadvisor.com/Attractions-g1396421-Activities-zft11306-Chiang_Rai_Province.html)
+2025-05-14 23:32:36,752 - tools.tavily_search - INFO - Added result from list: จังหวัดเชียงราย สถานที่ท่องเที่ยว 10 อันดับแรก 2025 - Trip.com (https://th.trip.com/travel-guide/attraction/chiang-rai-province-24575/tourist-attractions/)
+2025-05-14 23:32:36,752 - tools.tavily_search - INFO - Added result from list: 10 สถานที่ท่องเที่ยวที่ดีที่สุดใน เมืองเชียงราย (2025) - Tripadvisor (https://th.tripadvisor.com/Attractions-g297920-Activities-Chiang_Rai_Chiang_Rai_Province.html)
+2025-05-14 23:32:36,752 - tools.tavily_search - INFO - Added result from list: เที่ยว 2025 - กิจกรรมในเชียงราย (https://www.klook.com/th/destination/c216-chiang-rai/)
+2025-05-14 23:32:36,752 - tools.tavily_search - INFO - Added result from list: แผนเที่ยวเชียงราย 2025: สถานที่น่าสนใจและประสบการณ์ไม่ควรพลาด (https://www.lemon8-app.com/@chomp00_cp/7466382712107024913?region=th)
+2025-05-14 23:32:36,752 - tools.tavily_search - INFO - Tavily search SUCCESS for 'สถานที่ท่องเที่ยวและกิจกรรมยอดนิยมใน เชียงราย 2025'. Found 5 results.
+2025-05-14 23:32:36,753 - tools.tavily_search - INFO - === TAVILY SEARCH COMPLETE ===
+2025-05-14 23:32:36,753 - agent - INFO - Added search results for activity agent
+2025-05-14 23:32:36,753 - agent - INFO - Calling sub-agent: activity
+2025-05-14 23:32:50,378 - agent - INFO - Sub-agent activity response generated
+2025-05-14 23:32:50,379 - api.routes - INFO - Sent status update: กำลังรวบรวมข้อมูลสถานที่ท่องเที่ยวและกิจกรรมที่น่า...
+2025-05-14 23:32:50,379 - api.async_agent_handler - INFO - Calling YouTube insight sub-agent
+2025-05-14 23:32:50,380 - agent - INFO - Extracted travel info: {'origin': 'กรุงเทพ', 'destination': 'เชียงราย', 'start_date': '2025-05-21', 'end_date': '2025-05-26', 'budget': '15,000', 'num_travelers': 1, 'preferences': [], 'duration': '6'}
+2025-05-14 23:32:50,380 - agent - INFO - Searching for travel videos information about เชียงราย
+2025-05-14 23:32:50,380 - tools.tavily_search - INFO - === TAVILY SEARCH START ===
+2025-05-14 23:32:50,381 - tools.tavily_search - INFO - Query: คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว เชียงราย 2025
+2025-05-14 23:32:50,384 - tools.tavily_search - INFO - Location: เชียงราย
+2025-05-14 23:32:50,385 - tools.tavily_search - INFO - Max results: 5
+2025-05-14 23:32:50,385 - tools.tavily_search - INFO - Starting Tavily search tool initialization
+2025-05-14 23:32:50,386 - tools.tavily_search - INFO - Found Tavily API key with length 41
+2025-05-14 23:32:50,386 - tools.tavily_search - INFO - Successfully imported TavilySearchResults
+2025-05-14 23:32:50,386 - tools.tavily_search - INFO - Successfully created Tavily search instance
+2025-05-14 23:32:50,386 - tools.tavily_search - INFO - Testing Tavily search with a sample query...
+2025-05-14 23:32:53,527 - tools.tavily_search - INFO - Tavily test query successful!
+2025-05-14 23:32:53,527 - tools.tavily_search - INFO - Formatted search query: คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว เชียงราย 2025
+2025-05-14 23:32:53,527 - tools.tavily_search - INFO - Using Tavily API key (masked): tvly...o6FQ (length: 41)
+2025-05-14 23:32:53,528 - tools.tavily_search - INFO - Executing Tavily search invoke() for query: 'คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว เชียงราย 2025'
+2025-05-14 23:32:56,456 - tools.tavily_search - INFO - Tavily search completed in 2.93 seconds
+2025-05-14 23:32:56,457 - tools.tavily_search - INFO - Raw Tavily response type: <class 'list'>
+2025-05-14 23:32:56,457 - tools.tavily_search - INFO - Tavily returned a list with 5 items
+2025-05-14 23:32:56,457 - tools.tavily_search - INFO - First result keys: dict_keys(['title', 'url', 'content', 'score', 'raw_content'])
+2025-05-14 23:32:56,457 - tools.tavily_search - INFO - First result sample: {"title": "\u0e17\u0e35\u0e48\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 2025 \u0e08\u0e38\u0e14\u0e40\u0e0a\u0e47\u0e01\u0e2d\u0e34\u0e19\u0e43\u0e2b\u0e21\u0e48 & \u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e48\u0e2d\u0e07\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e2a\u0e38\u0e14\u0e2e\u0e34\u0e15", "url": "https://thailandonthebeach.com/chiangrai-travel-guide-2025/", "content": "5 \u0e17\u0e35\u0e48\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 2025 \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e44\u0e1b\u0e2a\u0e31\u0e21\u0e1c\u0e31\u0e2a\n1. \u0e20\u0e39\u0e0a\u0e35\u0e49\u0e1f\u0e49\u0e32 \u2013 \u0e0a\u0e21\u0e17\u0e30\u0e40\u0e25\u0e2b\u0e21\u0e2d\u0e01\u0e2a\u0e38\u0e14\u0e2d\u0e25\u0e31\u0e07\u0e01\u0e32\u0e23\n \u0e17\u0e35\u0e48\u0e15\u0e31\u0e49\u0e07: \u0e2d\u0e33\u0e40\u0e20\u0e2d\u0e40\u0e17\u0e34\u0e07 \u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22\n \u0e44\u0e2e\u0e44\u0e25\u0e15\u0e4c:...(truncated)
+2025-05-14 23:32:56,458 - tools.tavily_search - INFO - Processing Tavily list response with 5 items
+2025-05-14 23:32:56,458 - tools.tavily_search - INFO - Added result from list: ที่เที่ยวเชียงราย 2025 จุดเช็กอินใหม่ & สถานที่ท่องเที่ยวสุดฮิต (https://thailandonthebeach.com/chiangrai-travel-guide-2025/)
+2025-05-14 23:32:56,458 - tools.tavily_search - INFO - Added result from list: แผนเที่ยวเชียงราย 2025: สถานที่น่าสนใจและประสบการณ์ไม่ควรพลาด (https://www.lemon8-app.com/@chomp00_cp/7466382712107024913?region=th)
+2025-05-14 23:32:56,458 - tools.tavily_search - INFO - Added result from list: อัปเดตที่เที่ยวเชียงราย 2025 ที่เที่ยวใหม่ ไม่ซ้ำใคร ห้ามพลาด! - TopHotel (https://www.tophotel.co.th/north/chiangrai)
+2025-05-14 23:32:56,458 - tools.tavily_search - INFO - Added result from list: เชียงราย: สถานที่ท่องเที่ยวใหม่ๆ ในปี 2025 (https://thai.newsbytesapp.com/news/lifestyle/chiang-rai-new-tourist-attractions-in-2025/story)
+2025-05-14 23:32:56,458 - tools.tavily_search - INFO - Added result from list: 25 ที่เที่ยวเชียงราย 2025 ไหว้พระ ชมธรรมชาติ สัมผัสวิถีชีวิตชาวเขา ที่ ... (https://www.checkinchill.com/content/chiangrai-travel)
+2025-05-14 23:32:56,458 - tools.tavily_search - INFO - Tavily search SUCCESS for 'คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว เชียงราย 2025'. Found 5 results.
+2025-05-14 23:32:56,458 - tools.tavily_search - INFO - === TAVILY SEARCH COMPLETE ===
+2025-05-14 23:32:56,459 - agent - INFO - Added search results for youtube_insight agent
+2025-05-14 23:32:56,459 - agent - INFO - Calling sub-agent: youtube_insight
+2025-05-14 23:32:56,464 - backend.tools.tavily_search - INFO - Starting Tavily search tool initialization
+2025-05-14 23:32:56,464 - backend.tools.tavily_search - INFO - Found Tavily API key with length 41
+2025-05-14 23:32:56,465 - backend.tools.tavily_search - INFO - Successfully imported TavilySearchResults
+2025-05-14 23:32:56,465 - backend.tools.tavily_search - INFO - Successfully created Tavily search instance
+2025-05-14 23:32:56,465 - backend.tools.tavily_search - INFO - Testing Tavily search with a sample query...
+2025-05-14 23:33:00,123 - backend.tools.tavily_search - INFO - Tavily test query successful!
+2025-05-14 23:33:00,123 - root - INFO - Backend initialized in Direct API mode
+2025-05-14 23:33:00,124 - root - INFO - Using model: gemini-2.0-flash
+2025-05-14 23:33:00,124 - root - INFO - Tavily search available: True
+2025-05-14 23:33:00,126 - backend.sub_agents - INFO - Direct API Mode: Not importing sub-agents
+2025-05-14 23:33:00,142 - backend.tools.youtube.youtube - INFO - YouTube API libraries successfully imported
+2025-05-14 23:33:00,144 - tools.youtube.youtube - INFO - YouTube API libraries successfully imported
+2025-05-14 23:33:00,145 - tools.youtube.youtube_insight - INFO - Successfully imported YouTube functions from tools.youtube.youtube
+2025-05-14 23:33:00,145 - backend.tools.youtube.youtube_insight - INFO - Successfully imported YouTube functions from tools.youtube.youtube
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO - Successfully imported YouTube tools from backend.tools.youtube.youtube_insight
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO - ✅ YouTube tools are available for YouTube Insight Agent
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO - Direct API Mode: YouTube Insight agent not loaded with ADK
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO - YouTube Insight Agent module loaded
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO - YouTube tools available and ready to use
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO - YouTube Configuration:
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO -   - YouTube API Key Set: True
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO -   - YouTube Tools Available: True
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO -   - Store State Tool Available: False
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO -   - Timeout Seconds: 30
+2025-05-14 23:33:00,145 - backend.sub_agents.youtube_insight_agent - INFO - Testing YouTube API key...
+2025-05-14 23:33:00,146 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-14 23:33:00,736 - backend.sub_agents.youtube_insight_agent - INFO - YouTube API key is valid and working correctly.
+2025-05-14 23:33:00,737 - backend.sub_agents.youtube_insight_agent - INFO - [get_youtube_insights] Getting insights for destination: เชียงราย
+2025-05-14 23:33:00,737 - backend.sub_agents.youtube_insight_agent - INFO - [get_youtube_insights] Searching for videos about เชียงราย
+2025-05-14 23:33:00,737 - backend.tools.youtube.youtube_insight - INFO - YouTube Travel Search: Searching for 'เชียงราย' with focus 'travel guide' (max results: 15)
+2025-05-14 23:33:00,737 - backend.tools.youtube.youtube_insight - INFO - YouTube Travel Search: Constructed query 'เชียงราย travel guide'
+2025-05-14 23:33:00,738 - backend.tools.youtube.youtube_insight - INFO - YouTube Travel Search: Calling base search_videos with query 'เชียงราย travel guide'
+2025-05-14 23:33:00,738 - tools.youtube.youtube - INFO - ====== YOUTUBE SEARCH REQUEST ======
+2025-05-14 23:33:00,738 - tools.youtube.youtube - INFO - Search Query: 'เชียงราย travel guide'
+2025-05-14 23:33:00,738 - tools.youtube.youtube - INFO - Max Results: 15
+2025-05-14 23:33:00,738 - tools.youtube.youtube - INFO - YouTube API Available: True
+2025-05-14 23:33:00,738 - tools.youtube.youtube - INFO - YouTube API Key Set: True
+2025-05-14 23:33:00,738 - tools.youtube.youtube - INFO - Initializing YouTube API client...
+2025-05-14 23:33:00,740 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-14 23:33:00,743 - tools.youtube.youtube - INFO - YouTube API client initialized successfully
+2025-05-14 23:33:00,744 - tools.youtube.youtube - INFO - Executing search request for query: 'เชียงราย travel guide'
+2025-05-14 23:33:01,244 - tools.youtube.youtube - INFO - Search response metadata:
+2025-05-14 23:33:01,245 - tools.youtube.youtube - INFO -   Total results: 334631
+2025-05-14 23:33:01,245 - tools.youtube.youtube - INFO -   Results per page: 15
+2025-05-14 23:33:01,245 - tools.youtube.youtube - INFO -   Next page token: CA8QAA
+2025-05-14 23:33:01,245 - tools.youtube.youtube - INFO - Processing 15 video items from response
+2025-05-14 23:33:01,245 - tools.youtube.youtube - INFO -   Processed video 1: ID=qrM98UENuHI, Title='กรุงเทพ➡️เชียงราย #travel #map #war', Channel='Kazumasam2530 channel', Published=2023-03-30T22:13:41Z
+2025-05-14 23:33:01,246 - tools.youtube.youtube - INFO -   Processed video 2: ID=4lzL_ztfrHY, Title='ดอยตุง ฉบับเที่ยวทั้งดอยครบ จบในวันเดียว สวนแม่ฟ้าหลวง l ดอยช้างมูบ l พระตำหนัก จ.เชียงราย', Channel='JJ travel guide', Published=2023-07-02T01:38:00Z
+2025-05-14 23:33:01,246 - tools.youtube.youtube - INFO -   Processed video 3: ID=v3_LloPuXkE, Title='Chiang Rai Thailand Travel Guide: 14 BEST Things To Do In Chiang Rai', Channel='Before You Go', Published=2023-06-21T12:00:45Z
+2025-05-14 23:33:01,246 - tools.youtube.youtube - INFO -   Processed video 4: ID=06lYvP4Kniw, Title='เชียงรายมีอะไรกินบ้าง EP: 10  ร้านชีวิตธรรมดา Chiang rai Travel Guide', Channel='Golfrittiii', Published=2021-08-05T07:20:19Z
+2025-05-14 23:33:01,246 - tools.youtube.youtube - INFO -   Processed video 5: ID=IlNxEvs3kD4, Title='CHIANG RAI, THAILAND (2023) | 12 INCREDIBLE Things To Do In &amp; Around Chiang Rai', Channel='World Wild Hearts', Published=2023-03-25T19:00:09Z
+2025-05-14 23:33:01,246 - tools.youtube.youtube - INFO -   Processed video 6: ID=kZRVCLR-em0, Title='750 บาท โฮมสเตย์ลับกลางเขา วิวหมอก กับไกด์เด็ก10ขวบที่เชียงราย', Channel='นน ChinoToShare', Published=2024-07-30T12:00:48Z
+2025-05-14 23:33:01,246 - tools.youtube.youtube - INFO -   Processed video 7: ID=OdHaMJIN5bg, Title='อนุสาวรีย์พ่อขุนเม็งรายมหาราช เชียงราย | ข้อมูลเที่ยวไทย Thai Travel Guide', Channel='magicontours', Published=2016-07-14T02:30:00Z
+2025-05-14 23:33:01,246 - tools.youtube.youtube - INFO -   Processed video 8: ID=bUdqT07jdz8, Title='ที่พักเชียงรายราคาถูก                         #เชียงราย #ที่พักเชียงราย #ที่พักราคาถูก', Channel='Euronemo', Published=2024-02-10T16:23:35Z
+2025-05-14 23:33:01,246 - tools.youtube.youtube - INFO -   Processed video 9: ID=OElAgMte1bk, Title='11 Best Things To Do In Chiang Rai | Chiang Rai Travel Guide', Channel='Wonders Of Asia', Published=2022-08-27T17:00:11Z
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Processed video 10: ID=Mqt_AxB1L6I, Title='Thailand Hill Resort...Chiang Rai #Thailand #chiangrai', Channel='Slim Win Reacts', Published=2022-03-08T09:47:34Z
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Processed video 11: ID=4dUXYbkGYv0, Title='ระยอง➡️เชียงราย #map #travel #war', Channel='Kazumasam2530 channel', Published=2023-08-06T05:48:53Z
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Processed video 12: ID=Mg3jFnf9bK0, Title='มัดรวม 9 ที่พักจังหวัดเชียงราย | WondersTravel', Channel='Wonders Travel', Published=2024-02-14T12:00:30Z
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Processed video 13: ID=Rs7gLxSgv8E, Title='AirAsia | 10 things to experience in Chiang Rai!', Channel='AirAsia', Published=2019-02-15T03:54:18Z
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Processed video 14: ID=vmqD6XussBo, Title='สัตว์นำโชคของชาวไทใหญ่ เจ้าโตยักษ์ #thailand #travel #new #guide #เชียงราย #love #annteerapon', Channel='AnnTeerapon', Published=2024-01-22T08:05:37Z
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Processed video 15: ID=49ksr96zBzw, Title='เที่ยวสิงห์ปาร์ค (Singha Park) จ.เชียงราย ด้วยรถราง l เดินตามไกด์ the series', Channel='JJ travel guide', Published=2023-02-04T12:08:00Z
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO - Search results summary: Found 15 videos
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Result 1: 'กรุงเทพ➡️เชียงราย #travel #map #war' by Kazumasam2530 channel - https://www.youtube.com/watch?v=qrM98UENuHI
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Result 2: 'ดอยตุง ฉบับเที่ยวทั้งดอยครบ จบในวันเดียว สวนแม่ฟ้าหลวง l ดอยช้างมูบ l พระตำหนัก จ.เชียงราย' by JJ travel guide - https://www.youtube.com/watch?v=4lzL_ztfrHY
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Result 3: 'Chiang Rai Thailand Travel Guide: 14 BEST Things To Do In Chiang Rai' by Before You Go - https://www.youtube.com/watch?v=v3_LloPuXkE
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Result 4: 'เชียงรายมีอะไรกินบ้าง EP: 10  ร้านชีวิตธรรมดา Chiang rai Travel Guide' by Golfrittiii - https://www.youtube.com/watch?v=06lYvP4Kniw
+2025-05-14 23:33:01,247 - tools.youtube.youtube - INFO -   Result 5: 'CHIANG RAI, THAILAND (2023) | 12 INCREDIBLE Things To Do In &amp; Around Chiang Rai' by World Wild Hearts - https://www.youtube.com/watch?v=IlNxEvs3kD4
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 6: '750 บาท โฮมสเตย์ลับกลางเขา วิวหมอก กับไกด์เด็ก10ขวบที่เชียงราย' by นน ChinoToShare - https://www.youtube.com/watch?v=kZRVCLR-em0
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 7: 'อนุสาวรีย์พ่อขุนเม็งรายมหาราช เชียงราย | ข้อมูลเที่ยวไทย Thai Travel Guide' by magicontours - https://www.youtube.com/watch?v=OdHaMJIN5bg
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 8: 'ที่พักเชียงรายราคาถูก                         #เชียงราย #ที่พักเชียงราย #ที่พักราคาถูก' by Euronemo - https://www.youtube.com/watch?v=bUdqT07jdz8
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 9: '11 Best Things To Do In Chiang Rai | Chiang Rai Travel Guide' by Wonders Of Asia - https://www.youtube.com/watch?v=OElAgMte1bk
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 10: 'Thailand Hill Resort...Chiang Rai #Thailand #chiangrai' by Slim Win Reacts - https://www.youtube.com/watch?v=Mqt_AxB1L6I
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 11: 'ระยอง➡️เชียงราย #map #travel #war' by Kazumasam2530 channel - https://www.youtube.com/watch?v=4dUXYbkGYv0
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 12: 'มัดรวม 9 ที่พักจังหวัดเชียงราย | WondersTravel' by Wonders Travel - https://www.youtube.com/watch?v=Mg3jFnf9bK0
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 13: 'AirAsia | 10 things to experience in Chiang Rai!' by AirAsia - https://www.youtube.com/watch?v=Rs7gLxSgv8E
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 14: 'สัตว์นำโชคของชาวไทใหญ่ เจ้าโตยักษ์ #thailand #travel #new #guide #เชียงราย #love #annteerapon' by AnnTeerapon - https://www.youtube.com/watch?v=vmqD6XussBo
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO -   Result 15: 'เที่ยวสิงห์ปาร์ค (Singha Park) จ.เชียงราย ด้วยรถราง l เดินตามไกด์ the series' by JJ travel guide - https://www.youtube.com/watch?v=49ksr96zBzw
+2025-05-14 23:33:01,248 - tools.youtube.youtube - INFO - ====== YOUTUBE SEARCH COMPLETE ======
+2025-05-14 23:33:01,248 - backend.tools.youtube.youtube_insight - INFO - YouTube Travel Search for 'เชียงราย': Found 15 relevant videos
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO -   Top 1: 'เชียงรายมีอะไรกินบ้าง EP: 10  ร้านชีวิตธรรมดา Chiang rai Travel Guide' by Golfrittiii (score: 9)
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO -   Top 2: 'อนุสาวรีย์พ่อขุนเม็งรายมหาราช เชียงราย | ข้อมูลเที่ยวไทย Thai Travel Guide' by magicontours (score: 9)
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO -   Top 3: 'สัตว์นำโชคของชาวไทใหญ่ เจ้าโตยักษ์ #thailand #travel #new #guide #เชียงราย #love #annteerapon' by AnnTeerapon (score: 9)
+2025-05-14 23:33:01,249 - backend.sub_agents.youtube_insight_agent - INFO - [get_youtube_insights] Found 15 video IDs
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO - YouTube Insight: Extracting travel insights from 5 videos
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO -   Processing video 1: 06lYvP4Kniw
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO -   Processing video 2: OdHaMJIN5bg
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO -   Processing video 3: vmqD6XussBo
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO -   Processing video 4: OElAgMte1bk
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO -   Processing video 5: qrM98UENuHI
+2025-05-14 23:33:01,249 - backend.tools.youtube.youtube_insight - INFO - YouTube Insight: Initialized results structure for 5 videos
+2025-05-14 23:33:01,249 - tools.youtube.youtube - INFO - ====== YOUTUBE SEARCH REQUEST ======
+2025-05-14 23:33:01,249 - tools.youtube.youtube - INFO - Search Query: 'id:06lYvP4Kniw'
+2025-05-14 23:33:01,249 - tools.youtube.youtube - INFO - Max Results: 1
+2025-05-14 23:33:01,249 - tools.youtube.youtube - INFO - YouTube API Available: True
+2025-05-14 23:33:01,250 - tools.youtube.youtube - INFO - YouTube API Key Set: True
+2025-05-14 23:33:01,250 - tools.youtube.youtube - INFO - Initializing YouTube API client...
+2025-05-14 23:33:01,251 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-14 23:33:01,255 - tools.youtube.youtube - INFO - YouTube API client initialized successfully
+2025-05-14 23:33:01,255 - tools.youtube.youtube - INFO - Executing search request for query: 'id:06lYvP4Kniw'
+2025-05-14 23:33:01,760 - tools.youtube.youtube - INFO - Search response metadata:
+2025-05-14 23:33:01,760 - tools.youtube.youtube - INFO -   Total results: 0
+2025-05-14 23:33:01,761 - tools.youtube.youtube - INFO -   Results per page: 0
+2025-05-14 23:33:01,761 - tools.youtube.youtube - INFO -   Next page token: None
+2025-05-14 23:33:01,761 - tools.youtube.youtube - INFO - Processing 0 video items from response
+2025-05-14 23:33:01,761 - tools.youtube.youtube - WARNING - No videos found for query 'id:06lYvP4Kniw'
+2025-05-14 23:33:01,761 - tools.youtube.youtube - INFO - ====== YOUTUBE SEARCH COMPLETE ======
+2025-05-14 23:33:01,761 - tools.youtube.youtube - INFO - ====== YOUTUBE SEARCH REQUEST ======
+2025-05-14 23:33:01,761 - tools.youtube.youtube - INFO - Search Query: 'id:OdHaMJIN5bg'
+2025-05-14 23:33:01,762 - tools.youtube.youtube - INFO - Max Results: 1
+2025-05-14 23:33:01,762 - tools.youtube.youtube - INFO - YouTube API Available: True
+2025-05-14 23:33:01,762 - tools.youtube.youtube - INFO - YouTube API Key Set: True
+2025-05-14 23:33:01,762 - tools.youtube.youtube - INFO - Initializing YouTube API client...
+2025-05-14 23:33:01,764 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-14 23:33:01,769 - tools.youtube.youtube - INFO - YouTube API client initialized successfully
+2025-05-14 23:33:01,770 - tools.youtube.youtube - INFO - Executing search request for query: 'id:OdHaMJIN5bg'
+2025-05-14 23:33:02,272 - tools.youtube.youtube - INFO - Search response metadata:
+2025-05-14 23:33:02,272 - tools.youtube.youtube - INFO -   Total results: 1
+2025-05-14 23:33:02,273 - tools.youtube.youtube - INFO -   Results per page: 1
+2025-05-14 23:33:02,273 - tools.youtube.youtube - INFO -   Next page token: None
+2025-05-14 23:33:02,273 - tools.youtube.youtube - INFO - Processing 1 video items from response
+2025-05-14 23:33:02,273 - tools.youtube.youtube - INFO -   Processed video 1: ID=OdHaMJIN5bg, Title='อนุสาวรีย์พ่อขุนเม็งรายมหาราช เชียงราย | ข้อมูลเที่ยวไทย Thai Travel Guide', Channel='magicontours', Published=2016-07-14T02:30:00Z
+2025-05-14 23:33:02,273 - tools.youtube.youtube - INFO - Search results summary: Found 1 videos
+2025-05-14 23:33:02,273 - tools.youtube.youtube - INFO -   Result 1: 'อนุสาวรีย์พ่อขุนเม็งรายมหาราช เชียงราย | ข้อมูลเที่ยวไทย Thai Travel Guide' by magicontours - https://www.youtube.com/watch?v=OdHaMJIN5bg
+2025-05-14 23:33:02,274 - tools.youtube.youtube - INFO - ====== YOUTUBE SEARCH COMPLETE ======
+2025-05-14 23:33:02,274 - tools.youtube.youtube - INFO - ====== YOUTUBE TRANSCRIPT REQUEST ======
+2025-05-14 23:33:02,274 - tools.youtube.youtube - INFO - Video ID: OdHaMJIN5bg
+2025-05-14 23:33:02,274 - tools.youtube.youtube - INFO - Requested Language: th
+2025-05-14 23:33:02,274 - tools.youtube.youtube - INFO - YouTube API Available: True
+2025-05-14 23:33:02,274 - tools.youtube.youtube - INFO - Attempting to get transcript list for video OdHaMJIN5bg...
+2025-05-14 23:33:03,071 - tools.youtube.youtube - INFO - Available transcripts: ['th']
+2025-05-14 23:33:03,071 - tools.youtube.youtube - INFO - Searching for transcript in language: th
+2025-05-14 23:33:03,071 - tools.youtube.youtube - INFO - Found transcript in th, fetching data
+2025-05-14 23:33:03,194 - tools.youtube.youtube - INFO - Successfully fetched transcript in language: th
+2025-05-14 23:33:03,195 - backend.sub_agents.youtube_insight_agent - ERROR - [get_youtube_insights] Error analyzing YouTube content: expected string or bytes-like object, got 'list'
+2025-05-14 23:33:03,196 - api.routes - INFO - Sent status update: กำลังวิเคราะห์ข้อมูลจากวิดีโอ YouTube เกี่ยวกับจุด...
+2025-05-14 23:33:03,196 - api.async_agent_handler - INFO - Calling travel planner sub-agent
+2025-05-14 23:33:03,196 - api.async_agent_handler - INFO - Enhanced query for travel planner: 
+                ช่วยวางแผนการเดินทางท่องเที่ยวแบบละเอียดที่สุด ตามเงื่อนไขต่อไปนี้ :
+- ต้นทาง: กรุงเทพ
+- ปลายทาง: เชียงราย
+- ช่วงเวลาเดินทาง: วันที่: 2025-05-21 ถึงวันที่ 2025-05-26
+- งบประมาณรวม: ไม่เกิน 15,000 บาท
+      
+สิ่งที่ต้องการให้ระบุในแผนการเดินทาง:
+
+      - รายละเอียดการเดินทางไป-กลับ (เช่น รถยนต์, เครื่องบิน, รถทัวร์ พร้อมเวลาเดินทางและราคาค่าโดยสาร)
+
+      - สถานที่ท่องเที่ยวสำคัญที่ควรแวะชมในแต่ละวัน (เน้นสถานที่สำคัญทางวัฒนธรรม ธรรมชาติ และจุดถ่ายรูปยอดนิยม)
+
+      - ที่พักแนะนำ (เน้นที่พักคุณภาพดี ราคาคุ้มค่า ทำเลสะดวก พร้อมราคาต่อคืน)
+
+      - ร้านอาหารแนะนำ (ระบุชื่อร้าน ประเภทอาหาร เมนูเด็ดที่ต้องลอง และราคาคร่าวๆ ต่อมื้อ)
+
+      - กิจกรรมที่น่าสนใจห้ามพลาดใน เชียงราย (เช่น เที่ยวชมวัด ปั่นจักรยาน วิถีชุมชน ชมวิว ถ่ายภาพ)
+
+      แจกแจงค่าใช้จ่ายแต่ละวันให้ชัดเจน (รวมยอดค่าใช้จ่ายทั้งหมดไม่เกินงบที่ระบุไว้ ไม่เกิน 15,000 บาท) 
+
+
+      แนะนำเคล็ดลับหรือข้อควรระวัง เพื่อให้การเดินทางสะดวก ปลอดภัย และประทับใจมากที่สุด
+
+      ขอผลลัพธ์ในรูปแบบที่อ่านเข้าใจง่าย ชัดเจน พร้อมจัดตารางให้ดูสวยงามและใช้งานง่ายที่สุด
+    
+
+                ข้อมูลจากการค้นหา:
+                ผลการค้นหาสำหรับ 'travel guide tourist information เชียงราย 2025'
+
+ผลการค้นหา:
+1. Chiang Rai Travel Guide: Everything You Need To Know In 2025
+   URL: https://catisoutoftheoffice.com/chiang-rai-travel-guide/
+   สรุป: 6. Visit the Giant Goddess of Mercy (Wat Huay Pla Kang): Features Thailand’s largest Guanyin Buddha statue, with an elevator to the 25th floor for views for 40 baht ($1.09 USD). Stop at Lallita Cafe on your way back to town.
+7. Hike to Khun Korn Waterfall: A lush 3.1 km (1.9 miles) trail leads to...
+
+2. ที่เที่ยวเชียงราย 2025 จุดเช็กอินใหม่ & สถานที่ท่องเที่ยวสุดฮิต
+   URL: https://thailandonthebeach.com/chiangrai-travel-guide-2025/
+   สรุป: 5 ที่เที่ยวเชียงราย 2025 ที่ต้องไปสัมผัส
+1. ภูชี้ฟ้า – ชมทะเลหมอกสุดอลังการ
+ ที่ตั้ง: อำเภอเทิง เชียงราย
+ ไฮไลต์: จุดชมวิวทะเลหมอกยามเช้าที่งดงามที่สุดแห่งหนึ่งของไทย
+ จุดเด่น: เหมาะสำหรับสายธรรมชาติและถ่ายรูปวิวภูเขาสูงตระหง่าน
+ การเดินทาง: สามารถขับรถขึ้นไปยังลานจอด จากนั้นเดินขึ้นไปยังจุดชมวิว...
+
+3. CHIANG RAI TRAVEL GUIDE 2025: "C
+
+                ข้อมูลการเดินทาง:
+                แน่นอนครับ! ผมยินดีให้คำแนะนำการเดินทางจากกรุงเทพฯ ไปเชียงราย ในช่วงวันที่ 21-26 พฤษภาคม 2568 ภายใต้งบประมาณ 15,000 บาท โดยเน้นความสะดวกและคุ้มค่า
+
+**1. วิธีเดินทางระหว่าง กรุงเทพฯ และเชียงราย**
+
+| ตัวเลือกการเดินทาง | สายการบิน/บริษัทขนส่ง | เวลาเดินทางโดยประมาณ | ราคาค่าโดยสารโดยประมาณ (บาท) | ความถี่ | ข้อดี | ข้อเสีย |
+|---|---|---|---|---|---|---|
+| **เครื่องบิน** | Thai Lion Air, Nok Air, Thai Vietjet Air | 1 ชั่วโมง 15 นาที - 1 ชั่วโมง 30 นาที | 1,000 - 3,000 (ต่อเที่ยว) | หลายเที่ยวบินต่อวัน | เร็วที่สุด, สะดวกสบาย | ราคาสูงกว่า, ต้องเดินทางไปสนามบิน |
+| **รถทัวร์** | Nakhonchai Air, Sombat Tour | 9-12 ชั่วโมง | 600 - 1,000 (ต่อเที่ยว) | หลายเที่ยวต่อวัน | ราคาถูก, สะดวกสำหรับคนที่ไม่ต้องการเดินทางไปสนามบิน | ใช้เวลานาน, อาจไม่สะดวกสบายเท่าเครื่องบิน |
+| **รถไฟ** | การรถไฟแห่งประเทศไทย (ต้องต่อรถ) | 12-15 ชั่วโมง (รวมต่อรถ) | 800 - 1,500 (ต่อเที่ยว) | 1-2 เที่ยวต่อวัน | ชมวิวระหว่างทาง, ราคาปานกลาง | ใช้เวลานาน, ต้องต่อรถ, อาจไม่สะดวกสบาย |
+| **รถยนต์ส่วนตัว** | - | 8-10 ชั่วโมง | ค่าน้ำมัน + ค่าทางด่วน (ประมาณ 3,000-4,000 บาท) | - | สะดวกสบาย, เป็นส่วนตัว, แวะเที่ยวระหว่างทางได้ | เหนื่อยล้าจากการขับรถ, ค่าใช้จ่ายสูง (เมื่อรวมค่าที่พักระหว่างทาง) |
+
+**คำแนะนำ:**
+
+*   **เครื่องบิน:** หากต้องการประหยัดเวลาและงบประมาณไม่จำกัดมากนัก แนะนำให้จองตั๋วเครื่องบินล่วงหน้า เพื่อให้ได้ราคาที่ดีที่สุด (ช่วงพฤษภาคมอาจมีโปรโมชั่น)
+*   **รถทัวร์:** หากต้องการประหยัดงบประมาณและไม่รีบร้อน รถทัวร์เป็นตัวเลือกที่ดี โดยเฉพาะรถทัวร์ VIP ที่มีสิ่งอำนวยความสะดวกครบครัน
+*   **รถไฟ:** เหมาะสำหรับผู้ที่ต้องการสัมผัสประสบการณ์การเดินทางแบบสโลว์ไลฟ์ และชมวิวทิวทัศน์ระหว่างทาง แต่ต้องเผื่อเวลาสำหรับการต่อรถ
+*   **รถยนต์ส่วนตัว:** เหมาะสำหรับผู้ที่ต้องการความสะดวกสบายและเป็นส่วนตัว แต่ต้องคำนึงถึงความเหนื่อยล้าจากการขับรถ และค่าใช้จ่ายที่สูงกว่า
+
+**2. การเดินทางในพื้นที่เชียงราย**
+
+*   **รถสองแถว:** เป็นระบบขนส่งสาธารณะหลักในเชียงราย ราคาเริ่มต้นประมาณ 20 บาท ขึ้นอยู่กับระยะทาง
+*   **รถแท็กซี่:** มีให้บริการ แต่ค่อนข้างหายาก แนะนำให้เรียกผ่านแอปพลิเคชัน เช่น Grab หรือ Bolt
+*   **รถเช่า:** มีทั้งรถยนต์และรถจักรยานยนต์ให้เช่า ราคาขึ้นอยู่กับประเภทรถและระยะเวลาเช่า
+    *   รถยนต์: ประมาณ 800 - 1,500 บาทต่อวัน
+    *   รถจักรยานยนต์: ประมาณ 200 - 400 บาทต่อวัน
+*   **จักรยาน:** เหมาะสำหรับการเดินทางในระยะใกล้ๆ และชมเมืองเชียงรายอย่างใกล้ชิด มีให้เช่าตามร้านค้าต่างๆ
+*   **รถตุ๊กตุ๊ก:** เป็นอีกหนึ่งทางเลือกในการเดินทาง แต่ควรตกลงราคาก่อนใช้บริการ
+
+**คำแนะนำ:**
+
+*   หากพักอยู่ในตัวเมืองเชียงราย การใช้รถสองแถวหรือเช่ารถจักรยานยนต์เป็นตัวเลือกที่สะดวกและประหยัด
+*   หากต้องการเดินทางไปยังสถานที่ท่องเที่ยวที่อยู่นอกเมือง ควรเช่ารถยนต์หรือใช้บริการรถแท็กซี่/แอปเรียกรถ
+*   ควรต่อรองราคาก่อนใช้บริการรถตุ๊กตุ๊ก
+
+**3. คำแนะนำพิเศษ**
+
+*   **เส้นทางที่ดีที่สุด:** หากเดินทางโดยเครื่องบิน ควรจองตั๋วเครื่องบินล่วงหน้าอย่างน้อย 1-2 เดือน เพื่อให้ได้ราคาที่ดีที่สุด หากเดินทางโดยรถทัวร์ ควรเลือกบริษัทที่น่าเชื่อถือและมีรีวิวที่ดี
+*   **การจองตั๋วล่วงหน้า:** ควรจองตั๋วเครื่องบินหรือรถทัวร์ล่วงหน้า โดยเฉพาะในช่วงวันหยุดยาวหรือเทศกาล
+*   **เคล็ดลับประหยัดค่าเดินทาง:**
+    *   เดินทางในช่วงวันธรรมดา (จันทร์-พฤหัสบดี) จะได้ราคาตั๋วที่ถูกกว่า
+    *   เปรียบเทียบราคาตั๋วจากหลายๆ เว็บไซต์หรือแอปพลิเคชัน
+    *   เลือกที่พักที่อยู่ใกล้กับสถานีขนส่งหรือสนามบิน เพื่อประหยัดค่าเดินทาง
+    *   ลองใช้บริการขนส่งสาธารณะ เช่น รถสองแถว แทนการใช้รถแท็กซี่
+    *   หาเพื่อนร่วมเดินทาง เพื่อหารค่าเช่ารถหรือค่าที่พัก
+
+**ตัวอย่างแผนการเดินทาง (โดยประมาณ)**
+
+*   **ค่าเดินทางไป-กลับ (เครื่องบิน):** 2,000 - 6,000 บาท
+*   **ค่าที่พัก (5 คืน):** 3,000 - 5,000 บาท (ขึ้นอยู่กับประเภทที่พัก)
+*   **ค่าอาหารและเครื่องดื่ม:** 3,000 บาท
+*   **ค่าเดินทางในเชียงราย:** 1,000 บาท
+*   **ค่าเข้าชมสถานที่ท่องเที่ยว:** 1,000 บาท
+*   **ค่าใช้จ่ายอื่นๆ:** 1,000 บาท
+
+รวม: 11,000 - 17,000 บาท (สามารถปรับเปลี่ยนได้ตามความต้องการ)
+
+**สถานที่ท่องเที่ยวแนะนำในเชียงราย:**
+
+*   วัดร่องขุ่น
+*   ไร่ชาฉุยฟง
+*   พระธาตุดอยตุง
+*   ดอยแม่สลอง
+*   บ้านดำ (พิพิธภัณฑ์บ้านดำ)
+*   วัดห้วยปลากั้ง
+*   สิงห์ปาร์ค เชียงราย
+*   น้ำตกขุนกรณ์
+
+หวังว่าข้อมูลเหล่านี้จะเป็นประโยชน์ในการวางแผนการเดินทางของคุณนะครับ หากมีคำถามเพิ่มเติม สามารถสอบถามได้เลยครับ!
+
+
+                ข้อมูลที่พัก:
+                สวัสดีค่ะ! จากข้อมูลที่คุณให้มาและงบประมาณที่ตั้งไว้ 15,000 บาท สำหรับ 5 คืนในเชียงราย (เฉลี่ย 3,000 บาท/คืน) ฉันขอแนะนำที่พักที่คุ้มค่า ทำเลดี และตรงกับความต้องการของคุณดังนี้ค่ะ
+
+**ประเภทที่พัก:** โรงแรมระดับ 3-4 ดาว หรือบูติคโฮเทล
+
+**ช่วงราคาโดยประมาณต่อคืน:** 1,500 - 3,000 บาท (โดยประมาณ)
+
+**ย่านหรือพื้นที่ที่เหมาะสม:** ในเมืองเชียงราย ใกล้ถนนคนเดิน, หอนาฬิกา, ไนท์บาซาร์ หรือย่านที่มีร้านอาหารและคาเฟ่เก๋ๆ เพื่อความสะดวกในการเดินทางและท่องเที่ยว
+
+**สิ่งอำนวยความสะดวกที่ตรงกับความต้องการ:** ห้องพักสะอาด, แอร์, Wi-Fi ฟรี, อาหารเช้า (ถ้ามี), สระว่ายน้ำ (ถ้าต้องการ), บริการเป็นกันเอง
+
+**ข้อพิจารณาพิเศษ:** เนื่องจากเดินทางในเดือนพฤษภาคมซึ่งอาจเป็นช่วงที่อากาศร้อน ควรเลือกที่พักที่มีสระว่ายน้ำ หรือห้องพักที่มีเครื่องปรับอากาศประสิทธิภาพดี
+
+**แนะนำที่พัก (พร้อมราคาและจุดเด่น):**
+
+1.  **Mora Boutique Hotel:** (อ้างอิงจากผลการค้นหาที่ 3) โรงแรมใจกลางเมืองเชียงราย มาตรฐาน SHA ห้องพักหลากหลาย มีสระว่ายน้ำ (บางห้องพักสามารถลงสระว่ายน้ำได้จากห้องพักเลย) ทำเลดี ราคาอาจจะอยู่ในช่วง 2,000 - 3,000 บาทต่อคืน (ขึ้นอยู่กับประเภทห้องพัก)
+    *   **จุดเด่น:** สระว่ายน้ำ, ทำเลใจกลางเมือง, ห้องพักหลากหลาย
+
+2.  **De Hug Hotel and Residence:** (อ้างอิงจากผลการค้นหาที่ 4) โรงแรมสไตล์โมเดิร์นบูติค ตกแต่งสวยงาม เดินทางสะดวกไปยังใจกลางเมือง ราคาอาจจะอยู่ในช่วง 1,800 - 2,500 บาทต่อคืน (ขึ้นอยู่กับโปรโมชั่น)
+    *   **จุดเด่น:** ดีไซน์สวย, เดินทางสะดวก, บรรยากาศอบอุ่น
+
+3.  **Heritage Chiang Rai Hotel and Convention:** (อ้างอิงจากผลการค้นหาที่ 5) โรงแรมระดับ 5 ดาว (อาจเกินงบประมาณเล็กน้อย) ห้องพักหรู บริการดีเยี่ยม มีสระว่ายน้ำกลางแจ้ง ใกล้สถานที่ท่องเที่ยวสำคัญ ราคาอาจจะอยู่ในช่วง 2,500 - 4,000 บาทต่อคืน (ลองเช็คโปรโมชั่นหรือข้อเสนอพิเศษ)
+    *   **จุดเด่น:** หรูหรา, บริการดี, สระว่ายน้ำ, ใกล้สถานที่ท่องเที่ยว
+
+4.  **Palin Family Cottage:** (อ้างอิงจากผลการค้นหาที่ 2) ที่พักบรรยากาศดี มุมถ่ายรูปสวย ราคาเริ่มต้นประมาณ 1,800 บาทต่อคืน อาจจะอยู่นอกเมืองเล็กน้อย แต่เหมาะสำหรับคนที่ต้องการความเงียบสงบและธรรมชาติ
+    *   **จุดเด่น:** บรรยากาศดี, มุมถ่ายรูปสวย, เงียบสงบ
+
+5.  **โรงแรมใกล้ถนนคนเดิน, หอนาฬิกา, ไนท์บาซาร์:** (อ้างอิงจากผลการค้นหาที่ 1) ลองค้นหาโรงแรมในย่านนี้จากเว็บไซต์จองโรงแรมต่างๆ เช่น Booking.com, Agoda, Traveloka โดยใช้ keyword ที่ระบุในผลการค้นหา เช่น "โรงแรมในเมืองเชียงราย ใกล้ถนนคนเดิน" เพื่อหาราคาและโปรโมชั่นที่ตรงกับงบประมาณของคุณ
+
+**คำแนะนำเพิ่มเติม:**
+
+*   **จองล่วงหน้า:** เพื่อให้ได้ราคาที่ดีที่สุดและห้องพักที่ตรงกับความต้องการ ควรถีงจองที่พักล่วงหน้า โดยเฉพาะอย่างยิ่งหากเดินทางในช่วง high season
+*   **เปรียบเทียบราคา:** เปรียบเทียบราคาจากหลายๆ เว็บไซต์จองโรงแรม เพื่อหาราคาที่ดีที่สุด
+*   **อ่านรีวิว:** อ่านรีวิวจากผู้เข้าพักคนอื่นๆ เพื่อประกอบการตัดสินใจ
+*   **ติดต่อโรงแรมโดยตรง:** บางครั้งการติดต่อโรงแรมโดยตรงอาจได้ราคาที่ดีกว่าการจองผ่านเว็บไซต์
+
+หวังว่าข้อมูลนี้จะเป็นประโยชน์ในการวางแผนการเดินทางของคุณนะคะ! ขอให้คุณสนุกกับการเที่ยวเชียงรายค่ะ!
+
+
+                ข้อมูลร้านอาหาร:
+                สวัสดีครับ ยินดีต้อนรับสู่เชียงรายครับ! จากข้อมูลที่คุณให้มา ผมได้รวบรวมร้านอาหารแนะนำในเชียงรายที่หลากหลาย ทั้งอาหารท้องถิ่นยอดนิยม ร้านอาหารสำหรับมื้อต่างๆ และร้านอาหารในระดับราคาที่แตกต่างกัน เพื่อให้คุณได้สัมผัสประสบการณ์การรับประทานอาหารที่น่าจดจำตลอดทริป 6 วัน 5 คืน ในงบประมาณ 15,000 บาทครับ
+
+**1. อาหารท้องถิ่นที่ห้ามพลาดและร้านที่ขึ้นชื่อ:**
+
+*   **ร้านอาหารพื้นเมืองเฮือนเพ็ญ:** (อาหารเหนือ, ในเมือง) ร้านดังที่เสิร์ฟอาหารเหนือต้นตำรับ รสชาติเข้มข้น ราคาไม่แพง เมนูแนะนำ: ไส้อั่ว, น้ำพริกหนุ่ม, ข้าวซอยไก่ **ราคาต่อมื้อ:** 150-300 บาท
+*   **ร้านสลุงคำ:** (อาหารเหนือ, ในเมือง) อีกร้านอาหารเหนือชื่อดัง บรรยากาศดี รสชาติอร่อย เมนูแนะนำ: ออร์เดิร์ฟเมือง, แกงฮังเล, ไก่ทอดสมุนไพร **ราคาต่อมื้อ:** 250-400 บาท
+*   **ร้านผามไส้อั่ว:** (อาหารเหนือ, แถวสนามบิน) ร้านไส้อั่วชื่อดังที่ใครมาเชียงรายต้องลอง มีอาหารเหนืออื่นๆ ให้เลือกชิมด้วย **ราคาต่อมื้อ:** 200-350 บาท
+
+**2. ร้านอาหารยอดนิยมสำหรับมื้อต่างๆ:**
+
+*   **อาหารเช้า:**
+    *   **ร้านชีวิตธรรมดา:** (คาเฟ่, ในเมือง) ร้านกาแฟบรรยากาศดี มีอาหารเช้าสไตล์ตะวันตกและอาหารไทยให้เลือก **ราคาต่อมื้อ:** 200-400 บาท
+    *   **ร้านข้าวต้มบาทเดียว:** (อาหารเช้า, ในเมือง) ร้านข้าวต้มราคาประหยัด มีกับข้าวให้เลือกหลากหลาย **ราคาต่อมื้อ:** 50-100 บาท
+*   **อาหารกลางวัน:**
+    *   **ร้านอาหารเวียงอินทร์:** (อาหารไทย, ในเมือง) ร้านอาหารไทยรสชาติดี ราคาไม่แพง เมนูแนะนำ: ปลากะพงทอดน้ำปลา, ต้มยำกุ้ง **ราคาต่อมื้อ:** 200-350 บาท
+    *   **ร้าน Give Green Farm House Restaurant:** (อาหารไทย, นอกเมือง) ร้านอาหารบรรยากาศดีท่ามกลางธรรมชาติ มีเมนูอาหารไทยและอาหารตะวันตกให้เลือก **ราคาต่อมื้อ:** 300-500 บาท
+*   **อาหารเย็น:**
+    *   **ร้านอาหารฮ้านถึงเจียงฮาย:** (อาหารเหนือ, ในเมือง) ร้านอาหารบรรยากาศดี มีดนตรีสด อาหารอร่อย **ราคาต่อมื้อ:** 300-500 บาท
+    *   **ร้าน Kunda Cafe:** (อาหารนานาชาติ, ในเมือง) ร้านอาหารบรรยากาศดี มีเมนูอาหารนานาชาติให้เลือกหลากหลาย **ราคาต่อมื้อ:** 350-600 บาท
+
+**3. ร้านอาหารในหลายระดับราคา:**
+
+*   **ประหยัด:**
+    *   **ร้านข้าวแกงข้างทาง:** (อาหารไทย, ทั่วไป) ร้านข้าวแกงทั่วไป ราคาถูก รสชาติอร่อย **ราคาต่อมื้อ:** 50-100 บาท
+    *   **ร้านก๋วยเตี๋ยว:** (ก๋วยเตี๋ยว, ทั่วไป) ร้านก๋วยเตี๋ยวทั่วไป ราคาถูก รสชาติอร่อย **ราคาต่อมื้อ:** 50-100 บาท
+*   **ปานกลาง:**
+    *   **ร้านอาหารพื้นเมืองเฮือนเพ็ญ:** (อาหารเหนือ, ในเมือง) **ราคาต่อมื้อ:** 150-300 บาท
+    *   **ร้านอาหารเวียงอินทร์:** (อาหารไทย, ในเมือง) **ราคาต่อมื้อ:** 200-350 บาท
+*   **หรูหรา:**
+    *   **ร้านอาหารศาลาแม่น้ำ:** (อาหารไทย, โรงแรม The Riverie by Katathani) ร้านอาหารบรรยากาศดีริมแม่น้ำกก อาหารอร่อย **ราคาต่อมื้อ:** 500-1000 บาท
+    *   **ร้าน Hacienda Coffee House:** (อาหารไทย, ฟิวชั่น, ในเมือง) ร้านอาหารบรรยากาศดี ตกแต่งสไตล์อังกฤษ มีเมนูอาหารไทยและอาหารฟิวชั่นให้เลือก **ราคาต่อมื้อ:** 400-700 บาท
+
+**4. ตลาดอาหารหรือตัวเลือกอาหารริมทาง:**
+
+*   **ถนนคนเดินเชียงราย:** (อาหารริมทาง, ในเมือง) มีอาหารริมทางให้เลือกมากมาย ราคาไม่แพง เปิดเฉพาะวันเสาร์
+*   **ตลาดสด:** (อาหารสด, ในเมือง) มีอาหารสดและอาหารปรุงสำเร็จให้เลือกซื้อ
+
+**5. เมนูแนะนำและราคาโดยประมาณต่อมื้อ (บาท):**
+
+| ร้านอาหาร                                | ประเภทอาหาร   | เมนูแนะนำ                                                                | ราคาต่อมื้อ (บาท) | ทำเลที่ตั้งโดยคร่าวๆ |
+| :------------------------------------- | :------------ | :----------------------------------------------------------------------- | :------------------ | :------------------- |
+| ร้านอาหารพื้นเมืองเฮือนเพ็ญ                | อาหารเหนือ    | ไส้อั่ว, น้ำพริกหนุ่ม, ข้าวซอยไก่                                           | 150-300             | ในเมือง             |
+| ร้านสลุงคำ                                | อาหารเหนือ    | ออร์เดิร์ฟเมือง, แกงฮังเล, ไก่ทอดสมุนไพร                                       | 250-400             | ในเมือง             |
+| ร้านผามไส้อั่ว                             | อาหารเหนือ    | ไส้อั่ว, อาหารเหนืออื่นๆ                                                     | 200-350             | แถวสนามบิน         |
+| ร้านชีวิตธรรมดา                         | คาเฟ่          | อาหารเช้าสไตล์ตะวันตก, อาหารไทย, กาแฟ                                        | 200-400             | ในเมือง             |
+| ร้านข้าวต้มบาทเดียว                       | อาหารเช้า    | ข้าวต้ม, กับข้าว                                                              | 50-100              | ในเมือง             |
+| ร้านอาหารเวียงอินทร์                      | อาหารไทย     | ปลากะพงทอดน้ำปลา, ต้มยำกุ้ง                                                   | 200-350             | ในเมือง             |
+| ร้าน Give Green Farm House Restaurant | อาหารไทย     | อาหารไทย, อาหารตะวันตก                                                       | 300-500             | นอกเมือง             |
+| ร้านอาหารฮ้านถึงเจียงฮาย                  | อาหารเหนือ    | อาหารเหนือ, ดนตรีสด                                                          | 300-500             | ในเมือง             |
+| ร้าน Kunda Cafe                         | อาหารนานาชาติ | อาหารนานาชาติ                                                               | 350-600             | ในเมือง             |
+| ร้านอาหารศาลาแม่น้ำ                       | อาหารไท
+
+                ข้อมูลสถานที่ท่องเที่ยวและกิจกรรม:
+                ## แนะนำแผนเที่ยวเชียงราย 6 วัน 5 คืน (21-26 พฤษภาคม 2025) งบประมาณ 15,000 บาท
+
+สวัสดีครับ! ผมได้รวบรวมข้อมูลและวางแผนเที่ยวเชียงรายให้คุณแล้ว โดยเน้นสถานที่สำคัญทางวัฒนธรรม ธรรมชาติ และจุดถ่ายรูปยอดนิยม ภายใต้งบประมาณ 15,000 บาทครับ
+
+**ข้อควรทราบ:**
+
+*   **ราคา:** ค่าเข้าชมและค่าใช้จ่ายต่างๆ เป็นราคาโดยประมาณ อาจมีการเปลี่ยนแปลงได้
+*   **การเดินทาง:** แนะนำให้เช่ารถมอเตอร์ไซค์หรือรถยนต์เพื่อความสะดวกในการเดินทางระหว่างสถานที่ต่างๆ (ประมาณ 300-800 บาท/วัน) หรือใช้บริการรถโดยสารสาธารณะ/รถเช่าพร้อมคนขับ
+*   **ที่พัก:** แนะนำที่พักราคาประหยัด เช่น เกสต์เฮาส์ โฮสเทล หรือโรงแรมขนาดเล็ก (ประมาณ 500-1,000 บาท/คืน)
+*   **อาหาร:** ลองชิมอาหารท้องถิ่นตามร้านอาหารข้างทางหรือตลาด จะช่วยประหยัดงบประมาณได้ (ประมาณ 100-300 บาท/มื้อ)
+
+**สถานที่ท่องเที่ยวยอดนิยมที่ไม่ควรพลาด:**
+
+1.  **วัดร่องขุ่น (White Temple):** สถาปัตยกรรมอันงดงามสีขาวบริสุทธิ์ ออกแบบโดยอาจารย์เฉลิมชัย โฆษิตพิพัฒน์ (ค่าเข้าชม: 50 บาท, เวลา: 2-3 ชั่วโมง)
+2.  **วัดร่องเสือเต้น (Blue Temple):** วัดสีน้ำเงินโดดเด่นด้วยศิลปะร่วมสมัย (เข้าชมฟรี, เวลา: 1-2 ชั่วโมง)
+3.  **บ้านดำ (Black House):** พิพิธภัณฑ์ศิลปะของอาจารย์ถวัลย์ ดัชนี แสดงงานศิลปะที่สะท้อนแนวคิดปรัชญา (ค่าเข้าชม: 80 บาท, เวลา: 2-3 ชั่วโมง)
+4.  **ดอยแม่สลอง:** ชมไร่ชาและวิถีชีวิตชาวเขา (ค่าเดินทาง: ขึ้นอยู่กับวิธีการเดินทาง, เวลา: ครึ่งวัน - 1 วัน)
+5.  **พระตำหนักดอยตุง:** สวนดอกไม้สวยงามและพระตำหนักที่ประทับของสมเด็จย่า (ค่าเข้าชม: สวน 90 บาท, พระตำหนัก 70 บาท, เวลา: ครึ่งวัน)
+6.  **สามเหลี่ยมทองคำ:** จุดบรรจบของสามประเทศ (ไทย ลาว พม่า) ชมวิวแม่น้ำโขง (ค่าเดินทาง: ขึ้นอยู่กับวิธีการเดินทาง, เวลา: 2-3 ชั่วโมง)
+7.  **เชียงรายไนท์บาร์ซ่า:** ตลาดกลางคืนที่มีสินค้าหัตถกรรม อาหาร และการแสดงต่างๆ (เข้าชมฟรี, เวลา: 2-3 ชั่วโมง)
+8.  **วัดห้วยปลากั้ง:** สักการะเจ้าแม่กวนอิมองค์ใหญ่ (เข้าชมฟรี, เวลา: 1-2 ชั่วโมง)
+
+**กิจกรรมทางวัฒนธรรม:**
+
+*   **พิพิธภัณฑ์บ้านดำ:** ชมงานศิลปะและสถาปัตยกรรมที่เป็นเอกลักษณ์
+*   **วัดร่องขุ่น:** ชื่นชมความงดงามของสถาปัตยกรรมไทยประยุกต์
+*   **วัดร่องเสือเต้น:** สัมผัสศิลปะร่วมสมัยที่ผสมผสานความเชื่อทางศาสนา
+*   **วัดพระแก้ว:** สักการะพระแก้วมรกตจำลอง
+
+**กิจกรรมกลางแจ้งและธรรมชาติ:**
+
+*   **ดอยแม่สลอง:** เดินเล่นในไร่ชา ชมวิวทิวทัศน์
+*   **พระตำหนักดอยตุง:** เดินเล่นในสวนดอกไม้
+*   **น้ำตกขุนกรณ์:** เดินป่าและชมความงามของน้ำตก (ค่าเข้าชม: 40 บาท, เวลา: ครึ่งวัน)
+
+**ประสบการณ์ท้องถิ่นที่ไม่ใช่ที่ท่องเที่ยวกระแสหลัก:**
+
+*   **ตลาดสด:** สัมผัสวิถีชีวิตของคนท้องถิ่น เลือกซื้ออาหารสดและสินค้าพื้นเมือง
+*   **ร้านอาหารท้องถิ่น:** ลิ้มลองอาหารพื้นเมืองรสชาติต้นตำรับ
+*   **เรียนทำอาหาร:** เข้าร่วมคอร์สเรียนทำอาหารไทย
+*   **นวดแผนไทย:** ผ่อนคลายกับการนวดแผนไทย
+
+**แผนการท่องเที่ยวที่แนะนำ:**
+
+**วันที่ 1 (21 พฤษภาคม):**
+
+*   เดินทางถึงเชียงราย, เช็คอินที่พัก
+*   **บ่าย:** เดินทางไป **วัดร่องขุ่น** (2-3 ชั่วโมง)
+*   **เย็น:** เดินเล่นที่ **เชียงรายไนท์บาร์ซ่า** (2-3 ชั่วโมง)
+
+**วันที่ 2 (22 พฤษภาคม):**
+
+*   **เช้า:** เดินทางไป **บ้านดำ** (2-3 ชั่วโมง)
+*   **บ่าย:** เดินทางไป **วัดร่องเสือเต้น** (1-2 ชั่วโมง)
+*   **เย็น:** รับประทานอาหารเย็นที่ร้านอาหารท้องถิ่น
+
+**วันที่ 3 (23 พฤษภาคม):**
+
+*   **เช้า:** เดินทางไป **ดอยแม่สลอง** (ครึ่งวัน - 1 วัน)
+*   **บ่าย:** ชมไร่ชา, จิบชา
+*   **เย็น:** กลับที่พัก
+
+**วันที่ 4 (24 พฤษภาคม):**
+
+*   **เช้า:** เดินทางไป **พระตำหนักดอยตุง** (ครึ่งวัน)
+*   **บ่าย:** ชมสวนดอกไม้, พระตำหนัก
+*   **เย็น:** กลับที่พัก
+
+**วันที่ 5 (25 พฤษภาคม):**
+
+*   **เช้า:** เดินทางไป **สามเหลี่ยมทองคำ** (2-3 ชั่วโมง)
+*   **บ่าย:** ล่องเรือชมวิวแม่น้ำโขง
+*   **เย็น:** เดินทางไป **วัดห้วยปลากั้ง** (1-2 ชั่วโมง)
+
+**วันที่ 6 (26 พฤษภาคม):**
+
+*   **เช้า:** เดินทางกลับ
+
+**สรุปค่าใช้จ่ายโดยประมาณ:**
+
+*   **ที่พัก:** 5 คืน x 750 บาท = 3,750 บาท
+*   **ค่าเดินทาง (เช่ารถ):** 5 วัน x 500 บาท = 2,500 บาท
+*   **ค่าอาหาร:** 6 วัน x 500 บาท = 3,000 บาท
+*   **ค่าเข้าชมสถานที่:** 500 บาท (โดยประมาณ)
+*   **ค่ากิจกรรมอื่นๆ:** 1,000 บาท (โดยประมาณ)
+*   **ค่าเดินทาง (ไป-กลับ):** 4,250 บาท (โดยประมาณ)
+
+**รวม:** 15,000 บาท (โดยประมาณ)
+
+หวังว่าข้อมูลนี้จะเป็นประโยชน์ในการวางแผนเที่ยวเชียงรายของคุณนะครับ! ขอให้คุณมีความสุขกับการเดินทาง!
+
+                
+                ข้อมูลเชิงลึกจาก YouTube:
+                {"destination": "\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22", "insights": {"top_places": ["\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e40\u0e02\u0e49\u0e32\u0e16\u0e36\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25 YouTube \u0e44\u0e14\u0e49"], "top_activities": ["\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e40\u0e02\u0e49\u0e32\u0e16\u0e36\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25 YouTube \u0e44\u0e14\u0e49"], "tips": ["\u0e25\u0e2d\u0e07\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e08\u0e32\u0e01\u0e41\u0e2b\u0e25\u0e48\u0e07\u0e2d\u0e37\u0e48\u0e19", "\u0e15\u0e23\u0e27\u0e08\u0e2a\u0e2d\u0e1a\u0e01\u0e32\u0e23\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e2d\u0e34\u0e19\u0e40\u0e17\u0e2d\u0e23\u0e4c\u0e40\u0e19\u0e47\u0e15"]}, "sentiment": "\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e27\u0e34\u0e40\u0e04\u0e23\u0e32\u0e30\u0e2b\u0e4c\u0e44\u0e14\u0e49", "channels": ["\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e40\u0e02\u0e49\u0e32\u0e16\u0e36\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e44\u0e14\u0e49"], "videos": []}
+                ...
+2025-05-14 23:33:03,239 - api.routes - INFO - Sent status update: กำลังจัดทำแผนการเดินทางแบบสมบูรณ์......
+2025-05-14 23:33:03,239 - agent - INFO - Extracted travel info: {'origin': 'กรุงเทพ', 'destination': 'เชียงราย', 'start_date': '2025-05-21', 'end_date': '2025-05-26', 'budget': '15,000', 'num_travelers': 1, 'preferences': [], 'duration': '6'}
+2025-05-14 23:33:03,239 - agent - INFO - Searching for travel information about เชียงราย
+2025-05-14 23:33:03,239 - tools.tavily_search - INFO - === TAVILY SEARCH START ===
+2025-05-14 23:33:03,239 - tools.tavily_search - INFO - Query: คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว เชียงราย 2025
+2025-05-14 23:33:03,240 - tools.tavily_search - INFO - Location: เชียงราย
+2025-05-14 23:33:03,240 - tools.tavily_search - INFO - Max results: 5
+2025-05-14 23:33:03,240 - tools.tavily_search - INFO - Starting Tavily search tool initialization
+2025-05-14 23:33:03,240 - tools.tavily_search - INFO - Found Tavily API key with length 41
+2025-05-14 23:33:03,240 - tools.tavily_search - INFO - Successfully imported TavilySearchResults
+2025-05-14 23:33:03,240 - tools.tavily_search - INFO - Successfully created Tavily search instance
+2025-05-14 23:33:03,240 - tools.tavily_search - INFO - Testing Tavily search with a sample query...
+2025-05-14 23:33:07,360 - tools.tavily_search - INFO - Tavily test query successful!
+2025-05-14 23:33:07,361 - tools.tavily_search - INFO - Formatted search query: คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว เชียงราย 2025
+2025-05-14 23:33:07,361 - tools.tavily_search - INFO - Using Tavily API key (masked): tvly...o6FQ (length: 41)
+2025-05-14 23:33:07,361 - tools.tavily_search - INFO - Executing Tavily search invoke() for query: 'คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว เชียงราย 2025'
+2025-05-14 23:33:11,177 - tools.tavily_search - INFO - Tavily search completed in 3.82 seconds
+2025-05-14 23:33:11,178 - tools.tavily_search - INFO - Raw Tavily response type: <class 'list'>
+2025-05-14 23:33:11,178 - tools.tavily_search - INFO - Tavily returned a list with 5 items
+2025-05-14 23:33:11,178 - tools.tavily_search - INFO - First result keys: dict_keys(['title', 'url', 'content', 'score', 'raw_content'])
+2025-05-14 23:33:11,178 - tools.tavily_search - INFO - First result sample: {"title": "\u0e17\u0e35\u0e48\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 2025 \u0e08\u0e38\u0e14\u0e40\u0e0a\u0e47\u0e01\u0e2d\u0e34\u0e19\u0e43\u0e2b\u0e21\u0e48 & \u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e17\u0e48\u0e2d\u0e07\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e2a\u0e38\u0e14\u0e2e\u0e34\u0e15", "url": "https://thailandonthebeach.com/chiangrai-travel-guide-2025/", "content": "5 \u0e17\u0e35\u0e48\u0e40\u0e17\u0e35\u0e48\u0e22\u0e27\u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22 2025 \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e44\u0e1b\u0e2a\u0e31\u0e21\u0e1c\u0e31\u0e2a\n1. \u0e20\u0e39\u0e0a\u0e35\u0e49\u0e1f\u0e49\u0e32 \u2013 \u0e0a\u0e21\u0e17\u0e30\u0e40\u0e25\u0e2b\u0e21\u0e2d\u0e01\u0e2a\u0e38\u0e14\u0e2d\u0e25\u0e31\u0e07\u0e01\u0e32\u0e23\n \u0e17\u0e35\u0e48\u0e15\u0e31\u0e49\u0e07: \u0e2d\u0e33\u0e40\u0e20\u0e2d\u0e40\u0e17\u0e34\u0e07 \u0e40\u0e0a\u0e35\u0e22\u0e07\u0e23\u0e32\u0e22\n \u0e44\u0e2e\u0e44\u0e25\u0e15\u0e4c:...(truncated)
+2025-05-14 23:33:11,179 - tools.tavily_search - INFO - Processing Tavily list response with 5 items
+2025-05-14 23:33:11,179 - tools.tavily_search - INFO - Added result from list: ที่เที่ยวเชียงราย 2025 จุดเช็กอินใหม่ & สถานที่ท่องเที่ยวสุดฮิต (https://thailandonthebeach.com/chiangrai-travel-guide-2025/)
+2025-05-14 23:33:11,179 - tools.tavily_search - INFO - Added result from list: แผนเที่ยวเชียงราย 2025: สถานที่น่าสนใจและประสบการณ์ไม่ควรพลาด (https://www.lemon8-app.com/@chomp00_cp/7466382712107024913?region=th)
+2025-05-14 23:33:11,179 - tools.tavily_search - INFO - Added result from list: อัปเดตที่เที่ยวเชียงราย 2025 ที่เที่ยวใหม่ ไม่ซ้ำใคร ห้ามพลาด! - TopHotel (https://www.tophotel.co.th/north/chiangrai)
+2025-05-14 23:33:11,179 - tools.tavily_search - INFO - Added result from list: เชียงราย: สถานที่ท่องเที่ยวใหม่ๆ ในปี 2025 (https://thai.newsbytesapp.com/news/lifestyle/chiang-rai-new-tourist-attractions-in-2025/story)
+2025-05-14 23:33:11,179 - tools.tavily_search - INFO - Added result from list: 25 ที่เที่ยวเชียงราย 2025 ไหว้พระ ชมธรรมชาติ สัมผัสวิถีชีวิตชาวเขา ที่ ... (https://www.checkinchill.com/content/chiangrai-travel)
+2025-05-14 23:33:11,179 - tools.tavily_search - INFO - Tavily search SUCCESS for 'คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว เชียงราย 2025'. Found 5 results.
+2025-05-14 23:33:11,179 - tools.tavily_search - INFO - === TAVILY SEARCH COMPLETE ===
+2025-05-14 23:33:11,180 - agent - INFO - Added search results for travel_planner agent
+2025-05-14 23:33:11,180 - agent - INFO - Calling sub-agent: travel_planner
+2025-05-14 23:33:28,698 - agent - INFO - Sub-agent travel_planner response generated
+2025-05-14 23:33:28,699 - api.async_agent_handler - INFO - Travel plan created: ===== แผนการเดินทางของคุณ =====
+
+**ภาพรวม:**
+
+แผนการเดินทางนี้ออกแบบมาเพื่อให้คุณได้สัมผัสประสบการณ์...
+2025-05-14 23:33:28,699 - api.routes - INFO - Received final response: ===== แผนการเดินทางของคุณ =====
+
+**ภาพรวม:**
+
+แผนการเดินทางนี้ออกแบบมาเพื่อให้คุณได้สัมผัสประสบการณ์...
+2025-05-14 23:33:28,699 - api.routes - INFO - Sending final response to client: ===== แผนการเดินทางของคุณ =====
+
+**ภาพรวม:**
+
+แผนการเดินทางนี้ออกแบบมาเพื่อให้คุณได้สัมผัสประสบการณ์...
+2025-05-14 23:33:28,701 - api.routes - INFO - [AGENT TO CLIENT]: ===== แผนการเดินทางของคุณ =====
+
+**ภาพรวม:**
+
+แผนก...
+2025-05-14 23:33:28,701 - api.routes - INFO - [TURN COMPLETE]

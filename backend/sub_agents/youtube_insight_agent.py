@@ -1,7 +1,6 @@
-"""YouTube Insight Agent for Travel A2A Backend.
+# Remove local logging config from youtube_insight_agent.py
+# since we now have root-level logging configured
 
-This agent analyzes YouTube content to provide travel insights about destinations.
-"""
 import os
 import sys
 import logging
@@ -21,35 +20,8 @@ if root_dir not in sys.path:
     sys.path.append(root_dir)
     print(f"Added {root_dir} to sys.path")
 
-# Configure logging
+# Configure logging - use existing logger, don't add handlers
 logger = logging.getLogger(__name__)
-
-# Set logging level
-logger.setLevel(logging.INFO)
-
-# Use a strict handler check to ensure we don't add duplicate handlers
-log_file_path = 'travel_a2a.log'
-file_handler_exists = False
-
-# Check if there's already a FileHandler with the same path
-for handler in logger.handlers:
-    if isinstance(handler, logging.FileHandler) and getattr(handler, 'baseFilename', '') == os.path.abspath(log_file_path):
-        file_handler_exists = True
-        break
-
-# Only add a file handler if one doesn't already exist with the same path
-if not file_handler_exists:
-    try:
-        # Create a unique file handler with detailed formatting
-        detailed_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        file_handler = logging.FileHandler(log_file_path)
-        file_handler.setFormatter(detailed_formatter)
-        logger.addHandler(file_handler)
-        logger.info("Added file handler for YouTube Insight Agent logging")
-    except Exception as e:
-        # Just log to console if file handler can't be added
-        print(f"Could not set up file handler for YouTube Insight Agent logging: {e}")
-        # Don't try to log this warning to the logger since the handler failed
 
 # Add the parent directory to sys.path to allow imports
 parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
@@ -421,9 +393,9 @@ def get_youtube_insights(destination: str) -> str:
         insights = extract_travel_insights(video_ids[:5])
         
         # 3. Get sentiment analysis
-        # Make sure video_ids is not empty and get_destination_sentiment exists
         try:
-            sentiment = get_destination_sentiment(destination, video_ids[:3] if video_ids else [])
+            # get_destination_sentiment only takes destination parameter
+            sentiment = get_destination_sentiment(destination)
         except Exception as e:
             logger.error(f"[get_youtube_insights] Error getting sentiment: {e}")
             sentiment = {
@@ -433,7 +405,8 @@ def get_youtube_insights(destination: str) -> str:
         
         # 4. Get popular channels
         try:
-            channels = get_popular_travel_channels(destination, max_results=3)
+            # get_popular_travel_channels takes 'results' parameter, not 'max_results'
+            channels = get_popular_travel_channels(destination, results=3)
         except Exception as e:
             logger.error(f"[get_youtube_insights] Error getting popular channels: {e}")
             channels = [{
@@ -441,12 +414,35 @@ def get_youtube_insights(destination: str) -> str:
                 "description": "ไม่สามารถเข้าถึงข้อมูลได้"
             }]
         
+        # Defensive: ensure sentiment is a string (extract if dict)
+        sentiment_value = sentiment
+        if isinstance(sentiment, dict):
+            sentiment_value = sentiment.get("overall_sentiment") or sentiment.get("sentiment") or json.dumps(sentiment)
+        elif not isinstance(sentiment, str):
+            sentiment_value = str(sentiment)
+
+        # Defensive: ensure channels is a list of strings (extract if list of dicts)
+        channels_value = channels
+        if isinstance(channels, list):
+            if all(isinstance(ch, dict) for ch in channels):
+                channels_value = [ch.get("channel") or ch.get("name") or str(ch) for ch in channels]
+            elif all(isinstance(ch, str) for ch in channels):
+                channels_value = channels
+            else:
+                channels_value = [str(ch) for ch in channels]
+        elif isinstance(channels, dict):
+            channels_value = [channels.get("channel") or channels.get("name") or str(channels)]
+        elif isinstance(channels, str):
+            channels_value = [channels]
+        else:
+            channels_value = [str(channels)]
+
         # Compile results
         result = {
             "destination": destination,
             "insights": insights,
-            "sentiment": sentiment,
-            "channels": channels,
+            "sentiment": sentiment_value,
+            "channels": channels_value,
             "videos": [
                 {
                     "title": video.get('snippet', {}).get('title', 'Unknown Title') if isinstance(video, dict) else 'Unknown Title',
@@ -601,7 +597,8 @@ def analyze_destination_from_youtube(destination: str) -> dict:
         # Get popular channels - with error handling
         logger.info(f"[YouTubeInsightAgent] Finding popular channels for '{destination}'")
         try:
-            channels = get_popular_travel_channels(f"{destination} travel")
+        # Using results parameter instead of max_results since that's what the function expects
+            channels = get_popular_travel_channels(f"{destination} travel", results=5)
         except Exception as channel_error:
             logger.error(f"[YouTubeInsightAgent] Error getting channels: {channel_error}")
             # Provide fallback channels

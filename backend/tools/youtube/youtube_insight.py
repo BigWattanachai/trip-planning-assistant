@@ -1,4 +1,4 @@
-"""
+""" 
 YouTube Travel Insights for Travel A2A Backend.
 This module provides specialized YouTube tools for travel research and insights.
 """
@@ -10,35 +10,8 @@ from typing import Dict, List, Any, Optional
 import json
 from collections import Counter
 
-# Configure logging
+# Configure logging - use existing logger without adding more handlers
 logger = logging.getLogger(__name__)
-
-# Set logging level
-logger.setLevel(logging.INFO)
-
-# Use a strict handler check to ensure we don't add duplicate handlers
-log_file_path = 'travel_a2a.log'
-file_handler_exists = False
-
-# Check if there's already a FileHandler with the same path
-for handler in logger.handlers:
-    if isinstance(handler, logging.FileHandler) and getattr(handler, 'baseFilename', '') == os.path.abspath(log_file_path):
-        file_handler_exists = True
-        break
-
-# Only add a file handler if one doesn't already exist with the same path
-if not file_handler_exists:
-    try:
-        # Create a unique file handler with detailed formatting
-        detailed_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        file_handler = logging.FileHandler(log_file_path)
-        file_handler.setFormatter(detailed_formatter)
-        logger.addHandler(file_handler)
-        logger.info("Added file handler for YouTube Insight tool logging")
-    except Exception as e:
-        # Just log to console if file handler can't be added
-        print(f"Could not set up file handler for YouTube Insight logging: {e}")
-        # Don't try to log this warning to the logger since the handler failed
 
 # Import base YouTube functions
 try:

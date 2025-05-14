@@ -324,26 +324,26 @@ async def get_agent_response_async(
                 {user_message}
 
                 ข้อมูลจากการค้นหา:
-                {destination_info[:1000] if destination_info else "ไม่มีข้อมูลจากการค้นหา"}
+                {destination_info[:5000] if destination_info else "ไม่มีข้อมูลจากการค้นหา"}
 
                 ข้อมูลการเดินทาง:
-                {transportation_response[:1000] if transportation_response else "ไม่มีข้อมูล"}
+                {transportation_response[:5000] if transportation_response else "ไม่มีข้อมูล"}
 
                 ข้อมูลที่พัก:
-                {accommodation_response[:1000] if accommodation_response else "ไม่มีข้อมูล"}
+                {accommodation_response[:5000] if accommodation_response else "ไม่มีข้อมูล"}
 
                 ข้อมูลร้านอาหาร:
-                {restaurant_response[:1000] if restaurant_response else "ไม่มีข้อมูล"}
+                {restaurant_response[:5000] if restaurant_response else "ไม่มีข้อมูล"}
 
                 ข้อมูลสถานที่ท่องเที่ยวและกิจกรรม:
-                {activity_response[:1000] if activity_response else "ไม่มีข้อมูล"}
+                {activity_response[:5000] if activity_response else "ไม่มีข้อมูล"}
                 
                 ข้อมูลเชิงลึกจาก YouTube:
-                {youtube_insight_response[:1000] if youtube_insight_response else "ไม่มีข้อมูล"}
+                {youtube_insight_response[:10000] if youtube_insight_response else "ไม่มีข้อมูล"}
                 """
 
                 # Log the enhanced query for debugging
-                logger.info(f"Enhanced query for travel planner: {enhanced_query[:500000000000000000]}...")
+                logger.info(f"Enhanced query for travel planner: {enhanced_query[:500000]}...")
 
                 yield {"message": "กำลังจัดทำแผนการเดินทางแบบสมบูรณ์...", "partial": True}
 
