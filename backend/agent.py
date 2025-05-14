@@ -313,11 +313,11 @@ def search_destination_info(destination: str, query_type: str = "travel") -> Dic
     try:
         # Build a search query based on the query type
         search_queries = {
-            "travel": f"travel guide tourist information {destination} 2025",
-            "activities": f"top attractions and activities in {destination} 2025",
-            "food": f"best restaurants and local cuisine in {destination}",
-            "accommodation": f"best places to stay hotels in {destination}",
-            "transportation": f"how to get around transportation in {destination}"
+            "travel": f"คู่มือท่องเที่ยวและข้อมูลสำหรับนักท่องเที่ยว {destination} 2025",
+            "activities": f"สถานที่ท่องเที่ยวและกิจกรรมยอดนิยมใน {destination} 2025",
+            "food": f"ร้านอาหารแนะนำ และ อาหารท้องถิ่นใน {destination} 2025",
+            "accommodation": f"ที่พัก โฮสเทล และโรงแรมแนะนำใน{destination} 2025",
+            "transportation": f"การเดินทางและวิธีการสัญจรใน {destination} 2025"
         }
         
         # Use the specific query or fall back to travel
@@ -610,6 +610,22 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
     logger.debug(f"Sub-agent prompt: {prompt[:1000]}...")
     
     try:
+        # Check if we need to handle YouTube insights differently
+        if agent_type == 'youtube_insight':
+            try:
+                # Try importing YouTube insight functions from different paths
+                try:
+                    from backend.sub_agents.youtube_insight_agent import get_youtube_insights
+                    return get_youtube_insights(destination=travel_info.get('destination', ''))
+                except ImportError:
+                    try:
+                        from sub_agents.youtube_insight_agent import get_youtube_insights
+                        return get_youtube_insights(destination=travel_info.get('destination', ''))
+                    except ImportError:
+                        logger.warning('Could not import YouTube insight function, using standard approach')
+            except Exception as e:
+                logger.error(f'Error calling YouTube insights directly: {e}')
+
         # Generate the response
         response = model.generate_content(
             prompt,
@@ -622,6 +638,57 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
         )
         
         logger.info(f"Sub-agent {agent_type} response generated")
+        
+        # Check if this is YouTube insights response and format it properly
+        if agent_type == 'youtube_insight':
+            try:
+                # Try to parse as JSON first
+                import json
+                try:
+                    data = json.loads(response.text)
+                    if isinstance(data, dict):
+                        # Format the YouTube insights data into readable text
+                        formatted_response = """# ข้อมูลท่องเที่ยวจาก YouTube
+
+## สถานที่ท่องเที่ยวยอดนิยม
+{places}
+
+## กิจกรรมแนะนำ
+{activities}
+
+## ความรู้สึกโดยรวม
+{sentiment}
+
+## ช่อง YouTube ท่องเที่ยวยอดนิยม
+{channels}
+
+## เกร็ดน่ารู้และคำแนะนำ
+{tips}
+"""
+                        
+                        # Extract data from the JSON
+                        places = "\n".join([f"- {place}" for place in data.get('insights', {}).get('top_places', ['ไม่มีข้อมูล'])[:5]])
+                        activities = "\n".join([f"- {activity}" for activity in data.get('insights', {}).get('top_activities', ['ไม่มีข้อมูล'])[:5]])
+                        sentiment = data.get('sentiment', 'ไม่มีข้อมูล')
+                        channels = "\n".join([f"- {channel}" for channel in data.get('channels', ['ไม่มีข้อมูล'])[:3]])
+                        tips = "\n".join([f"- {tip}" for tip in data.get('insights', {}).get('tips', ['ไม่มีข้อมูล'])[:5]])
+                        
+                        # Format the response
+                        formatted_text = formatted_response.format(
+                            places=places or "- ไม่มีข้อมูล",
+                            activities=activities or "- ไม่มีข้อมูล",
+                            sentiment=sentiment or "ไม่มีข้อมูล",
+                            channels=channels or "- ไม่มีข้อมูล",
+                            tips=tips or "- ไม่มีข้อมูล"
+                        )
+                        
+                        logger.info(f"Formatted YouTube insights into readable text")
+                        return formatted_text
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    logger.warning("YouTube response was not valid JSON, using as-is")
+            except Exception as e:
+                logger.error(f"Error formatting YouTube insights: {e}")
+                
         return response.text
     except Exception as e:
         logger.error(f"Error calling sub-agent {agent_type}: {e}")

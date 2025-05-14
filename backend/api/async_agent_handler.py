@@ -343,7 +343,7 @@ async def get_agent_response_async(
                 """
 
                 # Log the enhanced query for debugging
-                logger.info(f"Enhanced query for travel planner: {enhanced_query[:5000]}...")
+                logger.info(f"Enhanced query for travel planner: {enhanced_query[:500000000000000000]}...")
 
                 yield {"message": "กำลังจัดทำแผนการเดินทางแบบสมบูรณ์...", "partial": True}
 
