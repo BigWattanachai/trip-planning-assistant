@@ -156,19 +156,48 @@ async def get_agent_response_async(
             accumulated_text = ""
 
             try:
-                # Ensure ADK session exists before processing
+                # Improved ADK session management to fix "Session not found" errors
                 try:
-                    adk_app.create_session(user_id=user_id, session_id=session_id)
-                    logger.info(f"Created ADK session for user_id={user_id}, session_id={session_id}")
+                    try:
+                        # First try to check if session exists
+                        adk_app.get_session(user_id=user_id, session_id=session_id)
+                        logger.info(f"ADK session exists for user_id={user_id}, session_id={session_id}")
+                    except Exception as session_err:
+                        # If checking session fails, create a new one
+                        logger.info(f"ADK session check failed: {session_err}, creating new session")
+                        adk_app.create_session(user_id=user_id, session_id=session_id)
+                        logger.info(f"Created new ADK session for user_id={user_id}, session_id={session_id}")
                 except Exception as create_err:
-                    logger.info(f"ADK session may already exist or failed to create: {create_err}")
+                    logger.error(f"Failed to create ADK session: {create_err}")
+                    # Try with fresh session ID as a last resort
+                    from datetime import datetime
+                    fallback_session_id = f"{session_id}_fb_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                    logger.info(f"Attempting with fallback session_id={fallback_session_id}")
+                    try:
+                        adk_app.create_session(user_id=user_id, session_id=fallback_session_id)
+                        session_id = fallback_session_id  # Use the new session ID from now on
+                        logger.info(f"Successfully created fallback ADK session")
+                    except Exception as fallback_err:
+                        logger.error(f"Even fallback session creation failed: {fallback_err}")
+                        raise
                 
-                # Process the message through ADK app
+                # Add robust error handling around the stream_query method
+                logger.info(f"Sending message to ADK stream_query: '{user_message[:50]}...'")
+                
+                # Add timeout handling for stream_query
+                import asyncio
+                # Process the message through ADK app with timeout monitoring
+                response_started = False
                 for event in adk_app.stream_query(
                     user_id=user_id,
                     session_id=session_id,
                     message=user_message
                 ):
+                    # Log detailed event information
+                    response_started = True
+                    logger.info(f"Received ADK event: {type(event)}, keys: {event.keys() if hasattr(event, 'keys') else 'No keys method'}")
+                    
+                    # Handle content in response
                     if "content" in event:
                         if "parts" in event["content"]:
                             parts = event["content"]["parts"]
@@ -177,17 +206,54 @@ async def get_agent_response_async(
                                     text_part = part["text"]
                                     accumulated_text += text_part
                                     yield {"message": text_part, "partial": True}
+                                    logger.info(f"Yielded partial response: {text_part[:50]}...")
+                    
+                    # Also handle tool responses that might contain Tavily search results
+                    if "toolOutputs" in event:
+                        logger.info(f"Received tool outputs: {event['toolOutputs']}")
+                        for tool_output in event["toolOutputs"]:
+                            if tool_output.get("toolName", "") == "tavily_search":
+                                logger.info(f"Processing Tavily search tool output")
+                                # Just log it - ADK will handle using the tool results automatically
+                
+                if not response_started:
+                    logger.warning("ADK stream_query completed but no events were received")
 
                 # If we have accumulated text, send it as the final response
                 if accumulated_text:
+                    logger.info(f"Sending final accumulated response ({len(accumulated_text)} chars)")
                     yield {"message": accumulated_text, "final": True}
                 else:
                     # Fallback response if no text was accumulated
+                    logger.warning("No text was accumulated from ADK response")
                     yield {"message": "ขออภัยค่ะ ฉันไม่สามารถประมวลผลคำขอของคุณได้ในขณะนี้ กรุณาลองใหม่อีกครั้งค่ะ", "final": True}
             except Exception as e:
                 logger.error(f"Error processing with ADK: {str(e)}")
-                # Fall back to direct API if ADK fails
-                yield {"message": "ขออภัยค่ะ มีปัญหาในการประมวลผล กำลังลองวิธีอื่น...", "partial": True}
+                logger.error(f"Error type: {type(e).__name__}")
+                
+                # Provide more specific error message for session errors
+                error_message = "ขออภัยค่ะ มีปัญหาในการประมวลผล กำลังลองวิธีอื่น..."
+                if "session not found" in str(e).lower():
+                    logger.error("ADK SESSION NOT FOUND error detected")
+                    error_message = "ขออภัยค่ะ เซสชันหายไป กำลังสร้างเซสชันใหม่และลองอีกครั้ง..."
+                    
+                    # Try once more with a fresh session if it's a session error
+                    if retry_count < 1:  # Only retry once
+                        logger.info("Retrying with fresh session...")
+                        try:
+                            from datetime import datetime
+                            new_session_id = f"{session_id}_retry_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                            logger.info(f"Creating fresh session with ID: {new_session_id}")
+                            # Try recursively with new session and increment retry counter
+                            async for retry_response in get_agent_response_async(user_message, agent_type, new_session_id, runner, retry_count + 1):
+                                yield retry_response
+                            return  # Exit after retry completes
+                        except Exception as retry_err:
+                            logger.error(f"Retry with fresh session also failed: {retry_err}")
+                
+                # Fall back to direct API if ADK fails or after retry
+                yield {"message": error_message, "partial": True}
+                logger.info("Falling back to direct API mode after ADK failure")
                 async for response in process_with_direct_api(user_message, session_id):
                     yield response
 

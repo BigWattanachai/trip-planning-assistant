@@ -15,6 +15,19 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Set up formatter for detailed logs
+detailed_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Check if we need to add a file handler
+if not any(isinstance(handler, logging.FileHandler) for handler in logger.handlers):
+    try:
+        file_handler = logging.FileHandler('travel_a2a.log')
+        file_handler.setFormatter(detailed_formatter)
+        logger.addHandler(file_handler)
+        logger.info("Added file handler for YouTube tool logging")
+    except Exception as e:
+        logger.warning(f"Could not set up file handler for YouTube logging: {e}")
+
 # Try to import YouTube API libraries
 try:
     from googleapiclient.discovery import build
@@ -61,6 +74,9 @@ def search_videos(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
     try:
         youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
         
+        # Log the search request
+        logger.info(f"YouTube Search: Querying for '{query}' with max_results={max_results}")
+        
         # Execute the search request
         search_response = youtube.search().list(
             q=query,
@@ -69,8 +85,13 @@ def search_videos(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
             type='video'
         ).execute()
         
+        # Log search response stats
+        total_results = search_response.get('pageInfo', {}).get('totalResults', 0)
+        logger.info(f"YouTube Search: Found {total_results} total results for '{query}'")
+        
         # Process the search results
         videos = []
+        logger.info(f"YouTube Search: Processing {len(search_response.get('items', []))} video items")
         for item in search_response.get('items', []):
             if item.get('id', {}).get('kind') == 'youtube#video':
                 video_id = item['id']['videoId']
@@ -86,15 +107,27 @@ def search_videos(query: str, max_results: int = 5) -> List[Dict[str, Any]]:
                     'url': f"https://www.youtube.com/watch?v={video_id}"
                 })
         
+        # Log detailed result information
+        if videos:
+            logger.info(f"YouTube Search Results: Found {len(videos)} videos")
+            for i, video in enumerate(videos):
+                logger.info(f"  Video {i+1}: '{video['title']}' by {video['channel']} - {video['url']}")
+        else:
+            logger.warning(f"YouTube Search: No videos found for query '{query}'")
+            
         return videos
     
     except HttpError as e:
-        logger.error(f"An HTTP error occurred during YouTube search: {e}")
-        return [{"error": f"YouTube API error: {str(e)}"}]
+        error_details = str(e)
+        logger.error(f"YouTube Search HTTP Error: {error_details}")
+        logger.error(f"Failed YouTube search query: '{query}'")
+        return [{"error": f"YouTube API error: {error_details}"}]
     
     except Exception as e:
-        logger.error(f"An error occurred during YouTube search: {e}")
-        return [{"error": f"Error: {str(e)}"}]
+        error_details = str(e)
+        logger.error(f"YouTube Search General Error: {error_details}")
+        logger.error(f"Failed YouTube search query: '{query}'")
+        return [{"error": f"Error: {error_details}"}]
 
 def get_transcript(video_id: str, language: str = 'en') -> Dict[str, Any]:
     """
@@ -125,57 +158,80 @@ def get_transcript(video_id: str, language: str = 'en') -> Dict[str, Any]:
         return {"error": "YouTube transcript API not available"}
     
     try:
-        # Extract video ID from URL if a full URL was provided
+        # Log transcript request
+        logger.info(f"YouTube Transcript: Requesting transcript for video_id: {video_id} in language: {language}")
+        
+        # Extract the video ID if a full URL was provided
         if "youtube.com" in video_id or "youtu.be" in video_id:
-            url_patterns = [
-                r'(?:v=|\/)([0-9A-Za-z_-]{11}).*',
-                r'(?:youtu\.be\/)([0-9A-Za-z_-]{11})'
-            ]
-            for pattern in url_patterns:
-                match = re.search(pattern, video_id)
-                if match:
-                    video_id = match.group(1)
-                    break
+            original_id = video_id
+            video_id = extract_video_id(video_id)
+            logger.info(f"YouTube Transcript: Extracted video_id '{video_id}' from URL '{original_id}'")
         
         # Get available transcript list
         transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
         
-        # Try to find transcript in the preferred language, or fall back to available languages
+        # Try to get transcript with specified language
         try:
+            logger.info(f"YouTube Transcript: Retrieving transcript list for video {video_id}")
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            
+            logger.info(f"YouTube Transcript: Searching for transcript in language: {language}")
             transcript = transcript_list.find_transcript([language])
-        except NoTranscriptFound:
-            try:
-                # Get any available transcript and translate it
-                transcript = transcript_list.find_transcript(['en', 'de', 'fr', 'es', 'it'])
-                transcript = transcript.translate(language)
-            except NoTranscriptFound:
-                # If no preferred languages are found, just get the first available
-                transcript = next(transcript_list._transcripts.values().__iter__())
+            
+            logger.info(f"YouTube Transcript: Found transcript in {transcript.language_code}, fetching data")
+            transcript_data = transcript.fetch()
+            
+            # Process transcript data
+            full_text = " ".join([item['text'] for item in transcript_data])
+            word_count = len(full_text.split())
+            duration = transcript_data[-1]['start'] + transcript_data[-1]['duration'] if transcript_data else 0
+            
+            # Create result dictionary
+            result = {
+                "video_id": video_id,
+                "language": transcript.language_code,
+                "transcript": transcript_data,
+                "full_text": full_text,
+                "word_count": word_count,
+                "duration_seconds": duration,
+                "success": True
+            }
+            
+            # Log successful transcript retrieval details
+            logger.info(f"YouTube Transcript: Successfully retrieved transcript for video {video_id}")
+            logger.info(f"YouTube Transcript Details: Language={transcript.language_code}, Words={word_count}, Duration={duration}s")
+            
+            return result
         
-        # Get the transcript data
-        transcript_data = transcript.fetch()
+        except (TranscriptsDisabled, NoTranscriptFound) as e:
+            error_details = str(e)
+            logger.warning(f"YouTube Transcript Error: No transcript available for video {video_id}: {error_details}")
+            return {
+                "video_id": video_id,
+                "error": error_details,
+                "success": False,
+                "error_type": "no_transcript"
+            }
         
-        # Combine the text into a full transcript
-        full_transcript = " ".join([item.get('text', '') for item in transcript_data])
-        
-        return {
-            "video_id": video_id,
-            "language": transcript.language,
-            "transcript": full_transcript,
-            "segments": transcript_data
-        }
-    
-    except TranscriptsDisabled:
-        logger.warning(f"Transcripts are disabled for video {video_id}")
-        return {"error": "Transcripts are disabled for this video"}
-    
-    except NoTranscriptFound:
-        logger.warning(f"No transcript found for video {video_id}")
-        return {"error": "No transcript found for this video"}
+        except Exception as e:
+            error_details = str(e)
+            logger.error(f"YouTube Transcript General Error: Failed to retrieve transcript for video {video_id}: {error_details}")
+            return {
+                "video_id": video_id,
+                "error": error_details,
+                "success": False,
+                "error_type": "general_error"
+            }
     
     except Exception as e:
-        logger.error(f"An error occurred while getting transcript: {e}")
-        return {"error": f"Error: {str(e)}"}
+        error_details = str(e)
+        logger.error(f"YouTube Transcript General Error: Failed to retrieve transcript for video {video_id}: {error_details}")
+        return {
+            "video_id": video_id,
+            "error": error_details,
+            "success": False,
+            "error_type": "general_error"
+        }
 
 # For local testing
 if __name__ == "__main__":

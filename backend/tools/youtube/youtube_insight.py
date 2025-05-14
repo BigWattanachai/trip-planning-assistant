@@ -13,6 +13,19 @@ from collections import Counter
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Set up formatter for detailed logs
+detailed_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Check if we need to add a file handler
+if not any(isinstance(handler, logging.FileHandler) for handler in logger.handlers):
+    try:
+        file_handler = logging.FileHandler('travel_a2a.log')
+        file_handler.setFormatter(detailed_formatter)
+        logger.addHandler(file_handler)
+        logger.info("Added file handler for YouTube Insight tool logging")
+    except Exception as e:
+        logger.warning(f"Could not set up file handler for YouTube Insight logging: {e}")
+
 # Import base YouTube functions
 try:
     from tools.youtube.youtube import search_videos, get_transcript, YOUTUBE_AVAILABLE
@@ -58,14 +71,17 @@ def search_travel_videos(destination: str, focus: str = "travel guide", max_resu
             ...
         ]
     """
+    logger.info(f"YouTube Travel Search: Searching for '{destination}' with focus '{focus}' (max results: {max_results})")
     if not YOUTUBE_AVAILABLE:
         logger.error("YouTube API not available")
         return [{"error": "YouTube API not available"}]
     
     # Construct a search query targeting travel content
     query = f"{destination} {focus}"
+    logger.info(f"YouTube Travel Search: Constructed query '{query}'")
     
     # Get videos using the base search function
+    logger.info(f"YouTube Travel Search: Calling base search_videos with query '{query}'")
     videos = search_videos(query, max_results)
     
     # Filter for travel-focused content if we have results
@@ -89,8 +105,15 @@ def search_travel_videos(destination: str, focus: str = "travel guide", max_resu
             
             video['relevance_score'] = relevance_score
         
-        # Sort by relevance score and return
-        return sorted(videos, key=lambda x: x.get('relevance_score', 0), reverse=True)
+        # Sort by relevance score and log results
+        sorted_videos = sorted(videos, key=lambda x: x.get('relevance_score', 0), reverse=True)
+        
+        # Log the sorted results with detailed information
+        logger.info(f"YouTube Travel Search for '{destination}': Found {len(sorted_videos)} relevant videos")
+        for i, video in enumerate(sorted_videos[:min(3, len(sorted_videos))]):
+            logger.info(f"  Top {i+1}: '{video['title']}' by {video['channel']} (score: {video.get('relevance_score', 0)})")
+        
+        return sorted_videos
     
     return videos
 
@@ -203,6 +226,13 @@ def get_video_details(video_id: str) -> Dict[str, Any]:
         result['mentioned_activities'] = list(set(activities))[:10]  # Limit to top 10 unique activities
         result['key_phrases'] = list(set(key_phrases))[:10]  # Limit to top 10 unique phrases
     
+    # Final detailed log
+    if result['videos']:
+        top_positive = next((v['title'] for v in result['videos'] if v['sentiment'] == 'Positive'), 'None')
+        top_negative = next((v['title'] for v in result['videos'] if v['sentiment'] == 'Negative'), 'None')
+        logger.info(f"YouTube Sentiment Analysis: Top positive video: '{top_positive}'")
+        logger.info(f"YouTube Sentiment Analysis: Top negative video: '{top_negative}'")
+    
     return result
 
 def extract_travel_insights(video_ids: List[str]) -> Dict[str, Any]:
@@ -225,6 +255,9 @@ def extract_travel_insights(video_ids: List[str]) -> Dict[str, Any]:
             "transcripts_available": 2
         }
     """
+    logger.info(f"YouTube Insight: Extracting travel insights from {len(video_ids)} videos")
+    for i, vid in enumerate(video_ids[:min(5, len(video_ids))]):
+        logger.info(f"  Processing video {i+1}: {vid}")
     if not YOUTUBE_AVAILABLE:
         logger.error("YouTube API not available")
         return {"error": "YouTube API not available"}
@@ -232,42 +265,109 @@ def extract_travel_insights(video_ids: List[str]) -> Dict[str, Any]:
     if not video_ids:
         return {"error": "No video IDs provided"}
     
-    # Process each video
-    all_places = []
-    all_activities = []
-    all_phrases = []
-    videos_analyzed = 0
-    transcripts_available = 0
+    results = {
+        "top_places": [],
+        "top_activities": [],
+        "common_phrases": [],
+        "videos_analyzed": 0,
+        "transcripts_available": 0,
+        "processing_details": []
+    }
     
+    logger.info(f"YouTube Insight: Initialized results structure for {len(video_ids)} videos")
     for vid_id in video_ids:
         video_details = get_video_details(vid_id)
         
         if 'error' not in video_details:
-            videos_analyzed += 1
+            results['videos_analyzed'] += 1
             
             if video_details.get('transcript_available', False):
-                transcripts_available += 1
-                all_places.extend(video_details.get('mentioned_places', []))
-                all_activities.extend(video_details.get('mentioned_activities', []))
-                all_phrases.extend(video_details.get('key_phrases', []))
+                results['transcripts_available'] += 1
+                
+                # Log transcript availability and size
+                word_count = video_details.get('transcript_length', 0)
+                logger.info(f"YouTube Insight: Got transcript for video {vid_id} ({word_count} words)")
+                
+                # Add processing details
+                results['processing_details'].append({
+                    "video_id": vid_id,
+                    "title": video_details.get('title', 'Unknown'),
+                    "transcript_available": True,
+                    "transcript_length": word_count
+                })
+                
+                # Process transcript data for insights
+                full_text = video_details.get('transcript', {}).get('full_text', '')
+                
+                # Extract potential places using regex patterns
+                # Look for capitalized words followed potentially by "Beach", "Temple", etc.
+                place_pattern = r'([A-Z][a-z]+(?: [A-Z][a-z]+)*)(?: Beach| Temple| Palace| Market| Island| Town| Village| Mountain| National Park| Bay)?'
+                potential_places = re.findall(place_pattern, full_text)
+                
+                # Filter out common non-place words
+                common_words = ["I", "We", "They", "You", "The", "This", "That", "My", "Your", "Our", "Their"]
+                filtered_places = [place for place in potential_places if place not in common_words and len(place) > 2]
+                
+                # Count occurrences and get top places
+                place_counter = Counter(filtered_places)
+                top_places = [place for place, count in place_counter.most_common(10)]
+                
+                # Extract activities using common activity keywords
+                activity_keywords = [
+                    "visit", "explore", "hike", "swim", "snorkel", "dive", "shop", "eat", "tour",
+                    "relax", "climb", "kayak", "ride", "watch", "experience", "enjoy", "walk", "bike"
+                ]
+                
+                activities = []
+                for keyword in activity_keywords:
+                    pattern = r'(?:can|could|should|will|to|and|or) ' + keyword + r' (?:the |a |an |to the |in |at |around |through )([A-Za-z]+(?: [A-Za-z]+){0,3})'
+                    matches = re.findall(pattern, full_text.lower())
+                    activities.extend([match for match in matches if len(match) > 3])
+                
+                # Extract key phrases that might indicate travel recommendations
+                key_phrases = []
+                phrase_patterns = [
+                    r'(?:must|should|recommend|best|favorite|amazing|beautiful|stunning) (?:place|thing|activity|sight|experience|location|destination|restaurant|hotel) (?:to|is|in|at) ([A-Za-z]+(?: [A-Za-z]+){0,5})',
+                    r'(?:don\'t miss|make sure to|try the|check out) ([A-Za-z]+(?: [A-Za-z]+){0,5})'
+                ]
+                
+                for pattern in phrase_patterns:
+                    matches = re.findall(pattern, full_text.lower())
+                    key_phrases.extend([match for match in matches if len(match) > 3])
+                
+                # Add extracted information to results
+                results['top_places'].extend(top_places)
+                results['top_activities'].extend(activities)
+                results['common_phrases'].extend(key_phrases)
+            else:
+                error_info = video_details.get('error', 'Unknown error')
+                logger.warning(f"YouTube Insight: No transcript available for video {vid_id}: {error_info}")
+                
+                # Add processing details for videos without transcripts
+                results['processing_details'].append({
+                    "video_id": vid_id,
+                    "title": video_details.get('title', 'Unknown'),
+                    "transcript_available": False,
+                    "error": error_info
+                })
     
-    # Aggregate and count occurrences
-    place_counter = Counter(all_places)
-    activity_counter = Counter(all_activities)
-    phrase_counter = Counter(all_phrases)
+    # Calculate top places, activities, and phrases
+    if len(results['top_places']) > 0:
+        results['top_places'] = [place for place, _ in Counter(results['top_places']).most_common(5)]
+        logger.info(f"YouTube Insight: Top places identified: {', '.join(results['top_places'])}")
+    if len(results['top_activities']) > 0:
+        results['top_activities'] = [activity for activity, _ in Counter(results['top_activities']).most_common(5)]
+        logger.info(f"YouTube Insight: Top activities identified: {', '.join(results['top_activities'])}")
+    if len(results['common_phrases']) > 0:
+        results['common_phrases'] = [phrase for phrase, _ in Counter(results['common_phrases']).most_common(5)]
+        logger.info(f"YouTube Insight: Common phrases identified: {', '.join(results['common_phrases'][:3])}")
     
-    # Get top items
-    top_places = [place for place, _ in place_counter.most_common(10)]
-    top_activities = [activity for activity, _ in activity_counter.most_common(10)]
-    common_phrases = [phrase for phrase, _ in phrase_counter.most_common(10)]
+    # Final results
+    logger.info(f"YouTube Insight: Successfully extracted insights from {results['videos_analyzed']} videos")
+    logger.info(f"YouTube Insight: Transcripts were available for {results['transcripts_available']} videos")
+    logger.info(f"YouTube Insight: Found {len(results['top_places'])} places, {len(results['top_activities'])} activities, and {len(results['common_phrases'])} common phrases")
     
-    return {
-        "top_places": top_places,
-        "top_activities": top_activities,
-        "common_phrases": common_phrases,
-        "videos_analyzed": videos_analyzed,
-        "transcripts_available": transcripts_available
-    }
+    return results
 
 def get_popular_travel_channels(topic: str = "travel", results: int = 5) -> List[Dict[str, Any]]:
     """
@@ -354,12 +454,29 @@ def get_destination_sentiment(destination: str) -> Dict[str, Any]:
             ]
         }
     """
+    logger.info(f"YouTube Sentiment Analysis: Starting analysis for destination '{destination}'")
     if not YOUTUBE_AVAILABLE:
         logger.error("YouTube API not available")
         return {"error": "YouTube API not available"}
     
+    # Prepare result structure
+    result = {
+        "destination": destination,
+        "overall_sentiment": "Neutral",
+        "positive_mentions": 0,
+        "negative_mentions": 0,
+        "neutral_mentions": 0,
+        "engagement_rate": 0,
+        "video_count": 0,
+        "videos": [],
+        "analysis_details": []
+    }
+    
+    logger.info(f"YouTube Sentiment Analysis: Initialized sentiment analysis structure for '{destination}'")
+    
     # Search for videos about the destination
-    videos = search_travel_videos(destination, "travel", 5)
+    logger.info(f"YouTube Sentiment Analysis: Searching for videos about '{destination}'")
+    videos = search_travel_videos(destination, "review", max_results=10)
     
     if not videos or 'error' in videos[0]:
         return {"error": f"Could not find videos about {destination}"}
@@ -432,17 +549,22 @@ def get_destination_sentiment(destination: str) -> Dict[str, Any]:
     
     # Determine overall sentiment
     if positive_matches > negative_matches:
-        overall_sentiment = "Positive"
+        result['overall_sentiment'] = "Positive"
     elif negative_matches > positive_matches:
-        overall_sentiment = "Negative"
+        result['overall_sentiment'] = "Negative"
     else:
-        overall_sentiment = "Neutral"
+        result['overall_sentiment'] = "Neutral"
+        
+    logger.info(f"YouTube Sentiment Analysis for '{destination}': Overall sentiment is {result['overall_sentiment']}")
+    logger.info(f"YouTube Sentiment Analysis for '{destination}': {positive_matches} positive, {negative_matches} negative, {len(videos) - positive_matches - negative_matches} neutral mentions")
+    logger.info(f"YouTube Sentiment Analysis for '{destination}': Analyzed {len(videos)} videos with engagement rate {engagement_rate:.2f}")
     
     return {
         "destination": destination,
-        "overall_sentiment": overall_sentiment,
+        "overall_sentiment": result['overall_sentiment'],
         "positive_mentions": positive_matches,
         "negative_mentions": negative_matches,
+        "neutral_mentions": len(videos) - positive_matches - negative_matches,
         "engagement_rate": engagement_rate,
         "video_count": len(video_sentiments),
         "videos": video_sentiments

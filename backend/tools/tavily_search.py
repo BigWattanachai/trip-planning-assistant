@@ -86,11 +86,18 @@ def search_with_tavily(query: str, location: Optional[str] = None, max_results: 
     Returns:
         dict: Search results or None if search failed
     """
+    # Log beginning of search operation with detailed parameters
+    logger.info(f"=== TAVILY SEARCH START ===")
+    logger.info(f"Query: {query}")
+    logger.info(f"Location: {location if location else 'Not specified'}")
+    logger.info(f"Max results: {max_results}")
+    
     tavily_search = get_tavily_tool_instance()
     
     if not tavily_search:
-        logger.warning("Tavily search tool not available for query: " + query)
-        return {"error": "Tavily search tool not available", "success": False}
+        error_msg = "Tavily search tool not available for query: " + query
+        logger.error(error_msg)
+        return {"error": error_msg, "success": False}
     
     try:
         # Add location context if provided
@@ -100,10 +107,20 @@ def search_with_tavily(query: str, location: Optional[str] = None, max_results: 
             if location.lower() not in query.lower():
                 search_query = f"{query} in {location}"
         
-        logger.info(f"Searching Tavily for: {search_query}")
+        logger.info(f"Formatted search query: {search_query}")
+        
+        # Additional debug logging for API key verification
+        tavily_api_key = os.getenv("TAVILY_API_KEY")
+        if not tavily_api_key:
+            error_msg = "CRITICAL ERROR: TAVILY_API_KEY is not set in environment variables"
+            logger.error(error_msg)
+            return {"error": "Tavily API key not configured", "success": False}
+        else:
+            logger.info(f"Using Tavily API key (masked): {tavily_api_key[:4]}...{tavily_api_key[-4:]} (length: {len(tavily_api_key)})")
         
         # Set dynamic parameters (max_results) if different from default
         if max_results != 5:
+            logger.info(f"Creating custom Tavily search instance with max_results={max_results}")
             # Need to recreate the tool with new parameters
             from langchain_community.tools import TavilySearchResults
             tavily_search = TavilySearchResults(
@@ -114,7 +131,48 @@ def search_with_tavily(query: str, location: Optional[str] = None, max_results: 
                 include_images=True,
             )
         
-        result = tavily_search.invoke(search_query)
+        # Execute search with detailed logging
+        logger.info(f"Executing Tavily search invoke() for query: '{search_query}'")
+        
+        try:
+            # Invoke the search and time it
+            import time
+            start_time = time.time()
+            result = tavily_search.invoke(search_query)
+            end_time = time.time()
+            duration = end_time - start_time
+            
+            logger.info(f"Tavily search completed in {duration:.2f} seconds")
+            logger.info(f"Raw Tavily response type: {type(result)}")
+            
+            # For ADK diagnostic purposes, log the complete result structure
+            import json
+            try:
+                # Log sample of the response for debugging
+                if isinstance(result, dict):
+                    logger.info(f"Tavily response keys: {result.keys()}")
+                    # Limit the log size to avoid excessively large logs
+                    compact_result = {k: v for k, v in result.items() if k != 'raw_content'}
+                    logger.info(f"Tavily response structure: {json.dumps(compact_result)[:1000]}...(truncated)")
+                elif isinstance(result, list):
+                    logger.info(f"Tavily returned a list with {len(result)} items")
+                    if result:
+                        # Log the first item if available
+                        sample_item = result[0]
+                        if isinstance(sample_item, dict):
+                            logger.info(f"First result keys: {sample_item.keys()}")
+                            logger.info(f"First result sample: {json.dumps(sample_item)[:1000]}...(truncated)")
+                        else:
+                            logger.info(f"First result (non-dict): {str(sample_item)[:200]}")
+                else:
+                    logger.info(f"Unexpected result type: {type(result)}")
+            except Exception as json_error:
+                logger.error(f"Error logging Tavily response: {json_error}")
+        except Exception as search_error:
+            error_msg = f"Exception during Tavily search execution: {str(search_error)}"
+            logger.error(error_msg)
+            logger.error(f"Error type: {type(search_error).__name__}")
+            raise
         
         # Format results for easier consumption
         formatted_result = {
@@ -123,26 +181,79 @@ def search_with_tavily(query: str, location: Optional[str] = None, max_results: 
             "results": []
         }
         
-        # Extract answer if available
-        if isinstance(result, dict) and "answer" in result and result["answer"]:
-            formatted_result["answer"] = result["answer"]
+        # Process response based on its type (list or dictionary)
+        if isinstance(result, list):
+            logger.info(f"Processing Tavily list response with {len(result)} items")
+            
+            # Direct list of results - process each item
+            for item in result:
+                if isinstance(item, dict):
+                    formatted_item = {
+                        "title": item.get("title", ""),
+                        "url": item.get("url", ""),
+                        "content": item.get("content", "")
+                    }
+                    formatted_result["results"].append(formatted_item)
+                    logger.info(f"Added result from list: {formatted_item['title']} ({formatted_item['url']})")
         
-        # Format search results
-        if isinstance(result, dict) and "results" in result:
-            for item in result["results"]:
-                formatted_result["results"].append({
-                    "title": item.get("title", ""),
-                    "url": item.get("url", ""),
-                    "content": item.get("content", "")
-                })
+        elif isinstance(result, dict):
+            # Extract answer if available (dictionary format)
+            if "answer" in result and result["answer"]:
+                formatted_result["answer"] = result["answer"]
+                logger.info(f"Tavily provided answer: {result['answer'][:100]}...(truncated)")
+            
+            # Format search results from dictionary format
+            if "results" in result:
+                for item in result["results"]:
+                    formatted_item = {
+                        "title": item.get("title", ""),
+                        "url": item.get("url", ""),
+                        "content": item.get("content", "")
+                    }
+                    formatted_result["results"].append(formatted_item)
+                    logger.info(f"Added result from dict: {formatted_item['title']} ({formatted_item['url']})")
         
-        # Log success and return
-        logger.info(f"Tavily search successful for '{search_query}'. Found {len(formatted_result['results'])} results.")
+        # Better success/failure logging based on actual results
+        result_count = len(formatted_result['results'])
+        if result_count > 0:
+            logger.info(f"Tavily search SUCCESS for '{search_query}'. Found {result_count} results.")
+        else:
+            logger.warning(f"Tavily search completed but found NO RESULTS for '{search_query}'")
+            # Add answer even when no results to provide some value
+            if 'answer' not in formatted_result or not formatted_result['answer']:
+                formatted_result['answer'] = f"No specific information found for {search_query}. Try modifying your search query."
+                logger.info(f"Added default answer for empty results: {formatted_result['answer']}")
+        
+        logger.info(f"=== TAVILY SEARCH COMPLETE ===")
         return formatted_result
         
     except Exception as e:
-        logger.error(f"Error in Tavily search for '{query}': {e}")
-        return {"error": str(e), "success": False}
+        error_details = str(e)
+        logger.error(f"Error in Tavily search for '{query}': {error_details}")
+        logger.error(f"Exception type: {type(e).__name__}")
+        
+        # Provide more specific error message based on exception type
+        error_message = "Search failed"
+        if "authorization" in error_details.lower() or "api key" in error_details.lower():
+            error_message = "Authentication failed - please check your Tavily API key"
+        elif "timeout" in error_details.lower() or "connection" in error_details.lower():
+            error_message = "Connection error - please check your internet connection"
+        elif "session" in error_details.lower() and "not found" in error_details.lower():
+            error_message = "Session not found - this may be an ADK session issue"
+            logger.error("This appears to be an ADK session issue. Check if your ADK runner and session service are properly configured.")
+        
+        result = {
+            "error": error_message,
+            "error_details": error_details,
+            "success": False,
+            "query": query,
+            "results": []
+        }
+        
+        logger.error(f"=== TAVILY SEARCH FAILED ===")
+        import json
+        logger.error(json.dumps(result))
+        return result
 
 def format_tavily_results_for_agent(results: Dict[str, Any]) -> str:
     """

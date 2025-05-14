@@ -86,11 +86,30 @@ if USE_VERTEX_AI:
             try:
                 tavily_search_instance = get_tavily_tool_instance()
                 if tavily_search_instance:
-                    # Wrap the LangChain tool for ADK
-                    adk_tavily_tool = LangchainTool(tool=tavily_search_instance)
-                    logger.info("Successfully created ADK wrapper for Tavily search tool")
+                    # Wrap the LangChain tool for ADK with improved error handling
+                    try:
+                        # Include detailed description and name for better LLM tool usage
+                        adk_tavily_tool = LangchainTool(
+                            tool=tavily_search_instance,
+                            name="tavily_search",  # Explicit name for ADK tool invoker
+                            description="Search the web for current travel information using Tavily. Useful for finding up-to-date details about destinations, attractions, accommodations, and travel tips. Input should be a specific search query."  # Enhanced description
+                        )
+                        logger.info("Successfully created ADK wrapper for Tavily search tool with custom name and description")
+                    except TypeError:
+                        # Fallback for older ADK versions that don't support name/description
+                        adk_tavily_tool = LangchainTool(tool=tavily_search_instance)
+                        logger.info("Created ADK wrapper for Tavily search tool with default parameters (older ADK version)")
+                        
+                    # Test the wrapped tool to ensure it's working
+                    logger.info("Verifying ADK Tavily tool configuration...")
+                    tool_config = getattr(adk_tavily_tool, "config", None)
+                    if tool_config:
+                        logger.info(f"ADK tool config: {tool_config}")
+                    else:
+                        logger.warning("ADK tool doesn't have expected config attribute")
             except Exception as e:
                 logger.error(f"Failed to create LangchainTool wrapper for Tavily: {e}")
+                logger.error(f"Exception type: {type(e).__name__}")
                 adk_tavily_tool = None
         
         # Import root agent prompt

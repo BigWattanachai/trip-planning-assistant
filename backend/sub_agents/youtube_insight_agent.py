@@ -11,6 +11,19 @@ import logging
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Set up formatter for detailed logs
+detailed_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+# Check if we need to add a file handler
+if not any(isinstance(handler, logging.FileHandler) for handler in logger.handlers):
+    try:
+        file_handler = logging.FileHandler('travel_a2a.log')
+        file_handler.setFormatter(detailed_formatter)
+        logger.addHandler(file_handler)
+        logger.info("Added file handler for YouTube Insight Agent logging")
+    except Exception as e:
+        logger.warning(f"Could not set up file handler for YouTube Insight Agent logging: {e}")
+
 # Add the parent directory to sys.path to allow imports
 parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
 if parent_dir not in sys.path:
@@ -196,16 +209,20 @@ def search_youtube_travel_content(destination: str, content_type: str = "travel 
     Returns:
         dict: Search results or error message
     """
+    logger.info(f"[YouTubeInsightAgent] Search request: destination='{destination}', content_type='{content_type}'")
     if not YOUTUBE_TOOLS_AVAILABLE:
         logger.warning("YouTube tools not available")
         return {"error": "YouTube tools not available"}
     
     try:
         results = search_travel_videos(destination, content_type)
+        logger.info(f"[YouTubeInsightAgent] Successfully completed full analysis for '{destination}'")
         return {"results": results}
     except Exception as e:
-        logger.error(f"Error in search_youtube_travel_content: {e}")
-        return {"error": str(e)}
+        error_details = str(e)
+        logger.error(f"[YouTubeInsightAgent] Exception in search_youtube_travel_content: {error_details}")
+        logger.error(f"[YouTubeInsightAgent] Failed search for destination '{destination}' with content type '{content_type}'")
+        return {"error": error_details}
 
 def analyze_destination_from_youtube(destination: str) -> dict:
     """
@@ -217,6 +234,7 @@ def analyze_destination_from_youtube(destination: str) -> dict:
     Returns:
         dict: Analysis results or error message
     """
+    logger.info(f"[YouTubeInsightAgent] Starting YouTube analysis for destination '{destination}'")
     if not YOUTUBE_TOOLS_AVAILABLE:
         logger.warning("YouTube tools not available")
         return {"error": "YouTube tools not available"}
@@ -249,5 +267,7 @@ def analyze_destination_from_youtube(destination: str) -> dict:
             "videos": videos[:5]
         }
     except Exception as e:
-        logger.error(f"Error in analyze_destination_from_youtube: {e}")
-        return {"error": str(e)}
+        error_details = str(e)
+        logger.error(f"[YouTubeInsightAgent] Exception in analyze_destination_from_youtube: {error_details}")
+        logger.error(f"[YouTubeInsightAgent] Failed to complete analysis for destination '{destination}'")
+        return {"error": error_details}
