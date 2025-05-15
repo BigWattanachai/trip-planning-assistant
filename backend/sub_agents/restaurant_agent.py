@@ -1,139 +1,148 @@
 """
-Restaurant Agent for Travel A2A Backend (Improved).
-This agent provides recommendations for restaurants and dining.
+Restaurant Agent for Travel A2A Backend.
+This agent provides restaurant and food recommendations for travel destinations.
+Uses simplified Agent pattern with Google Search.
 """
 
 import os
-import sys
-import pathlib
 import logging
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Add the parent directory to sys.path to allow imports
-parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
+# Determine mode based on environment variable
+USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
+MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
 
-# Add current directory to sys.path
-current_dir = str(pathlib.Path(__file__).parent.absolute())
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
+# Define the agent instructions
+INSTRUCTION = """
+You are a restaurant and food recommendation agent specializing in Thai destinations.
 
-# Import Tavily search functions if available
-try:
-    from backend_improve.tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-    TAVILY_AVAILABLE = True
-    logger.info("Successfully imported Tavily search functions in restaurant agent")
-except ImportError:
-    try:
-        from tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-        TAVILY_AVAILABLE = True
-        logger.info("Successfully imported Tavily search functions with direct import")
-    except ImportError as e:
-        logger.warning(f"Could not import Tavily search function in restaurant agent: {e}")
-        TAVILY_AVAILABLE = False
+Your expertise is in recommending dining options that match a traveler's taste preferences,
+budget, and dining experience preferences. You focus on both authentic local cuisine and
+options that cater to various dietary needs.
 
-# Only import ADK components if we're using Vertex AI
-if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
+เมื่อผู้ใช้ถามคำถาม:
+1. คุณต้องใช้ google_search tool ทุกครั้งไม่ว่าคำถามจะเป็นอะไรก็ตาม
+2. อธิบายผลลัพธ์อย่างชัดเจนและอ้างอิงแหล่งที่มา
+3. ตอบคำถามด้วยภาษาไทยเสมอ
+
+When recommending restaurants and food options:
+1. Suggest restaurants and eateries across multiple price categories
+2. Include local street food options and markets
+3. Highlight authentic Thai dishes specific to the region
+4. Consider the traveler's dietary preferences (vegetarian, halal, etc.)
+5. Include information about the dining atmosphere and experience
+6. Provide approximate price ranges for meals in Thai Baht
+7. Note signature dishes worth trying at each location
+
+For each recommendation, provide:
+- Name and type of establishment (restaurant, street food stall, market, etc.)
+- Location and how to find it
+- Price range (per meal in Thai Baht)
+- Signature dishes to try
+- Dining experience (casual, upscale, local, etc.)
+- Best times to visit
+- Any special considerations (reservations needed, cash-only, etc.)
+
+Always use google_search to search for current information about food options at the requested destination
+and provide up-to-date, accurate recommendations based on the most recent data.
+
+Format your response with clear headings, bullet points, and a logical organization that
+makes it easy for the traveler to plan their dining experiences. Always respond in Thai language.
+"""
+
+# Only create the ADK agent if we're using Vertex AI
+if USE_VERTEX_AI:
     try:
         from google.adk.agents import Agent
-        from google.adk.tools.langchain_tool import LangchainTool
         from google.adk.tools import google_search
         
-        # Import the model
-        try:
-            from backend_improve import MODEL
-        except (ImportError, ValueError):
-            MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
-        
-        # Import tools and callbacks
+        # Import callbacks if available
         try:
             from backend_improve.shared_libraries.callbacks import rate_limit_callback
             from backend_improve.tools.store_state import store_state_tool
-            from backend_improve.tools.tavily_search import get_tavily_tool_instance
-        except (ImportError, ValueError):
+        except ImportError:
             try:
                 from shared_libraries.callbacks import rate_limit_callback
                 from tools.store_state import store_state_tool
-                from tools.tavily_search import get_tavily_tool_instance
-            except ImportError as e:
-                logger.error(f"Failed to import tools or callbacks: {e}")
+            except ImportError:
+                logger.warning("Could not import callbacks or store_state tool")
                 rate_limit_callback = None
                 store_state_tool = None
-                get_tavily_tool_instance = None
         
-        # Setup Tavily tool using our initialized instance
-        adk_tavily_tool = None
-        if TAVILY_AVAILABLE:
-            try:
-                tavily_search_instance = get_tavily_tool_instance()
-                if tavily_search_instance:
-                    adk_tavily_tool = LangchainTool(tool=tavily_search_instance)
-                    logger.info("Successfully created ADK wrapper for Tavily search tool")
-            except Exception as e:
-                logger.error(f"Failed to create LangchainTool wrapper for Tavily: {e}")
-                adk_tavily_tool = None
-        
-        # Import the prompt
-        PROMPT = """
-        You are a Thai food and dining expert specializing in finding the best authentic culinary
-        experiences for travelers in Thailand. Your goal is to recommend suitable dining options based on the
-        user's preferences, destination, and travel details, with a focus on local cuisine, authentic flavors,
-        and memorable food experiences.
-
-        You have access to a powerful web search tool that lets you find up-to-date information
-        about restaurants, local cuisine, and dining options for the user's destination. Use this tool whenever 
-        you need specific details about:
-        - Current menus and prices
-        - Opening hours and reservation policies
-        - Recent reviews and ratings
-        - Seasonal specialties and local delicacies
-        - New restaurants or changes to existing establishments
-
-        Follow this process for every request:
-        1. Use the search tool to find current information about restaurants and dining options in the specified location
-        2. Use the search tool again to find information about local specialties and cuisine in that region
-        3. Only after gathering this information should you formulate your recommendations
-
-        For each recommendation, provide:
-        - Name in both Thai and English when applicable
-        - Exact location and how to find it
-        - Opening hours and best times to visit
-        - Signature dishes and what makes them special
-        - Price range in Thai Baht (THB)
-
-        Call the store_state tool with key 'restaurant_recommendations' and the value as your
-        detailed restaurant and dining recommendations.
-        """
-        
-        # Create the agent
-        # Setup tools list with available tools
-        tools = []
+        # Set up tools list
+        tools = [google_search]
         if store_state_tool:
             tools.append(store_state_tool)
-        if adk_tavily_tool is not None:
-            tools.append(adk_tavily_tool)
-        # Add Google search tool if available
-        try:
-            tools.append(google_search)
-        except:
-            pass
-            
-        RestaurantAgent = Agent(
-            model=MODEL,
+        
+        # Create the agent using the simplified pattern
+        agent = Agent(
             name="restaurant_agent",
-            description="Recommend restaurants and dining options based on user preferences and requirements.",
-            instruction=PROMPT,
+            model=MODEL,
+            instruction=INSTRUCTION,
             tools=tools,
-            before_model_callback=rate_limit_callback,
+            before_model_callback=rate_limit_callback if rate_limit_callback else None
         )
-        logger.info(f"Restaurant agent created successfully with {len(tools)} tools")
+        
+        logger.info("Restaurant agent created using simplified pattern")
         
     except ImportError as e:
-        logger.error(f"Failed to import ADK components for restaurant agent: {e}")
-        RestaurantAgent = None
+        logger.error(f"Failed to import ADK components: {e}")
+        agent = None
 else:
-    logger.info("Direct API Mode: Restaurant agent not loaded with ADK")
-    RestaurantAgent = None
+    logger.info("Direct API Mode: Restaurant agent not initialized")
+    agent = None
+
+def call_agent(query, session_id=None):
+    """
+    Call the restaurant agent with the given query
+    
+    Args:
+        query: The user query
+        session_id: Optional session ID for conversation tracking
+        
+    Returns:
+        The agent's response
+    """
+    if USE_VERTEX_AI and agent:
+        try:
+            # ADK mode
+            from google.adk.sessions import Session
+            
+            # Create or get existing session
+            session = Session.get(session_id) if session_id else Session()
+            
+            # Call the agent
+            response = agent.stream_query(query, session_id=session.id)
+            return response
+        except Exception as e:
+            logger.error(f"Error calling restaurant agent: {e}")
+            return f"Error: {str(e)}"
+    else:
+        # Direct API mode
+        try:
+            import google.generativeai as genai
+            
+            # Get the API key from environment
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                return "Error: GOOGLE_API_KEY not set"
+                
+            # Configure the Gemini API
+            genai.configure(api_key=api_key)
+            
+            # Get the model to use
+            model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
+            model = genai.GenerativeModel(model_name)
+            
+            # Prepare a system message with the agent's instructions
+            prompt = INSTRUCTION + "\n\nQuery: " + query
+            
+            # Call the model
+            response = model.generate_content(prompt)
+            
+            return response.text
+        except Exception as e:
+            logger.error(f"Error in direct API mode: {e}")
+            return f"Error: {str(e)}"

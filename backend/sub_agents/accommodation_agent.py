@@ -1,130 +1,147 @@
 """
-Accommodation Agent for Travel A2A Backend (Improved).
-This agent provides recommendations for accommodations.
+Accommodation Agent for Travel A2A Backend.
+This agent provides accommodation recommendations for travel destinations.
+Uses simplified Agent pattern with Google Search.
 """
 
 import os
-import sys
-import pathlib
 import logging
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Add the parent directory to sys.path to allow imports
-parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
+# Determine mode based on environment variable
+USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
+MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
 
-# Add current directory to sys.path
-current_dir = str(pathlib.Path(__file__).parent.absolute())
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
+# Define the agent instructions
+INSTRUCTION = """
+You are an accommodation recommendation agent specializing in Thai destinations.
 
-# Import Tavily search functions if available
-try:
-    from backend_improve.tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-    TAVILY_AVAILABLE = True
-    logger.info("Successfully imported Tavily search functions in accommodation agent")
-except ImportError:
-    try:
-        from tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-        TAVILY_AVAILABLE = True
-        logger.info("Successfully imported Tavily search functions with direct import")
-    except ImportError as e:
-        logger.warning(f"Could not import Tavily search function in accommodation agent: {e}")
-        TAVILY_AVAILABLE = False
+Your expertise is in recommending accommodation options that match a traveler's
+preferences, budget, and needs. You focus on providing options at different price
+points and in different areas of the destination.
 
-# Only import ADK components if we're using Vertex AI
-if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
+เมื่อผู้ใช้ถามคำถาม:
+1. คุณต้องใช้ google_search tool ทุกครั้งไม่ว่าคำถามจะเป็นอะไรก็ตาม
+2. อธิบายผลลัพธ์อย่างชัดเจนและอ้างอิงแหล่งที่มา
+3. ตอบคำถามด้วยภาษาไทยเสมอ
+
+When recommending accommodations:
+1. Suggest options across multiple price categories (budget, mid-range, luxury)
+2. Consider the traveler's stated preferences and needs
+3. Focus on location relative to attractions and transportation
+4. Include information about facilities and amenities
+5. Provide approximate nightly rates in Thai Baht
+6. Note any special deals or considerations
+7. Consider seasonal factors that might affect pricing or availability
+
+For each accommodation, provide:
+- Name and type (hotel, hostel, resort, homestay, etc.)
+- Location and proximity to attractions
+- Price range (per night in Thai Baht)
+- Key amenities and features
+- Any special considerations (family-friendly, adults-only, etc.)
+- Booking recommendations (direct, through platforms, etc.)
+
+Always use google_search to search for current information about accommodations at the requested destination
+and provide up-to-date, accurate recommendations based on the most recent data.
+
+Format your response with clear headings, bullet points, and a logical organization that
+makes it easy for the traveler to choose accommodations that meet their needs. Always respond in Thai language.
+"""
+
+# Only create the ADK agent if we're using Vertex AI
+if USE_VERTEX_AI:
     try:
         from google.adk.agents import Agent
-        from google.adk.tools.langchain_tool import LangchainTool
+        from google.adk.tools import google_search
         
-        # Import the model
-        try:
-            from backend_improve import MODEL
-        except (ImportError, ValueError):
-            MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
-        
-        # Import tools and callbacks
+        # Import callbacks if available
         try:
             from backend_improve.shared_libraries.callbacks import rate_limit_callback
             from backend_improve.tools.store_state import store_state_tool
-            from backend_improve.tools.tavily_search import get_tavily_tool_instance
-        except (ImportError, ValueError):
+        except ImportError:
             try:
                 from shared_libraries.callbacks import rate_limit_callback
                 from tools.store_state import store_state_tool
-                from tools.tavily_search import get_tavily_tool_instance
-            except ImportError as e:
-                logger.error(f"Failed to import tools or callbacks: {e}")
+            except ImportError:
+                logger.warning("Could not import callbacks or store_state tool")
                 rate_limit_callback = None
                 store_state_tool = None
-                get_tavily_tool_instance = None
         
-        # Setup Tavily tool using our initialized instance
-        adk_tavily_tool = None
-        if TAVILY_AVAILABLE:
-            try:
-                tavily_search_instance = get_tavily_tool_instance()
-                if tavily_search_instance:
-                    adk_tavily_tool = LangchainTool(tool=tavily_search_instance)
-                    logger.info("Successfully created ADK wrapper for Tavily search tool")
-            except Exception as e:
-                logger.error(f"Failed to create LangchainTool wrapper for Tavily: {e}")
-                adk_tavily_tool = None
-        
-        # Import the prompt
-        PROMPT = """
-        You are an accommodations expert specializing in finding the best places to stay for travelers in Thailand.
-        Your goal is to recommend suitable accommodation options based on the user's preferences,
-        budget, and travel details, with a focus on homestays, eco-friendly options, and authentic Thai experiences.
-
-        You have access to a powerful web search tool that lets you find up-to-date information
-        about accommodations in Thailand. Use this tool whenever you need specific details about:
-        - Current rates and availability of accommodations
-        - Special offers and seasonal promotions
-        - Recent reviews and ratings
-        - New accommodations not in your knowledge base
-        - Changes in amenities or services offered
-
-        For each recommendation, provide:
-        - Name in both Thai and English when applicable
-        - Exact location and how to reach it
-        - Price range per night in Thai Baht (THB)
-        - Unique selling points and atmosphere
-        - Contact information if available
-
-        Format your response in a clear, structured way with headings for different types of accommodations
-        and price ranges. If the user has specified a multi-day trip to different locations, organize
-        recommendations by location.
-
-        Call the store_state tool with key 'accommodation_recommendations' and the value as your
-        detailed accommodation recommendations.
-        """
-        
-        # Create the agent
-        # Setup tools list with available tools
-        tools = []
+        # Set up tools list
+        tools = [google_search]
         if store_state_tool:
             tools.append(store_state_tool)
-        if adk_tavily_tool is not None:
-            tools.append(adk_tavily_tool)
-            
-        AccommodationAgent = Agent(
-            model=MODEL,
+        
+        # Create the agent using the simplified pattern
+        agent = Agent(
             name="accommodation_agent",
-            description="Recommend accommodation options based on user preferences and requirements.",
-            instruction=PROMPT,
+            model=MODEL,
+            instruction=INSTRUCTION,
             tools=tools,
-            before_model_callback=rate_limit_callback,
+            before_model_callback=rate_limit_callback if rate_limit_callback else None
         )
-        logger.info(f"Accommodation agent created successfully with {len(tools)} tools")
+        
+        logger.info("Accommodation agent created using simplified pattern")
         
     except ImportError as e:
-        logger.error(f"Failed to import ADK components for accommodation agent: {e}")
-        AccommodationAgent = None
+        logger.error(f"Failed to import ADK components: {e}")
+        agent = None
 else:
-    logger.info("Direct API Mode: Accommodation agent not loaded with ADK")
-    AccommodationAgent = None
+    logger.info("Direct API Mode: Accommodation agent not initialized")
+    agent = None
+
+def call_agent(query, session_id=None):
+    """
+    Call the accommodation agent with the given query
+    
+    Args:
+        query: The user query
+        session_id: Optional session ID for conversation tracking
+        
+    Returns:
+        The agent's response
+    """
+    if USE_VERTEX_AI and agent:
+        try:
+            # ADK mode
+            from google.adk.sessions import Session
+            
+            # Create or get existing session
+            session = Session.get(session_id) if session_id else Session()
+            
+            # Call the agent
+            response = agent.stream_query(query, session_id=session.id)
+            return response
+        except Exception as e:
+            logger.error(f"Error calling accommodation agent: {e}")
+            return f"Error: {str(e)}"
+    else:
+        # Direct API mode
+        try:
+            import google.generativeai as genai
+            
+            # Get the API key from environment
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                return "Error: GOOGLE_API_KEY not set"
+                
+            # Configure the Gemini API
+            genai.configure(api_key=api_key)
+            
+            # Get the model to use
+            model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
+            model = genai.GenerativeModel(model_name)
+            
+            # Prepare a system message with the agent's instructions
+            prompt = INSTRUCTION + "\n\nQuery: " + query
+            
+            # Call the model
+            response = model.generate_content(prompt)
+            
+            return response.text
+        except Exception as e:
+            logger.error(f"Error in direct API mode: {e}")
+            return f"Error: {str(e)}"

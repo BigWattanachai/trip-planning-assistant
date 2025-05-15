@@ -56,4 +56,3 @@ TAVILY_AVAILABLE = initialize_tavily_search() is not None
 
 logging.info(f"Backend initialized in {'Vertex AI (ADK)' if USE_VERTEX_AI else 'Direct API'} mode")
 logging.info(f"Using model: {MODEL}")
-logging.info(f"Tavily search available: {TAVILY_AVAILABLE}")

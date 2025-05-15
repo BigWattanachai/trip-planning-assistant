@@ -9,8 +9,17 @@ import json
 from typing import Dict, Any, AsyncGenerator, Optional
 from dotenv import load_dotenv
 
-# Setup basic logging
-logging.basicConfig(level=logging.INFO)
+# Setup enhanced logging with no truncation
+import sys
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+# Disable log truncation
+logging.getLogger().handlers[0].terminator = "\n"
 logger = logging.getLogger(__name__)
 
 # Load environment variables
@@ -31,21 +40,7 @@ current_dir = str(pathlib.Path(__file__).parent.absolute())
 if current_dir not in sys.path:
     sys.path.append(current_dir)
 
-# Import common modules
-try:
-    # Try with backend-improve prefix first
-    try:
-        from backend_improve.tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-        TAVILY_AVAILABLE = True
-        logger.info("Successfully imported Tavily search functions with backend_improve prefix")
-    except ImportError:
-        # Try direct import
-        from tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-        TAVILY_AVAILABLE = True
-        logger.info("Successfully imported Tavily search functions with direct import")
-except ImportError as e:
-    logger.warning(f"Could not import Tavily search function: {e}")
-    TAVILY_AVAILABLE = False
+# No external search tools are being used
 
 # Determine if using Vertex AI or direct Gemini API
 USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
@@ -83,7 +78,7 @@ if USE_VERTEX_AI:
             # Try direct import
             from agent import root_agent
             logger.info("Successfully imported root_agent from agent module")
-        
+
         # Import ADK components if root_agent is available
         if root_agent is not None:
             from vertexai.preview.reasoning_engines import AdkApp
@@ -117,7 +112,7 @@ else:
         def call_sub_agent(agent_type, query, session_id=None):
             logger.error(f"Fallback call_sub_agent: {agent_type}")
             return f"Could not call {agent_type} agent"
-            
+
         def extract_travel_info(query):
             return {
                 "origin": "กรุงเทพ",
@@ -180,10 +175,10 @@ async def get_agent_response_async(
                     except Exception as fallback_err:
                         logger.error(f"Even fallback session creation failed: {fallback_err}")
                         raise
-                
+
                 # Add robust error handling around the stream_query method
                 logger.info(f"Sending message to ADK stream_query: '{user_message[:50]}...'")
-                
+
                 # Add timeout handling for stream_query
                 import asyncio
                 # Process the message through ADK app with timeout monitoring
@@ -196,7 +191,7 @@ async def get_agent_response_async(
                     # Log detailed event information
                     response_started = True
                     logger.info(f"Received ADK event: {type(event)}, keys: {event.keys() if hasattr(event, 'keys') else 'No keys method'}")
-                    
+
                     # Handle content in response
                     if "content" in event:
                         if "parts" in event["content"]:
@@ -207,15 +202,11 @@ async def get_agent_response_async(
                                     accumulated_text += text_part
                                     yield {"message": text_part, "partial": True}
                                     logger.info(f"Yielded partial response: {text_part[:50]}...")
-                    
-                    # Also handle tool responses that might contain Tavily search results
+
+                    # Log any tool outputs received
                     if "toolOutputs" in event:
                         logger.info(f"Received tool outputs: {event['toolOutputs']}")
-                        for tool_output in event["toolOutputs"]:
-                            if tool_output.get("toolName", "") == "tavily_search":
-                                logger.info(f"Processing Tavily search tool output")
-                                # Just log it - ADK will handle using the tool results automatically
-                
+
                 if not response_started:
                     logger.warning("ADK stream_query completed but no events were received")
 
@@ -230,13 +221,13 @@ async def get_agent_response_async(
             except Exception as e:
                 logger.error(f"Error processing with ADK: {str(e)}")
                 logger.error(f"Error type: {type(e).__name__}")
-                
+
                 # Provide more specific error message for session errors
                 error_message = "ขออภัยค่ะ มีปัญหาในการประมวลผล กำลังลองวิธีอื่น..."
                 if "session not found" in str(e).lower():
                     logger.error("ADK SESSION NOT FOUND error detected")
                     error_message = "ขออภัยค่ะ เซสชันหายไป กำลังสร้างเซสชันใหม่และลองอีกครั้ง..."
-                    
+
                     # Try once more with a fresh session if it's a session error
                     if retry_count < 1:  # Only retry once
                         logger.info("Retrying with fresh session...")
@@ -250,7 +241,7 @@ async def get_agent_response_async(
                             return  # Exit after retry completes
                         except Exception as retry_err:
                             logger.error(f"Retry with fresh session also failed: {retry_err}")
-                
+
                 # Fall back to direct API if ADK fails or after retry
                 yield {"message": error_message, "partial": True}
                 logger.info("Falling back to direct API mode after ADK failure")
@@ -273,48 +264,39 @@ async def get_agent_response_async(
                 destination = travel_info.get("destination", "")
                 logger.info(f"Extracted destination: {destination}")
 
-                # Search for destination information if Tavily is available
+                # No external search is being used
                 destination_info = ""
-                if TAVILY_AVAILABLE and destination and destination != "ไม่ระบุ" and destination != "ภายในประเทศไทย":
-                    try:
-                        logger.info(f"Searching for information about {destination}")
-                        yield {"message": f"กำลังค้นหาข้อมูลเกี่ยวกับ {destination}...", "partial": True}
-                        
-                        # Search for travel information
-                        search_results = search_with_tavily(
-                            query=f"travel guide tourist information {destination} 2025",
-                            location=destination,
-                            max_results=5
-                        )
-                        
-                        if search_results and search_results.get("success", False):
-                            destination_info = format_tavily_results_for_agent(search_results)
-                            logger.info(f"Found destination information: {len(destination_info)} characters")
-                        else:
-                            logger.warning("No search results found for the destination")
-                    except Exception as e:
-                        logger.error(f"Error searching for destination information: {e}")
 
-                # Call each sub-agent in sequence
+                # Call each sub-agent in sequence with detailed logging
                 logger.info("Calling transportation sub-agent")
+                logger.info(f"Transportation sub-agent input: {user_message}")
                 transportation_response = call_sub_agent("transportation", user_message, session_id)
+                logger.info(f"Transportation sub-agent response (FULL): {transportation_response}")
                 yield {"message": "กำลังหาข้อมูลเกี่ยวกับการเดินทาง...", "partial": True}
 
                 logger.info("Calling accommodation sub-agent")
+                logger.info(f"Accommodation sub-agent input: {user_message}")
                 accommodation_response = call_sub_agent("accommodation", user_message, session_id)
+                logger.info(f"Accommodation sub-agent response (FULL): {accommodation_response}")
                 yield {"message": "กำลังรวบรวมข้อมูลที่พัก...", "partial": True}
 
                 logger.info("Calling restaurant sub-agent")
+                logger.info(f"Restaurant sub-agent input: {user_message}")
                 restaurant_response = call_sub_agent("restaurant", user_message, session_id)
+                logger.info(f"Restaurant sub-agent response (FULL): {restaurant_response}")
                 yield {"message": "กำลังหาร้านอาหารที่น่าสนใจ...", "partial": True}
 
                 logger.info("Calling activity sub-agent")
+                logger.info(f"Activity sub-agent input: {user_message}")
                 activity_response = call_sub_agent("activity", user_message, session_id)
+                logger.info(f"Activity sub-agent response (FULL): {activity_response}")
                 yield {"message": "กำลังรวบรวมข้อมูลสถานที่ท่องเที่ยวและกิจกรรมที่น่าสนใจ...", "partial": True}
-                
+
                 # Call our new YouTube insight agent
                 logger.info("Calling YouTube insight sub-agent")
+                logger.info(f"YouTube insight sub-agent input: {user_message}")
                 youtube_insight_response = call_sub_agent("youtube_insight", user_message, session_id)
+                logger.info(f"YouTube insight sub-agent response (FULL): {youtube_insight_response}")
                 yield {"message": "กำลังวิเคราะห์ข้อมูลจากวิดีโอ YouTube เกี่ยวกับจุดหมายปลายทาง...", "partial": True}
 
                 # Finally, call the travel planner to create a comprehensive plan
@@ -322,9 +304,6 @@ async def get_agent_response_async(
                 # Include info from other sub-agents in the travel planner's input
                 enhanced_query = f"""
                 {user_message}
-
-                ข้อมูลจากการค้นหา:
-                {destination_info[:5000] if destination_info else "ไม่มีข้อมูลจากการค้นหา"}
 
                 ข้อมูลการเดินทาง:
                 {transportation_response[:5000] if transportation_response else "ไม่มีข้อมูล"}
@@ -337,24 +316,68 @@ async def get_agent_response_async(
 
                 ข้อมูลสถานที่ท่องเที่ยวและกิจกรรม:
                 {activity_response[:5000] if activity_response else "ไม่มีข้อมูล"}
-                
+
                 ข้อมูลเชิงลึกจาก YouTube:
                 {youtube_insight_response[:10000] if youtube_insight_response else "ไม่มีข้อมูล"}
                 """
 
-                # Log the enhanced query for debugging
-                logger.info(f"Enhanced query for travel planner: {enhanced_query[:500000]}...")
+                # Log the enhanced query for debugging (full version)
+                logger.info(f"Enhanced query for travel planner (FULL): {enhanced_query}")
+
+                # Also log each section separately for better readability
+                logger.info("--- ENHANCED QUERY SECTIONS ---")
+                logger.info(f"Original user message: {user_message}")
+                logger.info(f"Transportation info: {transportation_response[:1000]}..." if transportation_response else "Transportation info: None")
+                logger.info(f"Accommodation info: {accommodation_response[:1000]}..." if accommodation_response else "Accommodation info: None")
+                logger.info(f"Restaurant info: {restaurant_response[:1000]}..." if restaurant_response else "Restaurant info: None")
+                logger.info(f"Activity info: {activity_response[:1000]}..." if activity_response else "Activity info: None")
+                logger.info(f"YouTube insight info: {youtube_insight_response[:1000]}..." if youtube_insight_response else "YouTube insight info: None")
+                logger.info("--- END OF ENHANCED QUERY SECTIONS ---")
+
+                # Save the enhanced query to a file for easier inspection
+                try:
+                    import os
+                    from datetime import datetime
+                    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+                    os.makedirs(log_dir, exist_ok=True)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    log_file = os.path.join(log_dir, f"enhanced_query_{timestamp}.txt")
+                    with open(log_file, "w", encoding="utf-8") as f:
+                        f.write(f"SESSION ID: {session_id}\n\n")
+                        f.write(f"ORIGINAL QUERY:\n{user_message}\n\n")
+                        f.write(f"ENHANCED QUERY:\n{enhanced_query}\n")
+                    logger.info(f"Enhanced query saved to file: {log_file}")
+                except Exception as e:
+                    logger.error(f"Failed to save enhanced query to file: {e}")
 
                 yield {"message": "กำลังจัดทำแผนการเดินทางแบบสมบูรณ์...", "partial": True}
 
+                logger.info("Calling travel planner sub-agent with enhanced query")
                 travel_plan = call_sub_agent("travel_planner", enhanced_query, session_id)
+                logger.info("Travel planner sub-agent call completed")
 
                 # Ensure the travel plan has the proper format
                 if travel_plan and "===== แผนการเดินทางของคุณ =====" not in travel_plan:
                     travel_plan = "===== แผนการเดินทางของคุณ =====\n\n" + travel_plan
 
                 # Log the complete travel plan
-                logger.info(f"Travel plan created: {travel_plan[:100]}...")
+                logger.info(f"Travel plan created (FULL): {travel_plan}")
+
+                # Save the travel plan to a file for easier inspection
+                try:
+                    import os
+                    from datetime import datetime
+                    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+                    os.makedirs(log_dir, exist_ok=True)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    log_file = os.path.join(log_dir, f"travel_plan_{timestamp}.txt")
+                    with open(log_file, "w", encoding="utf-8") as f:
+                        f.write(f"SESSION ID: {session_id}\n\n")
+                        f.write(f"ORIGINAL QUERY:\n{user_message}\n\n")
+                        f.write(f"TRAVEL PLAN:\n{travel_plan}\n")
+                    logger.info(f"Travel plan saved to file: {log_file}")
+                except Exception as e:
+                    logger.error(f"Failed to save travel plan to file: {e}")
 
                 # Send the final comprehensive travel plan - CRITICAL FIX: ensure this is marked as final
                 yield {"message": travel_plan, "final": True}
@@ -378,50 +401,15 @@ async def process_with_direct_api(user_message: str, session_id: Optional[str] =
         query_type = classify_query(user_message)
         logger.info(f"Query classified as: {query_type}")
 
-        # Search for relevant information if Tavily is available
+        # No external search is being used
         search_results = None
-        if TAVILY_AVAILABLE and query_type != "general":
-            try:
-                # Extract relevant information for search
-                travel_info = extract_travel_info(user_message)
-                destination = travel_info.get("destination", "")
-                
-                if destination and destination != "ไม่ระบุ" and destination != "ภายในประเทศไทย":
-                    logger.info(f"Searching for information about {destination} related to {query_type}")
-                    yield {"message": f"กำลังค้นหาข้อมูลที่เกี่ยวข้อง...", "partial": True}
-                    
-                    # Map query types to search query templates
-                    search_queries = {
-                        "accommodation": f"best hotels and accommodation in {destination} 2025",
-                        "activity": f"top tourist attractions and activities in {destination} 2025",
-                        "restaurant": f"best restaurants and local cuisine in {destination}",
-                        "transportation": f"transportation options and how to get to {destination}",
-                        "travel_planner": f"travel guide tourist information {destination} 2025"
-                    }
-                    
-                    # Get the appropriate search query
-                    search_query = search_queries.get(query_type, f"{destination} tourist information")
-                    
-                    # Execute search
-                    search_results = search_with_tavily(search_query, destination)
-                    
-                    if search_results and search_results.get("success", False):
-                        logger.info(f"Found relevant information for {query_type}")
-                    else:
-                        logger.warning(f"No search results found for {destination} related to {query_type}")
-            except Exception as e:
-                logger.error(f"Error searching for relevant information: {e}")
 
         if query_type != "general":
             # Call appropriate sub-agent for specialized queries
-            
-            # Enhance query with search results if available
+
+            # No search results to enhance query
             enhanced_query = user_message
-            if search_results and search_results.get("success", False):
-                formatted_results = format_tavily_results_for_agent(search_results)
-                enhanced_query += f"\n\nข้อมูลจากการค้นหาล่าสุด:\n{formatted_results}"
-                logger.info("Added search results to query")
-            
+
             specialized_response = call_sub_agent(query_type, enhanced_query, session_id)
 
             # Ensure we have a complete response
@@ -444,11 +432,7 @@ async def process_with_direct_api(user_message: str, session_id: Optional[str] =
 โปรดให้คำแนะนำที่เป็นประโยชน์ที่สุดในการตอบคำถามนี้ โดยให้ข้อมูลเกี่ยวกับการท่องเที่ยว ที่พัก ร้านอาหาร หรือกิจกรรมต่างๆ ตามที่เหมาะสม
 """
 
-        # If Tavily information is available, add it to the prompt
-        if search_results and search_results.get("success", False):
-            formatted_results = format_tavily_results_for_agent(search_results)
-            prompt += f"\n\nข้อมูลจากการค้นหาล่าสุด:\n{formatted_results}"
-            logger.info("Added search results to general prompt")
+        # No external search results to add to the prompt
 
         logger.info(f"Sending prompt to Gemini API: {prompt[:100]}...")
 
@@ -527,7 +511,7 @@ def classify_query(query: str) -> str:
     if any(word in query_lower for word in ["การเดินทาง", "รถ", "เครื่องบิน", "รถไฟ", "รถทัวร์"]):
         logger.info("Query classified as transportation")
         return "transportation"
-        
+
     # YouTube Insights
     if any(word in query_lower for word in ["youtube", "วิดีโอ", "ยูทูป", "คลิป", "รีวิว", "vlog", "วล็อก"]):
         logger.info("Query classified as youtube_insight")

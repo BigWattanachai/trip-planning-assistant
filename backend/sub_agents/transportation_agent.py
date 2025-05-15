@@ -1,127 +1,153 @@
 """
-Transportation Agent for Travel A2A Backend (Improved).
-This agent provides recommendations for transportation options.
+Transportation Agent for Travel A2A Backend.
+This agent provides transportation recommendations for travel destinations.
+Uses simplified Agent pattern with Google Search.
 """
 
 import os
-import sys
-import pathlib
 import logging
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Add the parent directory to sys.path to allow imports
-parent_dir = str(pathlib.Path(__file__).parent.parent.absolute())
-if parent_dir not in sys.path:
-    sys.path.append(parent_dir)
+# Determine mode based on environment variable
+USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
+MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
 
-# Add current directory to sys.path
-current_dir = str(pathlib.Path(__file__).parent.absolute())
-if current_dir not in sys.path:
-    sys.path.append(current_dir)
+# Define the agent instructions
+INSTRUCTION = """
+You are a transportation recommendation agent specializing in Thai destinations.
 
-# Import Tavily search functions if available
-try:
-    from backend_improve.tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-    TAVILY_AVAILABLE = True
-    logger.info("Successfully imported Tavily search functions in transportation agent")
-except ImportError:
-    try:
-        from tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-        TAVILY_AVAILABLE = True
-        logger.info("Successfully imported Tavily search functions with direct import")
-    except ImportError as e:
-        logger.warning(f"Could not import Tavily search function in transportation agent: {e}")
-        TAVILY_AVAILABLE = False
+Your expertise is in recommending transportation options that help travelers get to and
+around their destination efficiently and affordably. You provide comprehensive information
+about all available transportation methods.
 
-# Only import ADK components if we're using Vertex AI
-if os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes"):
+เมื่อผู้ใช้ถามคำถาม:
+1. คุณต้องใช้ google_search tool ทุกครั้งไม่ว่าคำถามจะเป็นอะไรก็ตาม
+2. อธิบายผลลัพธ์อย่างชัดเจนและอ้างอิงแหล่งที่มา
+3. ตอบคำถามด้วยภาษาไทยเสมอ
+
+When recommending transportation:
+1. Cover both transportation to the destination and local transportation options
+2. Include multiple options across different price ranges and convenience levels
+3. Provide specific details on public transportation routes and schedules
+4. Include private transportation options (taxis, ride-sharing, rentals)
+5. Note approximate costs for each option in Thai Baht
+6. Provide estimated travel times and frequency of service
+7. Include any special transportation options unique to the destination
+
+For transportation to the destination:
+- Airlines, trains, buses serving the route
+- Frequency of service and approximate duration
+- Price ranges and booking recommendations
+- Airport/station transfer information
+
+For local transportation:
+- Public transportation options (bus, metro, songthaew, etc.)
+- Taxi and ride-sharing services
+- Rental options (car, motorbike, bicycle)
+- Walking feasibility for major attractions
+- Transportation apps that work in the area
+- Day trip transportation options
+
+Always use google_search to search for current information about transportation at the requested destination
+and provide up-to-date, accurate recommendations based on the most recent data.
+
+Format your response with clear headings, bullet points, and a logical organization that
+makes it easy for the traveler to understand all their transportation options. Always respond in Thai language.
+"""
+
+# Only create the ADK agent if we're using Vertex AI
+if USE_VERTEX_AI:
     try:
         from google.adk.agents import Agent
-        from google.adk.tools.langchain_tool import LangchainTool
+        from google.adk.tools import google_search
         
-        # Import the model
-        try:
-            from backend_improve import MODEL
-        except (ImportError, ValueError):
-            MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
-        
-        # Import tools and callbacks
+        # Import callbacks if available
         try:
             from backend_improve.shared_libraries.callbacks import rate_limit_callback
             from backend_improve.tools.store_state import store_state_tool
-            from backend_improve.tools.tavily_search import get_tavily_tool_instance
-        except (ImportError, ValueError):
+        except ImportError:
             try:
                 from shared_libraries.callbacks import rate_limit_callback
                 from tools.store_state import store_state_tool
-                from tools.tavily_search import get_tavily_tool_instance
-            except ImportError as e:
-                logger.error(f"Failed to import tools or callbacks: {e}")
+            except ImportError:
+                logger.warning("Could not import callbacks or store_state tool")
                 rate_limit_callback = None
                 store_state_tool = None
-                get_tavily_tool_instance = None
         
-        # Setup Tavily tool using our initialized instance
-        adk_tavily_tool = None
-        if TAVILY_AVAILABLE:
-            try:
-                tavily_search_instance = get_tavily_tool_instance()
-                if tavily_search_instance:
-                    adk_tavily_tool = LangchainTool(tool=tavily_search_instance)
-                    logger.info("Successfully created ADK wrapper for Tavily search tool")
-            except Exception as e:
-                logger.error(f"Failed to create LangchainTool wrapper for Tavily: {e}")
-                adk_tavily_tool = None
-        
-        # Import the prompt
-        PROMPT = """
-        You are a transportation expert specializing in helping travelers navigate Thailand's diverse
-        transportation systems. Your goal is to recommend suitable transportation options based on the
-        user's travel details, with a focus on both efficiency and experiencing the local travel culture.
-
-        You have access to a powerful web search tool that lets you find up-to-date information
-        about transportation options in Thailand. Use this tool whenever you need specific details about:
-        - Current schedules and timetables for transportation services
-        - Fare information and ticket prices
-        - Recent changes to routes or services
-        - Special transportation options or restrictions
-        - Seasonal variations in transportation services
-
-        For each recommendation, provide:
-        - Service name in both Thai and English when applicable
-        - Departure and arrival points with specific terminal information
-        - Schedule information and frequency
-        - Fare information in Thai Baht (THB)
-        - Booking methods (websites, apps, phone numbers)
-        - Comfort level and amenities
-
-        Call the store_state tool with key 'transportation_recommendations' and the value as your
-        detailed transportation recommendations.
-        """
-        
-        # Create the agent
-        # Setup tools list with available tools
-        tools = []
+        # Set up tools list
+        tools = [google_search]
         if store_state_tool:
             tools.append(store_state_tool)
-        if adk_tavily_tool is not None:
-            tools.append(adk_tavily_tool)
-            
-        TransportationAgent = Agent(
-            model=MODEL,
+        
+        # Create the agent using the simplified pattern
+        agent = Agent(
             name="transportation_agent",
-            description="Recommend transportation options based on user travel details.",
-            instruction=PROMPT,
+            model=MODEL,
+            instruction=INSTRUCTION,
             tools=tools,
-            before_model_callback=rate_limit_callback,
+            before_model_callback=rate_limit_callback if rate_limit_callback else None
         )
-        logger.info(f"Transportation agent created successfully with {len(tools)} tools")
+        
+        logger.info("Transportation agent created using simplified pattern")
         
     except ImportError as e:
-        logger.error(f"Failed to import ADK components for transportation agent: {e}")
-        TransportationAgent = None
+        logger.error(f"Failed to import ADK components: {e}")
+        agent = None
 else:
-    logger.info("Direct API Mode: Transportation agent not loaded with ADK")
-    TransportationAgent = None
+    logger.info("Direct API Mode: Transportation agent not initialized")
+    agent = None
+
+def call_agent(query, session_id=None):
+    """
+    Call the transportation agent with the given query
+    
+    Args:
+        query: The user query
+        session_id: Optional session ID for conversation tracking
+        
+    Returns:
+        The agent's response
+    """
+    if USE_VERTEX_AI and agent:
+        try:
+            # ADK mode
+            from google.adk.sessions import Session
+            
+            # Create or get existing session
+            session = Session.get(session_id) if session_id else Session()
+            
+            # Call the agent
+            response = agent.stream_query(query, session_id=session.id)
+            return response
+        except Exception as e:
+            logger.error(f"Error calling transportation agent: {e}")
+            return f"Error: {str(e)}"
+    else:
+        # Direct API mode
+        try:
+            import google.generativeai as genai
+            
+            # Get the API key from environment
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                return "Error: GOOGLE_API_KEY not set"
+                
+            # Configure the Gemini API
+            genai.configure(api_key=api_key)
+            
+            # Get the model to use
+            model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
+            model = genai.GenerativeModel(model_name)
+            
+            # Prepare a system message with the agent's instructions
+            prompt = INSTRUCTION + "\n\nQuery: " + query
+            
+            # Call the model
+            response = model.generate_content(prompt)
+            
+            return response.text
+        except Exception as e:
+            logger.error(f"Error in direct API mode: {e}")
+            return f"Error: {str(e)}"

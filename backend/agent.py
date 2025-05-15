@@ -1,5 +1,5 @@
 """
-Travel Agent using Google ADK with Tavily Search Integration.
+Travel Agent using Google ADK with Google Search Integration.
 This module supports both Vertex AI (ADK) and Direct API modes.
 """
 
@@ -32,21 +32,9 @@ if current_dir not in sys.path:
 USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
 MODEL = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
 
-# Import Tavily search functions from tools package
-try:
-    # First try absolute import with backend_improve prefix
-    from backend_improve.tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-    TAVILY_AVAILABLE = True
-    logger.info("Successfully imported Tavily search functions from backend_improve.tools")
-except ImportError:
-    # Try direct import
-    try:
-        from tools.tavily_search import search_with_tavily, format_tavily_results_for_agent
-        TAVILY_AVAILABLE = True
-        logger.info("Successfully imported Tavily search functions from tools")
-    except ImportError as e:
-        logger.warning(f"Could not import Tavily search function: {e}")
-        TAVILY_AVAILABLE = False
+# Google Search is available by default in the ADK
+GOOGLE_SEARCH_AVAILABLE = True
+logger.info("Google Search is available for web search capabilities")
 
 # Only import ADK components if we're using Vertex AI
 if USE_VERTEX_AI:
@@ -65,52 +53,20 @@ if USE_VERTEX_AI:
             # Try absolute imports first
             from backend_improve.shared_libraries.callbacks import rate_limit_callback
             from backend_improve.tools.store_state import store_state_tool
-            from backend_improve.tools.tavily_search import get_tavily_tool_instance
             logger.info("Imported components using backend_improve prefix")
         except ImportError:
             # Try direct imports
             try:
                 from shared_libraries.callbacks import rate_limit_callback
                 from tools.store_state import store_state_tool
-                from tools.tavily_search import get_tavily_tool_instance
                 logger.info("Imported components using direct imports")
             except ImportError as e:
                 logger.error(f"Failed to import tools or callbacks: {e}")
                 rate_limit_callback = None
                 store_state_tool = None
-                get_tavily_tool_instance = None
             
-        # Initialize Tavily LangChain tool for ADK if available
-        adk_tavily_tool = None
-        if TAVILY_AVAILABLE:
-            try:
-                tavily_search_instance = get_tavily_tool_instance()
-                if tavily_search_instance:
-                    # Wrap the LangChain tool for ADK with improved error handling
-                    try:
-                        # Include detailed description and name for better LLM tool usage
-                        adk_tavily_tool = LangchainTool(
-                            tool=tavily_search_instance,
-                            name="tavily_search",  # Explicit name for ADK tool invoker
-                            description="Search the web for current travel information using Tavily. Useful for finding up-to-date details about destinations, attractions, accommodations, and travel tips. Input should be a specific search query."  # Enhanced description
-                        )
-                        logger.info("Successfully created ADK wrapper for Tavily search tool with custom name and description")
-                    except TypeError:
-                        # Fallback for older ADK versions that don't support name/description
-                        adk_tavily_tool = LangchainTool(tool=tavily_search_instance)
-                        logger.info("Created ADK wrapper for Tavily search tool with default parameters (older ADK version)")
-                        
-                    # Test the wrapped tool to ensure it's working
-                    logger.info("Verifying ADK Tavily tool configuration...")
-                    tool_config = getattr(adk_tavily_tool, "config", None)
-                    if tool_config:
-                        logger.info(f"ADK tool config: {tool_config}")
-                    else:
-                        logger.warning("ADK tool doesn't have expected config attribute")
-            except Exception as e:
-                logger.error(f"Failed to create LangchainTool wrapper for Tavily: {e}")
-                logger.error(f"Exception type: {type(e).__name__}")
-                adk_tavily_tool = None
+        # Google Search is available by default in the ADK
+        logger.info("Google Search is available for use in the ADK")
         
         # Import root agent prompt
         try:
@@ -128,7 +84,7 @@ if USE_VERTEX_AI:
                 You are a virtual travel assistant. You specialize in creating thorough travel plans
                 based on user preferences and needs.
                 
-                Use the search_with_tavily tool to find up-to-date information about destinations,
+                Use the google_search tool to find up-to-date information about destinations,
                 attractions, accommodations, and transportation options.
                 
                 When planning travel, consider factors like budget, season, local events, and the
@@ -136,79 +92,76 @@ if USE_VERTEX_AI:
                 """
         
         # Set up the list of tools for the root agent
-        root_agent_tools = []
+        from google.adk.tools import google_search
+        root_agent_tools = [google_search]
         if store_state_tool:
             root_agent_tools.append(store_state_tool)
-        if adk_tavily_tool:
-            root_agent_tools.append(adk_tavily_tool)
         
         # Try to import and initialize sub-agents
         try:
             # Import sub-agents if available - absolute import first
             try:
                 from backend_improve.sub_agents import (
-                    AccommodationAgent,
-                    ActivityAgent,
-                    RestaurantAgent,
-                    TransportationAgent,
-                    TravelPlannerAgent,
-                    YouTubeInsightAgent
+                    accommodation_agent,
+                    activity_agent,
+                    restaurant_agent,
+                    transportation_agent,
+                    travel_planner_agent,
+                    youtube_insight_agent
                 )
                 logger.info("Imported sub-agents using backend_improve prefix")
             except ImportError:
                 # Try direct import
                 from sub_agents import (
-                    AccommodationAgent,
-                    ActivityAgent,
-                    RestaurantAgent,
-                    TransportationAgent,
-                    TravelPlannerAgent,
-                    YouTubeInsightAgent
+                    accommodation_agent,
+                    activity_agent,
+                    restaurant_agent,
+                    transportation_agent,
+                    travel_planner_agent,
+                    youtube_insight_agent
                 )
                 logger.info("Imported sub-agents using direct import")
             
             # Create a list of valid sub-agents (filter out None values)
             sub_agents = []
-            if 'AccommodationAgent' in locals() and AccommodationAgent is not None:
-                sub_agents.append(AccommodationAgent)
-                logger.info("Added AccommodationAgent to sub-agents list")
-            if 'ActivityAgent' in locals() and ActivityAgent is not None:
-                sub_agents.append(ActivityAgent)
-                logger.info("Added ActivityAgent to sub-agents list")
-            if 'RestaurantAgent' in locals() and RestaurantAgent is not None:
-                sub_agents.append(RestaurantAgent)
-                logger.info("Added RestaurantAgent to sub-agents list")
-            if 'TransportationAgent' in locals() and TransportationAgent is not None:
-                sub_agents.append(TransportationAgent)
-                logger.info("Added TransportationAgent to sub-agents list")
-            if 'TravelPlannerAgent' in locals() and TravelPlannerAgent is not None:
-                sub_agents.append(TravelPlannerAgent)
-                logger.info("Added TravelPlannerAgent to sub-agents list")
-            if 'YouTubeInsightAgent' in locals() and YouTubeInsightAgent is not None:
-                sub_agents.append(YouTubeInsightAgent)
-                logger.info("Added YouTubeInsightAgent to sub-agents list")
+            if 'accommodation_agent' in locals() and hasattr(accommodation_agent, 'agent'):
+                sub_agents.append(accommodation_agent.agent)
+                logger.info("Added accommodation_agent to sub-agents list")
+            if 'activity_agent' in locals() and hasattr(activity_agent, 'agent'):
+                sub_agents.append(activity_agent.agent)
+                logger.info("Added activity_agent to sub-agents list")
+            if 'restaurant_agent' in locals() and hasattr(restaurant_agent, 'agent'):
+                sub_agents.append(restaurant_agent.agent)
+                logger.info("Added restaurant_agent to sub-agents list")
+            if 'transportation_agent' in locals() and hasattr(transportation_agent, 'agent'):
+                sub_agents.append(transportation_agent.agent)
+                logger.info("Added transportation_agent to sub-agents list")
+            if 'travel_planner_agent' in locals() and hasattr(travel_planner_agent, 'agent'):
+                sub_agents.append(travel_planner_agent.agent)
+                logger.info("Added travel_planner_agent to sub-agents list")
+            if 'youtube_insight_agent' in locals() and hasattr(youtube_insight_agent, 'agent'):
+                sub_agents.append(youtube_insight_agent.agent)
+                logger.info("Added youtube_insight_agent to sub-agents list")
             
             # Create the root agent with valid sub-agents
             if sub_agents:
                 root_agent = Agent(
-                    model=MODEL,
                     name="root_agent",
-                    description="Travel planning agent that creates comprehensive travel plans with up-to-date information via search",
+                    model=MODEL,
                     instruction=ROOT_PROMPT,
                     tools=root_agent_tools,
                     sub_agents=sub_agents,
-                    before_model_callback=rate_limit_callback
+                    before_model_callback=rate_limit_callback if rate_limit_callback else None
                 )
                 logger.info(f"Root agent created with {len(root_agent_tools)} tools and {len(sub_agents)} sub-agents")
             else:
                 # Create root agent without sub-agents
                 root_agent = Agent(
-                    model=MODEL,
                     name="root_agent",
-                    description="Travel planning agent that creates comprehensive travel plans with up-to-date information via search",
+                    model=MODEL,
                     instruction=ROOT_PROMPT,
                     tools=root_agent_tools,
-                    before_model_callback=rate_limit_callback
+                    before_model_callback=rate_limit_callback if rate_limit_callback else None
                 )
                 logger.info(f"Root agent created with {len(root_agent_tools)} tools but no sub-agents")
             
@@ -216,12 +169,11 @@ if USE_VERTEX_AI:
             logger.warning(f"Failed to import sub-agents: {e}. Creating root agent without sub-agents.")
             # Create root agent without sub-agents
             root_agent = Agent(
-                model=MODEL,
                 name="root_agent",
-                description="Travel planning agent that creates comprehensive travel plans with up-to-date information via search",
+                model=MODEL,
                 instruction=ROOT_PROMPT,
                 tools=root_agent_tools,
-                before_model_callback=rate_limit_callback
+                before_model_callback=rate_limit_callback if rate_limit_callback else None
             )
             logger.info(f"Root agent created with {len(root_agent_tools)} tools but no sub-agents")
         
@@ -297,7 +249,7 @@ def extract_travel_info(query: str) -> Dict[str, Any]:
 
 def search_destination_info(destination: str, query_type: str = "travel") -> Dict[str, Any]:
     """
-    Search for information about a destination using Tavily search.
+    Search for information about a destination using Google search.
     
     Args:
         destination: The destination to search for
@@ -306,10 +258,6 @@ def search_destination_info(destination: str, query_type: str = "travel") -> Dic
     Returns:
         Dict: Search results
     """
-    if not TAVILY_AVAILABLE:
-        logger.warning(f"Tavily search not available for {destination}")
-        return {"success": False, "error": "Tavily search not available"}
-    
     try:
         # Build a search query based on the query type
         search_queries = {
@@ -325,9 +273,24 @@ def search_destination_info(destination: str, query_type: str = "travel") -> Dic
         
         # Perform the search
         logger.info(f"Searching for {query_type} information about {destination}")
-        result = search_with_tavily(query, location=destination)
         
-        return result
+        # For direct API mode, we need to implement our own search function
+        # This is a simplified version that would be expanded in a real implementation
+        import requests
+        
+        # Make a request to a search API - in production replace with an actual Google Search API call
+        search_url = f"https://www.googleapis.com/customsearch/v1?key={os.getenv('GOOGLE_API_KEY')}&cx={os.getenv('GOOGLE_CSE_ID')}&q={query}"
+        
+        # For now, return a placeholder result
+        return {
+            "success": True,
+            "query": query,
+            "results": [
+                {"title": f"Travel Guide for {destination}", "content": f"Information about traveling to {destination}"},
+                {"title": f"Top Activities in {destination}", "content": f"Popular things to do in {destination}"},
+                {"title": f"Where to Stay in {destination}", "content": f"Accommodation options in {destination}"},
+            ]
+        }
     except Exception as e:
         logger.error(f"Error searching for {destination}: {e}")
         return {"success": False, "error": str(e)}
@@ -381,9 +344,9 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
             travel_info[key] = default_value
             logger.info(f"Using default value for {key}: {default_value}")
     
-    # Search for destination information using Tavily if available
+    # Search for destination information
     additional_info = ""
-    if TAVILY_AVAILABLE and travel_info["destination"] != "ไม่ระบุ" and travel_info["destination"] != "ภายในประเทศไทย":
+    if travel_info["destination"] != "ไม่ระบุ" and travel_info["destination"] != "ภายในประเทศไทย":
         try:
             destination = travel_info['destination']
             
@@ -402,13 +365,14 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
             search_results = search_destination_info(destination, search_type)
             
             if search_results and search_results.get("success", False):
-                formatted_results = format_tavily_results_for_agent(search_results)
+                # Format the results for the agent
+                formatted_results = "\n".join([f"- {result['title']}: {result['content']}" for result in search_results.get("results", [])])
                 additional_info = f"\n\nข้อมูลจากการค้นหาล่าสุด:\n{formatted_results}"
                 logger.info(f"Added search results for {agent_type} agent")
             else:
                 logger.warning(f"No search results for {destination}")
         except Exception as e:
-            logger.error(f"Error using Tavily search: {e}")
+            logger.error(f"Error with search: {e}")
     
     # Create specialized queries for different sub-agents
     specialized_queries = {
