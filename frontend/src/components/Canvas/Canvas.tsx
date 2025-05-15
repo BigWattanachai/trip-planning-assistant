@@ -13,15 +13,127 @@ const formatAIResponse = (text: string): JSX.Element => {
     // Split text into paragraphs
     const paragraphs = text.split(/\n\n+/);
 
+    // Process markdown-style formatting
+    const processMarkdown = (content: string) => {
+        // Handle bold text
+        let processed = content.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        // Handle italic text
+        processed = processed.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        return processed;
+    };
+
+    // Function to detect and parse tables
+    const parseTable = (paragraph: string) => {
+        // Check if paragraph contains table-like structure (| character for columns)
+        if (!paragraph.includes('|')) return null;
+
+        const lines = paragraph.split('\n').filter(line => line.trim());
+
+        // Ensure we have at least 2 rows (header + data)
+        if (lines.length < 2) return null;
+
+        // Check if this is actually a table (most lines should contain |)
+        const tableLines = lines.filter(line => line.includes('|'));
+        if (tableLines.length < lines.length * 0.7) return null; // 70% of lines should have | to be considered a table
+
+        // Parse header row
+        const headerRow = lines[0].split('|').map(cell => cell.trim()).filter(cell => cell);
+
+        // Check for separator row (e.g., |---|---|---|
+        let dataStartIndex = 1;
+        if (lines[1].match(/^\s*\|[-:\|\s]+\|\s*$/)) {
+            dataStartIndex = 2;
+        }
+
+        // Parse data rows
+        const dataRows = [];
+        for (let i = dataStartIndex; i < lines.length; i++) {
+            if (lines[i].includes('|')) {
+                const row = lines[i].split('|').map(cell => cell.trim()).filter(cell => cell);
+                dataRows.push(row);
+            }
+        }
+
+        return {
+            headers: headerRow,
+            rows: dataRows
+        };
+    };
+
     return (
         <>
             {paragraphs.map((paragraph, index) => {
-                // Check if this is a header (starts with **)
+                // Check if paragraph is a table
+                const tableData = parseTable(paragraph);
+                if (tableData) {
+                    return (
+                        <div key={index} className="overflow-x-auto my-6">
+                            <table className="travel-table w-full border-collapse">
+                                <thead>
+                                    <tr>
+                                        {tableData.headers.map((header, i) => (
+                                            <th key={i} className="border border-gray-300 bg-gray-100 px-4 py-2 text-left">
+                                                <span dangerouslySetInnerHTML={{ __html: processMarkdown(header) }} />
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {tableData.rows.map((row, rowIndex) => (
+                                        <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                            {row.map((cell, cellIndex) => (
+                                                <td key={cellIndex} className="border border-gray-300 px-4 py-2">
+                                                    <span dangerouslySetInnerHTML={{ __html: processMarkdown(cell) }} />
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    );
+                }
+                // Check if this is the main header (แผนการเดินทางของคุณ)
+                if (paragraph.includes('===== แผนการเดินทางของคุณ =====')) {
+                    return (
+                        <h2 key={index} className="text-2xl font-bold text-primary-700 mt-6 mb-6 text-center bg-primary-50 py-3 rounded-lg">
+                            {paragraph.replace(/=====/g, '').trim()}
+                        </h2>
+                    );
+                }
+
+                // Check if this is a section header (starts with ** and contains emoji)
+                if (paragraph.trim().startsWith('**') && paragraph.trim().endsWith('**') && /\p{Emoji}/u.test(paragraph)) {
+                    return (
+                        <h3 key={index} className="text-xl font-bold text-primary-700 mt-8 mb-4 border-b border-primary-200 pb-2">
+                            <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                        </h3>
+                    );
+                }
+
+                // Check if this is a regular header (starts with **)
                 if (paragraph.trim().startsWith('**') && paragraph.trim().endsWith('**')) {
                     return (
                         <h3 key={index} className="text-xl font-bold text-primary-700 mt-6 mb-3">
-                            {paragraph.replace(/\*\*/g, '')}
+                            <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
                         </h3>
+                    );
+                }
+
+                // Check if this is a bullet list (starts with *)
+                if (paragraph.match(/^\s*\*\s/m)) {
+                    const listItems = paragraph.split(/\n/).filter(line => line.trim().startsWith('*'));
+                    return (
+                        <ul key={index} className="list-disc pl-6 mb-4 space-y-2">
+                            {listItems.map((item, i) => {
+                                const content = item.replace(/^\s*\*\s/, '');
+                                return (
+                                    <li key={i} className="text-gray-700">
+                                        <span dangerouslySetInnerHTML={{ __html: processMarkdown(content) }} />
+                                    </li>
+                                );
+                            })}
+                        </ul>
                     );
                 }
 
@@ -42,13 +154,11 @@ const formatAIResponse = (text: string): JSX.Element => {
                                             </div>
                                             <div className="flex-1">
                                                 {content.includes('**') ? (
-                                                    <>
-                                                        <div className="font-semibold text-gray-900">
-                                                            {content.replace(/^\s*\*\*|\*\*\s*:$/g, '')}
-                                                        </div>
-                                                    </>
+                                                    <div className="font-semibold text-gray-900">
+                                                        <span dangerouslySetInnerHTML={{ __html: processMarkdown(content) }} />
+                                                    </div>
                                                 ) : (
-                                                    <p>{content.trim()}</p>
+                                                    <p><span dangerouslySetInnerHTML={{ __html: processMarkdown(content.trim()) }} /></p>
                                                 )}
                                             </div>
                                         </div>
@@ -60,30 +170,89 @@ const formatAIResponse = (text: string): JSX.Element => {
                     );
                 }
 
-                // Check if paragraph mentions budget
-                if (paragraph.toLowerCase().includes('งบประมาณ') || paragraph.toLowerCase().includes('บาท')) {
+                // Check if paragraph is about budget (contains 💰 emoji)
+                if (paragraph.includes('💰')) {
                     return (
                         <div key={index} className="bg-amber-50 border-l-4 border-amber-300 p-4 my-4 rounded-r-lg">
-                            <h4 className="font-semibold text-amber-800 mb-2">👧</h4>
-                            <p className="text-gray-700">{paragraph}</p>
+                            <p className="text-gray-700">
+                                <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                            </p>
                         </div>
                     );
                 }
 
-                // Check if paragraph is about travel warnings or important notices
-                if (paragraph.toLowerCase().includes('ข้อควรระวัง') ||
-                    paragraph.toLowerCase().includes('ข้อควรคำนึง') ||
-                    paragraph.toLowerCase().includes('หมายเหตุ')) {
+                // Check if paragraph is about warnings or contingency plans (contains ⚠️ emoji)
+                if (paragraph.includes('⚠️')) {
                     return (
                         <div key={index} className="bg-blue-50 border-l-4 border-blue-300 p-4 my-4 rounded-r-lg">
-                            <h4 className="font-semibold text-blue-800 mb-2">ข้อควรทราบ</h4>
-                            <p className="text-gray-700">{paragraph}</p>
+                            <p className="text-gray-700">
+                                <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                            </p>
+                        </div>
+                    );
+                }
+
+                // Check if paragraph is about tips (contains 💡 emoji)
+                if (paragraph.includes('💡')) {
+                    return (
+                        <div key={index} className="bg-green-50 border-l-4 border-green-300 p-4 my-4 rounded-r-lg">
+                            <p className="text-gray-700">
+                                <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                            </p>
+                        </div>
+                    );
+                }
+
+                // Check if paragraph is about transportation (contains 🧳 emoji)
+                if (paragraph.includes('🧳')) {
+                    return (
+                        <div key={index} className="bg-blue-50 p-4 my-4 rounded-lg">
+                            <p className="text-gray-700">
+                                <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                            </p>
+                        </div>
+                    );
+                }
+
+                // Check if paragraph is about accommodation (contains 🏨 emoji)
+                if (paragraph.includes('🏨')) {
+                    return (
+                        <div key={index} className="bg-purple-50 p-4 my-4 rounded-lg">
+                            <p className="text-gray-700">
+                                <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                            </p>
+                        </div>
+                    );
+                }
+
+                // Check if paragraph is about food (contains 🍽️ emoji)
+                if (paragraph.includes('🍽️')) {
+                    return (
+                        <div key={index} className="bg-red-50 p-4 my-4 rounded-lg">
+                            <p className="text-gray-700">
+                                <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                            </p>
+                        </div>
+                    );
+                }
+
+                // Check if paragraph is about itinerary (contains 🗺️ emoji)
+                if (paragraph.includes('🗺️')) {
+                    return (
+                        <div key={index} className="bg-green-50 p-4 my-4 rounded-lg">
+                            <p className="text-gray-700">
+                                <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                            </p>
                         </div>
                     );
                 }
 
                 // Regular paragraph
-                return <p key={index} className="mb-4 text-gray-700">{paragraph}</p>;
+                return (
+                    <p key={index} className="mb-4 text-gray-700">
+                        <span dangerouslySetInnerHTML={{ __html: processMarkdown(paragraph) }} />
+                    </p>
+                );
             })}
         </>
     );
