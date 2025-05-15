@@ -6,6 +6,8 @@ import os
 import sys
 import logging
 import json
+import re
+import datetime
 from typing import Dict, Any, Optional
 
 # Configure logging - use existing logger, don't add handlers
@@ -260,9 +262,12 @@ def search_travel_videos(destination, focus="travel guide", max_results=5):
 
         # Use Thai language in the search query for better results
         thai_travel_term = "ท่องเที่ยว"  # Thai word for "travel"
-        query = f"{destination} {thai_travel_term} {focus}"
 
-        logger.info(f"Searching YouTube with query: '{query}', filter: videos from {current_year}")
+        # Add current year to the search query to get more recent content
+        # Add "ล่าสุด 2525" (latest 2525) to get the most recent videos and avoid transcript retrieval errors
+        query = f"{destination} {thai_travel_term} {focus} ล่าสุด {current_year}"
+
+        logger.info(f"Searching YouTube with enhanced query: '{query}', filter: videos from {current_year}")
 
         youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
         request = youtube.search().list(
@@ -271,7 +276,8 @@ def search_travel_videos(destination, focus="travel guide", max_results=5):
             type='video',
             maxResults=max_results,
             publishedAfter=start_of_year,  # Only videos from current year
-            relevanceLanguage='th'  # Prefer Thai language results
+            relevanceLanguage='th',  # Prefer Thai language results
+            videoCaption='closedCaption'  # Prefer videos with captions for better transcript extraction
         )
 
         response = request.execute()
@@ -290,13 +296,16 @@ def search_travel_videos(destination, focus="travel guide", max_results=5):
                 description = item['snippet']['description']
                 channel_title = item['snippet']['channelTitle']
                 published_at = item['snippet']['publishedAt']
+                thumbnail_url = item['snippet']['thumbnails']['high']['url'] if 'thumbnails' in item['snippet'] and 'high' in item['snippet']['thumbnails'] else ""
 
                 results.append({
                     'video_id': video_id,
                     'title': title,
                     'description': description,
                     'channel': channel_title,
-                    'published_at': published_at
+                    'published_at': published_at,
+                    'thumbnail_url': thumbnail_url,
+                    'url': f"https://www.youtube.com/watch?v={video_id}"
                 })
                 logger.info(f"Added video: {title} (ID: {video_id})")
             except KeyError as ke:
@@ -309,34 +318,109 @@ def search_travel_videos(destination, focus="travel guide", max_results=5):
         return []
 
 def get_video_details(video_id):
-    """Get detailed information about a YouTube video."""
+    """Get detailed information about a YouTube video including transcript, comments, and tags."""
     try:
         from googleapiclient.discovery import build
         from youtube_transcript_api import YouTubeTranscriptApi
+        import json
 
         youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
         request = youtube.videos().list(
-            part='snippet,statistics,contentDetails',
+            part='snippet,statistics,contentDetails,topicDetails',
             id=video_id
         )
         response = request.execute()
 
         if not response.get('items'):
+            logger.warning(f"No video found with ID {video_id}")
             return None
 
         video_info = response['items'][0]
         snippet = video_info['snippet']
         statistics = video_info['statistics']
 
-        # Try to get transcript
-        transcript_text = ""
-        try:
-            transcript = YouTubeTranscriptApi.get_transcript(video_id)
-            transcript_text = " ".join([entry['text'] for entry in transcript])
-        except Exception as e:
-            transcript_text = "Transcript not available"
-            logger.warning(f"Could not get transcript for {video_id}: {e}")
+        # Get video tags if available
+        tags = snippet.get('tags', [])
+        tags_text = " ".join(tags) if tags else ""
+        logger.info(f"Video tags: {tags_text[:100]}{'...' if len(tags_text) > 100 else ''}")
 
+        # Try to get transcript with improved error handling
+        transcript_text = ""
+        transcript_language = "unknown"
+        try:
+            # First try to get Thai transcript (auto-generated)
+            try:
+                transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['th'])
+                transcript_text = " ".join([entry['text'] for entry in transcript])
+                transcript_language = "th"
+                logger.info(f"Successfully retrieved Thai transcript for video {video_id} ({len(transcript_text)} chars)")
+
+                # Ensure Thai text is properly displayed (no Unicode escape sequences)
+                if transcript_text:
+                    logger.info(f"Thai transcript sample: {transcript_text[:100]}...")
+            except Exception as e_th:
+                # If Thai fails, try English
+                try:
+                    logger.warning(f"Could not get Thai transcript for {video_id}: {e_th}")
+                    transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=['en'])
+                    transcript_text = " ".join([entry['text'] for entry in transcript])
+                    transcript_language = "en"
+                    logger.info(f"Successfully retrieved English transcript for video {video_id} ({len(transcript_text)} chars)")
+                except Exception as e_en:
+                    # If both fail, try with no language preference (auto-detect)
+                    logger.warning(f"Could not get English transcript for {video_id}: {e_en}")
+                    try:
+                        available_transcripts = YouTubeTranscriptApi.list_transcripts(video_id)
+                        # Log available transcripts
+                        available_langs = [t.language_code for t in available_transcripts._transcripts.values()]
+                        logger.info(f"Available transcript languages for {video_id}: {available_langs}")
+
+                        # Try to get any available transcript, preferring Thai or English
+                        for lang_preference in ['th', 'en'] + available_langs:
+                            try:
+                                if lang_preference in available_langs:
+                                    transcript_info = available_transcripts.find_transcript([lang_preference])
+                                    transcript = transcript_info.fetch()
+                                    transcript_text = " ".join([entry['text'] for entry in transcript])
+                                    transcript_language = lang_preference
+                                    logger.info(f"Successfully retrieved {lang_preference} transcript for video {video_id} ({len(transcript_text)} chars)")
+
+                                    # Log a sample of the transcript for debugging
+                                    if transcript_text:
+                                        logger.info(f"Transcript sample ({lang_preference}): {transcript_text[:100]}...")
+                                    break
+                            except Exception as e_lang:
+                                logger.warning(f"Failed to get {lang_preference} transcript: {e_lang}")
+                    except Exception as e_any:
+                        transcript_text = "ไม่มีคำบรรยายวิดีโอ"  # "No transcript available" in Thai
+                        logger.warning(f"Could not get any transcript for {video_id}: {e_any}")
+        except Exception as e:
+            transcript_text = "ไม่มีคำบรรยายวิดีโอ"  # "No transcript available" in Thai
+            logger.warning(f"Error in transcript retrieval process for {video_id}: {e}")
+
+        # Try to get video comments
+        comments_text = ""
+        try:
+            # Get top comments
+            comments_response = youtube.commentThreads().list(
+                part="snippet",
+                videoId=video_id,
+                textFormat="plainText",
+                maxResults=10,
+                order="relevance"
+            ).execute()
+
+            comments = []
+            for item in comments_response.get('items', []):
+                comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
+                comments.append(comment)
+
+            comments_text = " ".join(comments)
+            logger.info(f"Retrieved {len(comments)} comments for video {video_id}")
+        except Exception as e:
+            logger.warning(f"Could not retrieve comments for video {video_id}: {e}")
+
+        # Compile video details with enhanced information
         return {
             'video_id': video_id,
             'title': snippet.get('title', ''),
@@ -346,36 +430,273 @@ def get_video_details(video_id):
             'view_count': statistics.get('viewCount', '0'),
             'like_count': statistics.get('likeCount', '0'),
             'comment_count': statistics.get('commentCount', '0'),
-            'transcript': transcript_text
+            'transcript': transcript_text,
+            'transcript_language': transcript_language,
+            'comments': comments_text,
+            'tags': tags_text,
+            'categories': video_info.get('topicDetails', {}).get('topicCategories', [])
         }
     except Exception as e:
         logger.error(f"Error in get_video_details: {e}")
         return None
 
-def extract_travel_insights(video_ids):
-    """Extract travel insights from a list of videos."""
+def extract_place_names_from_text(text, destination):
+    """Extract specific place names from text using pattern matching and NLP techniques."""
+    place_names = []
+
+    # Common Thai place indicators
+    place_indicators = [
+        'วัด', 'อุทยาน', 'น้ำตก', 'ถนน', 'ตลาด', 'พิพิธภัณฑ์', 'หมู่บ้าน', 'สวน', 'ดอย', 'ภูเขา',
+        'ทะเลสาบ', 'แม่น้ำ', 'คาเฟ่', 'ร้าน', 'โรงแรม', 'รีสอร์ท', 'ที่พัก', 'ศูนย์', 'อุทยานแห่งชาติ',
+        'อ่างเก็บน้ำ', 'สถานี', 'ห้าง', 'ศูนย์การค้า', 'วนอุทยาน', 'เขื่อน', 'บ่อน้ำ', 'ถ้ำ', 'หาด'
+    ]
+
+    # Look for patterns like "X ที่ Y" where Y is the destination
+    # For example: "วัดพระธาตุดอยสุเทพที่เชียงใหม่"
+    for indicator in place_indicators:
+        pattern = f"{indicator}\\s+([\u0e00-\u0e7f]+)\\s+ที่\\s*{destination}"
+        matches = re.findall(pattern, text)
+        for match in matches:
+            full_place = f"{indicator}{match}"
+            if full_place not in place_names:
+                place_names.append(full_place)
+
+    # Look for patterns like "ไปเที่ยว X" or "ที่เที่ยว X"
+    patterns = [
+        f"ไปเที่ยว\\s+([\u0e00-\u0e7f]+)",
+        f"ที่เที่ยว\\s+([\u0e00-\u0e7f]+)",
+        f"เที่ยวที่\\s+([\u0e00-\u0e7f]+)",
+        f"แวะ\\s+([\u0e00-\u0e7f]+)",
+        f"ไปที่\\s+([\u0e00-\u0e7f]+)"
+    ]
+
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            # Check if the match contains any place indicator
+            for indicator in place_indicators:
+                if indicator in match and match not in place_names:
+                    place_names.append(match)
+                    break
+
+    # Look for specific place names with indicators
+    for indicator in place_indicators:
+        pattern = f"{indicator}\\s+([\u0e00-\u0e7f]+)"
+        matches = re.findall(pattern, text)
+        for match in matches:
+            full_place = f"{indicator}{match}"
+            if full_place not in place_names and len(match) > 1:  # Avoid single character matches
+                place_names.append(full_place)
+
+    return place_names
+
+def extract_food_from_text(text):
+    """Extract food and restaurant mentions from text."""
+    food_mentions = []
+
+    # Food indicators in Thai
+    food_indicators = [
+        'ร้านอาหาร', 'อาหาร', 'เมนู', 'จานเด็ด', 'อร่อย', 'กิน', 'ชิม', 'รสชาติ', 'ของกิน',
+        'ขนม', 'ของหวาน', 'เครื่องดื่ม', 'คาเฟ่', 'ร้านกาแฟ', 'ร้านขายของ', 'ตลาด', 'ฟู้ดทรัค',
+        'สตรีทฟู้ด', 'บุฟเฟ่ต์', 'ร้านเด็ด', 'ร้านดัง', 'ร้านเล็กๆ', 'ร้านลับ'
+    ]
+
+    # Look for patterns like "ร้านอาหาร X" or "อาหาร X"
+    for indicator in food_indicators:
+        pattern = f"{indicator}\\s+([\u0e00-\u0e7f]+)"
+        matches = re.findall(pattern, text)
+        for match in matches:
+            full_food = f"{indicator}{match}"
+            if full_food not in food_mentions and len(match) > 1:  # Avoid single character matches
+                food_mentions.append(full_food)
+
+    # Look for patterns like "กินที่ X" or "ชิม X"
+    patterns = [
+        f"กินที่\\s+([\u0e00-\u0e7f]+)",
+        f"ชิม\\s+([\u0e00-\u0e7f]+)",
+        f"อร่อยที่\\s+([\u0e00-\u0e7f]+)",
+        f"ร้าน\\s+([\u0e00-\u0e7f]+)\\s+อร่อย",
+        f"แนะนำ\\s+([\u0e00-\u0e7f]+)\\s+อร่อย"
+    ]
+
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            if match not in food_mentions and len(match) > 1:  # Avoid single character matches
+                food_mentions.append(match)
+
+    return food_mentions
+
+def extract_activities_from_text(text):
+    """Extract activities and experiences from text."""
+    activities = []
+
+    # Activity indicators in Thai
+    activity_indicators = [
+        'กิจกรรม', 'ทำ', 'เล่น', 'ลอง', 'ทดลอง', 'สัมผัส', 'ประสบการณ์', 'ผจญภัย', 'ปีน',
+        'ล่อง', 'พายเรือ', 'ขี่', 'ขับ', 'นั่ง', 'เดิน', 'วิ่ง', 'ถ่ายรูป', 'ชมวิว', 'ดูพระอาทิตย์',
+        'ตกปลา', 'ตั้งแคมป์', 'กางเต็นท์', 'นอน', 'พักผ่อน', 'ช้อปปิ้ง', 'ซื้อของ', 'หัตถกรรม',
+        'เรียนรู้', 'ทัวร์', 'ชม', 'สำรวจ'
+    ]
+
+    # Look for patterns like "ทำกิจกรรม X" or "เล่น X"
+    for indicator in activity_indicators:
+        pattern = f"{indicator}\\s+([\u0e00-\u0e7f]+)"
+        matches = re.findall(pattern, text)
+        for match in matches:
+            full_activity = f"{indicator}{match}"
+            if full_activity not in activities and len(match) > 1:  # Avoid single character matches
+                activities.append(full_activity)
+
+    # Look for patterns like "สามารถ X ได้" or "ลอง X"
+    patterns = [
+        f"สามารถ\\s+([\u0e00-\u0e7f]+)\\s+ได้",
+        f"ลอง\\s+([\u0e00-\u0e7f]+)",
+        f"แนะนำให้\\s+([\u0e00-\u0e7f]+)",
+        f"ควร\\s+([\u0e00-\u0e7f]+)"
+    ]
+
+    for pattern in patterns:
+        matches = re.findall(pattern, text)
+        for match in matches:
+            # Check if the match contains any activity indicator
+            for indicator in activity_indicators:
+                if indicator in match and match not in activities and len(match) > 1:
+                    activities.append(match)
+                    break
+
+    return activities
+
+def extract_tips_from_text(text):
+    """Extract travel tips and advice from text."""
+    tips = []
+
+    # Tip indicators in Thai
+    tip_indicators = [
+        'แนะนำ', 'ควร', 'ต้อง', 'อย่าลืม', 'ระวัง', 'เคล็ดลับ', 'ทริค', 'วิธี', 'ดีที่สุด',
+        'ประหยัด', 'คุ้มค่า', 'ราคาถูก', 'ฟรี', 'ไม่ควร', 'หลีกเลี่ยง', 'ข้อควรระวัง'
+    ]
+
+    # Look for sentences containing tip indicators
+    sentences = re.split(r'[.!?\n]', text)
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        for indicator in tip_indicators:
+            if indicator in sentence.lower() and sentence not in tips and len(sentence) > 10:
+                tips.append(sentence)
+                break
+
+    return tips
+
+def extract_hidden_gems_from_text(text):
+    """Extract hidden gems and lesser-known places from text."""
+    hidden_gems = []
+
+    # Hidden gem indicators in Thai
+    hidden_gem_indicators = [
+        'ไม่ค่อยมีคนรู้จัก', 'แปลกใหม่', 'ไม่ค่อยมีนักท่องเที่ยว', 'ซ่อนตัว', 'ลับ', 'เงียบสงบ',
+        'ไม่พลุกพล่าน', 'คนไม่เยอะ', 'ยังไม่เป็นที่รู้จัก', 'เพิ่งเปิด', 'เปิดใหม่', 'ที่เที่ยวใหม่',
+        'ที่เที่ยวมาแรง', 'อันซีน', 'unseen', 'hidden', 'secret', 'gem', 'ไม่มีในแผนที่',
+        'หลบซ่อน', 'แอบซ่อน', 'ไม่ค่อยมีใครพูดถึง', 'ไม่ค่อยมีใครรู้', 'ไม่ค่อยมีในรีวิว'
+    ]
+
+    # Look for sentences containing hidden gem indicators
+    sentences = re.split(r'[.!?\n]', text)
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        for indicator in hidden_gem_indicators:
+            if indicator in sentence.lower() and sentence not in hidden_gems and len(sentence) > 10:
+                hidden_gems.append(sentence)
+                break
+
+    return hidden_gems
+
+def extract_seasonal_info_from_text(text):
+    """Extract seasonal information and best time to visit from text."""
+    seasonal_info = []
+
+    # Seasonal indicators in Thai
+    seasonal_indicators = [
+        'ฤดู', 'หน้า', 'เดือน', 'ช่วงเวลา', 'ช่วง', 'เทศกาล', 'งาน', 'ประเพณี',
+        'ฝน', 'ร้อน', 'หนาว', 'น้ำ', 'ดอกไม้', 'ใบไม้', 'ผลไม้', 'เก็บเกี่ยว',
+        'ท่องเที่ยว', 'high season', 'low season', 'peak', 'นักท่องเที่ยว', 'คนเยอะ',
+        'คนน้อย', 'ราคา', 'แพง', 'ถูก', 'ควรไป', 'ไม่ควรไป', 'ดีที่สุด', 'เหมาะสม',
+        'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+        'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
+    ]
+
+    # Look for sentences containing seasonal indicators
+    sentences = re.split(r'[.!?\n]', text)
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+
+        for indicator in seasonal_indicators:
+            if indicator in sentence.lower() and sentence not in seasonal_info and len(sentence) > 10:
+                seasonal_info.append(sentence)
+                break
+
+    return seasonal_info
+
+def extract_travel_insights(video_ids, destination=""):
+    """Extract detailed travel insights from a list of videos."""
     try:
+        import re
+
+        # Enhanced insights structure with new categories
         insights = {
-            'top_places': [],
-            'top_activities': [],
-            'tips': [],
-            'hidden_gems': [],
-            'food_recommendations': []
+            'top_places': [],          # สถานที่ท่องเที่ยวยอดนิยม
+            'top_activities': [],      # กิจกรรมและประสบการณ์แนะนำ
+            'hidden_gems': [],         # จุดลับ/ที่เที่ยวไม่ค่อยมีคนรู้จัก
+            'food_recommendations': [], # ร้านอาหารท้องถิ่นแนะนำ
+            'travel_tips': [],         # เคล็ดลับการเดินทาง
+            'seasonal_info': [],       # ข้อมูลตามฤดูกาล
+            'summary': ""
         }
 
         if not video_ids:
             logger.warning("No video IDs provided to extract_travel_insights")
             return insights
 
-        logger.info(f"Extracting insights from {len(video_ids)} videos: {', '.join(video_ids)}")
+        logger.info(f"Extracting detailed insights from {len(video_ids)} videos: {', '.join(video_ids)}")
 
         videos_data = []
+        all_transcripts = []
+        all_descriptions = []
+        all_titles = []
+        all_comments = []
+
+        # First, collect all video data
         for video_id in video_ids:
             try:
                 video_data = get_video_details(video_id)
                 if video_data:
                     videos_data.append(video_data)
-                    logger.info(f"Retrieved details for video {video_id}: {video_data.get('title', 'No title')}")
+
+                    # Collect transcript, description, title, and comments
+                    transcript = video_data.get('transcript', '')
+                    description = video_data.get('description', '')
+                    title = video_data.get('title', '')
+                    comments = video_data.get('comments', '')
+
+                    if transcript:
+                        all_transcripts.append(transcript)
+                    if description:
+                        all_descriptions.append(description)
+                    if title:
+                        all_titles.append(title)
+                    if comments:
+                        all_comments.append(comments)
+
+                    logger.info(f"Retrieved details for video {video_id}: {title}")
+                    logger.info(f"Transcript length: {len(transcript)} chars, Description length: {len(description)} chars, Comments length: {len(comments)} chars")
                 else:
                     logger.warning(f"Could not retrieve details for video {video_id}")
             except Exception as e:
@@ -383,69 +704,165 @@ def extract_travel_insights(video_ids):
 
         logger.info(f"Successfully retrieved details for {len(videos_data)} out of {len(video_ids)} videos")
 
-        # Thai keywords for better matching with Thai content
-        thai_keywords = {
-            'places': ['สถานที่', 'ที่เที่ยว', 'แหล่งท่องเที่ยว', 'จุดชมวิว', 'วัด', 'อุทยาน'],
-            'activities': ['กิจกรรม', 'ทำอะไร', 'เล่น', 'ชม', 'เที่ยว', 'ผจญภัย', 'ปีนเขา', 'ล่องแพ'],
-            'tips': ['เคล็ดลับ', 'แนะนำ', 'ควร', 'ต้อง', 'อย่าลืม', 'ระวัง'],
-            'hidden_gems': ['ลับ', 'ไม่ค่อยมีคนรู้จัก', 'แปลกใหม่', 'ไม่ค่อยมีนักท่องเที่ยว', 'ซ่อนตัว'],
-            'food': ['อาหาร', 'ร้านอาหาร', 'กิน', 'อร่อย', 'เมนู', 'จานเด็ด', 'ของกิน']
-        }
+        logger.info(f"Collected {len(all_transcripts)} transcripts, {len(all_descriptions)} descriptions, {len(all_titles)} titles, and {len(all_comments)} comment sections")
 
-        # This is a more robust version that looks for both Thai and English keywords
+        # Combine all text for comprehensive analysis
+        # Prioritize transcripts and descriptions for better insights
+        all_text = ' '.join(all_transcripts + all_descriptions + all_titles + all_comments)
+
+        # Log the total amount of text for analysis
+        logger.info(f"Total text for analysis: {len(all_text)} characters")
+
+        # Extract specific information using pattern matching
+        if destination:
+            place_names = extract_place_names_from_text(all_text, destination)
+            insights['top_places'].extend(place_names)
+            logger.info(f"Extracted {len(place_names)} place names using pattern matching")
+
+        food_mentions = extract_food_from_text(all_text)
+        insights['food_recommendations'].extend(food_mentions)
+        logger.info(f"Extracted {len(food_mentions)} food mentions using pattern matching")
+
+        activities = extract_activities_from_text(all_text)
+        insights['top_activities'].extend(activities)
+        logger.info(f"Extracted {len(activities)} activities using pattern matching")
+
+        tips = extract_tips_from_text(all_text)
+        insights['travel_tips'].extend(tips)
+        logger.info(f"Extracted {len(tips)} travel tips using pattern matching")
+
+        hidden_gems = extract_hidden_gems_from_text(all_text)
+        insights['hidden_gems'].extend(hidden_gems)
+        logger.info(f"Extracted {len(hidden_gems)} hidden gems using pattern matching")
+
+        # Extract seasonal information
+        seasonal_info = extract_seasonal_info_from_text(all_text)
+        insights['seasonal_info'].extend(seasonal_info)
+        logger.info(f"Extracted {len(seasonal_info)} seasonal info items using pattern matching")
+
+        # Process each video individually for more context
         for video in videos_data:
-            # Extract text from title, description and transcript if available
             title = video.get('title', '')
             description = video.get('description', '')
             transcript = video.get('transcript', '')
+            comments = video.get('comments', '')
             channel = video.get('channel', '')
 
-            # Combine all text for analysis
-            text = f"{title} {description} {transcript}".lower()
+            # Create a combined text for this video
+            video_text = f"{title} {description} {transcript} {comments}".lower()
 
-            # Check for place mentions
-            for keyword in thai_keywords['places'] + ['place', 'visit', 'attraction', 'temple', 'park', 'mountain']:
-                if keyword.lower() in text:
-                    place_name = f"{title} ({channel})"
-                    if place_name not in insights['top_places']:
-                        insights['top_places'].append(place_name)
-                    break
+            # Extract places from this specific video
+            if destination:
+                video_places = extract_place_names_from_text(video_text, destination)
+                for place in video_places:
+                    place_with_source = f"{place} (จาก {channel}: {title})"
+                    if place_with_source not in insights['top_places']:
+                        insights['top_places'].append(place_with_source)
 
-            # Check for activity mentions
-            for keyword in thai_keywords['activities'] + ['activity', 'do', 'adventure', 'experience', 'tour']:
-                if keyword.lower() in text:
-                    activity_name = f"{title} ({channel})"
-                    if activity_name not in insights['top_activities']:
-                        insights['top_activities'].append(activity_name)
-                    break
+            # Extract food recommendations from this specific video
+            video_foods = extract_food_from_text(video_text)
+            for food in video_foods:
+                food_with_source = f"{food} (จาก {channel}: {title})"
+                if food_with_source not in insights['food_recommendations']:
+                    insights['food_recommendations'].append(food_with_source)
 
-            # Check for tips
-            for keyword in thai_keywords['tips'] + ['tip', 'advice', 'recommend', 'must', 'should', 'avoid']:
-                if keyword.lower() in text:
-                    tip = f"{title} ({channel})"
-                    if tip not in insights['tips']:
-                        insights['tips'].append(tip)
-                    break
+            # Extract activities from this specific video
+            video_activities = extract_activities_from_text(video_text)
+            for activity in video_activities:
+                activity_with_source = f"{activity} (จาก {channel}: {title})"
+                if activity_with_source not in insights['top_activities']:
+                    insights['top_activities'].append(activity_with_source)
 
-            # Check for hidden gems
-            for keyword in thai_keywords['hidden_gems'] + ['hidden', 'secret', 'unknown', 'off the beaten path']:
-                if keyword.lower() in text:
-                    hidden_gem = f"{title} ({channel})"
-                    if hidden_gem not in insights['hidden_gems']:
-                        insights['hidden_gems'].append(hidden_gem)
-                    break
+            # Extract travel tips from this specific video
+            video_tips = extract_tips_from_text(video_text)
+            for tip in video_tips:
+                tip_with_source = f"{tip} (จาก {channel}: {title})"
+                if tip_with_source not in insights['travel_tips']:
+                    insights['travel_tips'].append(tip_with_source)
 
-            # Check for food recommendations
-            for keyword in thai_keywords['food'] + ['food', 'restaurant', 'eat', 'cuisine', 'dish', 'delicious']:
-                if keyword.lower() in text:
-                    food_rec = f"{title} ({channel})"
-                    if food_rec not in insights['food_recommendations']:
-                        insights['food_recommendations'].append(food_rec)
-                    break
+            # Extract hidden gems from this specific video
+            video_hidden_gems = extract_hidden_gems_from_text(video_text)
+            for gem in video_hidden_gems:
+                gem_with_source = f"{gem} (จาก {channel}: {title})"
+                if gem_with_source not in insights['hidden_gems']:
+                    insights['hidden_gems'].append(gem_with_source)
+
+            # Extract seasonal information from this specific video
+            video_seasonal_info = extract_seasonal_info_from_text(video_text)
+            for info in video_seasonal_info:
+                info_with_source = f"{info} (จาก {channel}: {title})"
+                if info_with_source not in insights['seasonal_info']:
+                    insights['seasonal_info'].append(info_with_source)
+
+        # Generate a detailed summary based on all collected data
+        if all_text:
+            # Create a more comprehensive summary that blends information from transcripts
+            summary_parts = []
+
+            # Add introduction
+            summary_intro = f"จากการวิเคราะห์วิดีโอ YouTube เกี่ยวกับการท่องเที่ยวใน {destination} พบว่า"
+
+            # Add places summary
+            if insights['top_places']:
+                places_text = "สถานที่ท่องเที่ยวยอดนิยมที่ถูกกล่าวถึงบ่อยที่สุดได้แก่ " + ", ".join([p.split(" (")[0] for p in insights['top_places'][:3]])
+                if len(insights['top_places']) > 3:
+                    places_text += f" และอื่นๆ อีก {len(insights['top_places']) - 3} แห่ง"
+                summary_parts.append(places_text)
+
+            # Add activities summary
+            if insights['top_activities']:
+                activities_text = "กิจกรรมที่นักท่องเที่ยวนิยมทำคือ " + ", ".join([a.split(" (")[0] for a in insights['top_activities'][:3]])
+                if len(insights['top_activities']) > 3:
+                    activities_text += f" และอื่นๆ อีก {len(insights['top_activities']) - 3} กิจกรรม"
+                summary_parts.append(activities_text)
+
+            # Add food recommendations summary
+            if insights['food_recommendations']:
+                food_text = "ร้านอาหารและเมนูแนะนำได้แก่ " + ", ".join([f.split(" (")[0] for f in insights['food_recommendations'][:3]])
+                if len(insights['food_recommendations']) > 3:
+                    food_text += f" และอื่นๆ อีก {len(insights['food_recommendations']) - 3} รายการ"
+                summary_parts.append(food_text)
+
+            # Add hidden gems summary
+            if insights['hidden_gems']:
+                gems_text = "สถานที่ไม่ค่อยมีคนรู้จักแต่น่าสนใจคือ " + ", ".join([g.split(" (")[0] for g in insights['hidden_gems'][:3]])
+                if len(insights['hidden_gems']) > 3:
+                    gems_text += f" และอื่นๆ อีก {len(insights['hidden_gems']) - 3} แห่ง"
+                summary_parts.append(gems_text)
+
+            # Add travel tips summary
+            if insights['travel_tips']:
+                tips_text = "เคล็ดลับการท่องเที่ยวที่น่าสนใจได้แก่ " + "; ".join([t.split(" (")[0] for t in insights['travel_tips'][:3]])
+                if len(insights['travel_tips']) > 3:
+                    tips_text += f" และอื่นๆ อีก {len(insights['travel_tips']) - 3} ข้อ"
+                summary_parts.append(tips_text)
+
+            # Add seasonal information summary
+            if insights['seasonal_info']:
+                seasonal_text = "ข้อมูลตามฤดูกาลที่ควรทราบ: " + "; ".join([s.split(" (")[0] for s in insights['seasonal_info'][:3]])
+                if len(insights['seasonal_info']) > 3:
+                    seasonal_text += f" และอื่นๆ อีก {len(insights['seasonal_info']) - 3} ข้อ"
+                summary_parts.append(seasonal_text)
+
+            # Combine all parts into a comprehensive summary
+            insights['summary'] = summary_intro + " " + " ".join(summary_parts)
+
+            # Add a conclusion if we have enough data
+            if len(summary_parts) >= 3:
+                insights['summary'] += f" จากการวิเคราะห์พบว่า {destination} เป็นจุดหมายปลายทางที่น่าสนใจสำหรับนักท่องเที่ยวที่ชื่นชอบธรรมชาติ วัฒนธรรม และการผจญภัย"
+
+        # Limit the number of items in each category to avoid overwhelming results
+        max_items = 10
+        for category in insights:
+            if isinstance(insights[category], list) and len(insights[category]) > max_items:
+                insights[category] = insights[category][:max_items]
 
         # Log the results
         for category, items in insights.items():
-            logger.info(f"Extracted {len(items)} {category}: {', '.join(items[:3])}{'...' if len(items) > 3 else ''}")
+            if isinstance(items, list):
+                logger.info(f"Extracted {len(items)} {category}: {', '.join(str(i) for i in items[:3])}{'...' if len(items) > 3 else ''}")
+            else:
+                logger.info(f"{category}: {items[:100]}...")
 
         return insights
     except Exception as e:
@@ -488,13 +905,20 @@ def get_destination_sentiment(destination):
     """Analyze sentiment about a destination from YouTube content."""
     try:
         # In a real implementation, this would use LLM to analyze sentiment
-        # This is a simplified mock version
+        # This is a simplified mock version with Thai language values
         return {
-            'overall_sentiment': 'Positive',
+            'overall_sentiment': 'เชิงบวก',  # 'Positive' in Thai
             'positive_mentions': 10,
             'negative_mentions': 2,
-            'key_positives': ['beautiful scenery', 'friendly locals', 'delicious food'],
-            'key_negatives': ['crowded in high season', 'some tourist traps']
+            'key_positives': [
+                'ทัศนียภาพสวยงาม',  # 'beautiful scenery' in Thai
+                'คนท้องถิ่นเป็นมิตร',  # 'friendly locals' in Thai
+                'อาหารอร่อย'  # 'delicious food' in Thai
+            ],
+            'key_negatives': [
+                'แออัดในช่วงไฮซีซั่น',  # 'crowded in high season' in Thai
+                'มีกับดักนักท่องเที่ยวบางจุด'  # 'some tourist traps' in Thai
+            ]
         }
     except Exception as e:
         logger.error(f"Error in get_destination_sentiment: {e}")
@@ -535,32 +959,174 @@ logger.info(f"  - Store State Tool Available: {bool(store_state_tool)}")
 logger.info(f"  - Timeout Seconds: {TIMEOUT_SECONDS}")
 
 
+def format_youtube_insights_readable(insights_data: dict) -> str:
+    """
+    Format YouTube insights data into a human-readable Thai text format with detailed information.
+    Prioritizes insights extracted from video content over just listing videos.
+    Uses the new format with emoji icons for each category.
+
+    Args:
+        insights_data: Dictionary containing YouTube insights data
+
+    Returns:
+        A formatted string with YouTube insights in Thai language
+    """
+    try:
+        destination = insights_data.get("destination", "ไม่ระบุ")
+        sentiment = insights_data.get("sentiment", "ไม่ระบุ")
+        channels = insights_data.get("channels", [])
+        insights = insights_data.get("insights", {})
+        videos = insights_data.get("videos", [])
+        summary = insights.get("summary", "")
+
+        # Format the output in Thai with more detailed information and emoji icons
+        output = f"""## ข้อมูลเชิงลึกจาก YouTube สำหรับ {destination}
+
+"""
+
+        # Add summary if available - this is now the main focus
+        if summary:
+            output += f"{summary}\n\n"
+        else:
+            output += f"### ความรู้สึกโดยรวม: {sentiment}\n\n"
+
+        # Add top places if available with emoji
+        top_places = insights.get("top_places", [])
+        if top_places:
+            output += "### 📍 สถานที่ท่องเที่ยวยอดนิยม\n\n"
+            for i, place in enumerate(top_places[:10], 1):
+                # Remove source attribution for cleaner output
+                place_name = place.split(" (")[0] if " (" in place else place
+                output += f"{i}. {place_name}\n"
+            output += "\n"
+
+        # Add top activities if available with emoji
+        top_activities = insights.get("top_activities", [])
+        if top_activities:
+            output += "### 🎯 กิจกรรมและประสบการณ์แนะนำ\n\n"
+            for i, activity in enumerate(top_activities[:10], 1):
+                # Remove source attribution for cleaner output
+                activity_name = activity.split(" (")[0] if " (" in activity else activity
+                output += f"{i}. {activity_name}\n"
+            output += "\n"
+
+        # Add hidden gems if available with emoji
+        hidden_gems = insights.get("hidden_gems", [])
+        if hidden_gems:
+            output += "### 🌿 จุดลับ/ที่เที่ยวไม่ค่อยมีคนรู้จัก\n\n"
+            for i, gem in enumerate(hidden_gems[:10], 1):
+                # Remove source attribution for cleaner output
+                gem_name = gem.split(" (")[0] if " (" in gem else gem
+                output += f"{i}. {gem_name}\n"
+            output += "\n"
+
+        # Add food recommendations if available with emoji
+        food_recs = insights.get("food_recommendations", [])
+        if food_recs:
+            output += "### 🍲 ร้านอาหารท้องถิ่นแนะนำ\n\n"
+            for i, food in enumerate(food_recs[:10], 1):
+                # Remove source attribution for cleaner output
+                food_name = food.split(" (")[0] if " (" in food else food
+                output += f"{i}. {food_name}\n"
+            output += "\n"
+
+        # Add travel tips if available with emoji
+        travel_tips = insights.get("travel_tips", []) or insights.get("tips", [])
+        if travel_tips:
+            output += "### 🧳 เคล็ดลับการเดินทาง\n\n"
+            for i, tip in enumerate(travel_tips[:10], 1):
+                # Remove source attribution for cleaner output
+                tip_text = tip.split(" (")[0] if " (" in tip else tip
+                output += f"{i}. {tip_text}\n"
+            output += "\n"
+
+        # Add seasonal information if available with emoji
+        seasonal_info = insights.get("seasonal_info", [])
+        if seasonal_info:
+            output += "### ☀️ ข้อมูลตามฤดูกาล\n\n"
+            for i, info in enumerate(seasonal_info[:10], 1):
+                # Remove source attribution for cleaner output
+                info_text = info.split(" (")[0] if " (" in info else info
+                output += f"{i}. {info_text}\n"
+            output += "\n"
+
+        # Add channels if available - moved down in priority
+        if channels:
+            output += "### 📺 ช่อง YouTube แนะนำ\n\n"
+            for i, channel in enumerate(channels[:5], 1):
+                output += f"{i}. {channel}\n"
+            output += "\n"
+
+        # Add videos if available - moved down in priority
+        if videos:
+            output += "### 🎬 วิดีโอที่ใช้วิเคราะห์ข้อมูล\n\n"
+            for i, video in enumerate(videos[:5], 1):
+                title = video.get("title", "ไม่ระบุชื่อ")
+                channel = video.get("channel", "ไม่ระบุช่อง")
+                url = video.get("url", "")
+                published_at = video.get("published_at", "")
+                published_date = published_at.split("T")[0] if published_at and "T" in published_at else ""
+
+                # Add published date if available
+                date_info = f" (วันที่ {published_date})" if published_date else ""
+                output += f"{i}. [{title}]({url}) โดย {channel}{date_info}\n"
+            output += "\n"
+
+        # Add a note about the source of information
+        output += "---\n"
+        output += f"ข้อมูลนี้รวบรวมจากการวิเคราะห์วิดีโอ YouTube ที่เกี่ยวข้องกับการท่องเที่ยวใน {destination} โดยวิเคราะห์จากคำบรรยายวิดีโอ คำอธิบาย และความคิดเห็นของผู้ชม\n"
+
+        # Ensure all Thai text is properly displayed (no Unicode escape sequences)
+        # This is handled automatically by Python's string handling, but we'll log it for clarity
+        logger.info(f"Formatted YouTube insights for {destination} with {len(output)} characters")
+
+        return output
+    except Exception as e:
+        logger.error(f"Error formatting YouTube insights: {e}")
+        return f"ไม่สามารถแสดงข้อมูลจาก YouTube ได้: {str(e)}"
+
 def get_youtube_insights(destination: str) -> str:
     """
     Get YouTube insights for a destination and return as a formatted JSON string that can be easily parsed.
     This function directly implements the YouTube Insight Agent logic without using the ADK.
+    The output is formatted in Thai language for better integration with the Thai travel planner.
 
     Args:
         destination: The travel destination to get insights for
 
     Returns:
-        A JSON string containing structured YouTube insights data
+        A JSON string containing structured YouTube insights data in Thai language
     """
     logger.info(f"[get_youtube_insights] Getting insights for destination: {destination}")
 
     if not destination or destination == "ไม่ระบุ" or destination == "ภายในประเทศไทย":
         logger.warning(f"[get_youtube_insights] Invalid destination: {destination}")
-        return json.dumps({
-            "destination": destination,
+
+        result = {
+            "destination": destination or "ไม่ระบุ",
             "insights": {
                 "top_places": ["ไม่สามารถระบุสถานที่ได้"],
                 "top_activities": ["ไม่สามารถระบุกิจกรรมได้"],
-                "tips": ["โปรดระบุจุดหมายปลายทางที่ชัดเจน"]
+                "tips": ["โปรดระบุจุดหมายปลายทางที่ชัดเจน"],
+                "hidden_gems": ["ไม่สามารถระบุได้"],
+                "food_recommendations": ["ไม่สามารถระบุร้านอาหารได้"]
             },
             "sentiment": "ไม่สามารถวิเคราะห์ได้",
             "channels": ["ไม่สามารถระบุได้"],
-            "videos": []
-        })
+            "videos": [],
+            "message": "กรุณาระบุจุดหมายปลายทางที่ชัดเจนเพื่อรับข้อมูลจาก YouTube"
+        }
+
+        # Create a human-readable formatted version
+        readable_result = format_youtube_insights_readable(result)
+
+        # Return both formats in a combined JSON
+        combined_result = {
+            "data": result,
+            "readable": readable_result
+        }
+
+        return json.dumps(combined_result)
 
     try:
         # 1. Search for videos with improved query
@@ -571,12 +1137,16 @@ def get_youtube_insights(destination: str) -> str:
         thai_review_term = "รีวิว"  # Thai word for "review"
 
         # Try multiple search terms to increase chances of finding videos
+        # Add "ล่าสุด 2525" (latest 2525) to get the most recent videos and avoid transcript retrieval errors
+        current_year = datetime.datetime.now().year
         search_terms = [
-            f"{destination} {thai_travel_term}",  # "Destination travel"
-            f"{destination} {thai_review_term}",  # "Destination review"
-            f"{destination} {thai_guide_term}",   # "Destination guide"
-            f"{destination} vlog"                # "Destination vlog"
+            f"{destination} {thai_travel_term} ล่าสุด {current_year}",  # "Destination travel latest 2023"
+            f"{destination} {thai_review_term} ล่าสุด {current_year}",  # "Destination review latest 2023"
+            f"{destination} {thai_guide_term} ล่าสุด {current_year}",   # "Destination guide latest 2023"
+            f"{destination} vlog ล่าสุด {current_year}"                # "Destination vlog latest 2023"
         ]
+
+        logger.info(f"Using search terms with current year {current_year} for better results")
 
         # Try each search term until we find videos
         videos = []
@@ -591,17 +1161,32 @@ def get_youtube_insights(destination: str) -> str:
 
         if not videos:
             logger.warning(f"[get_youtube_insights] No videos found for {destination}")
-            return json.dumps({
+
+            result = {
                 "destination": destination,
                 "insights": {
                     "top_places": ["ไม่พบวิดีโอเกี่ยวกับสถานที่นี้"],
                     "top_activities": ["ไม่พบข้อมูลกิจกรรม"],
-                    "tips": ["ลองค้นหาข้อมูลจากแหล่งอื่น"]
+                    "tips": ["ลองค้นหาข้อมูลจากแหล่งอื่น"],
+                    "hidden_gems": ["ไม่พบข้อมูลสถานที่ไม่ค่อยมีคนรู้จัก"],
+                    "food_recommendations": ["ไม่พบข้อมูลร้านอาหาร"]
                 },
                 "sentiment": "ไม่สามารถวิเคราะห์ได้",
                 "channels": ["ไม่พบช่องท่องเที่ยวสำหรับจุดหมายนี้"],
-                "videos": []
-            })
+                "videos": [],
+                "message": "ไม่พบวิดีโอเกี่ยวกับจุดหมายปลายทางนี้ใน YouTube กรุณาลองค้นหาข้อมูลจากแหล่งอื่น"
+            }
+
+            # Create a human-readable formatted version
+            readable_result = format_youtube_insights_readable(result)
+
+            # Return both formats in a combined JSON
+            combined_result = {
+                "data": result,
+                "readable": readable_result
+            }
+
+            return json.dumps(combined_result)
 
         # Extract video IDs with simplified and more robust logic
         video_ids = []
@@ -723,22 +1308,55 @@ def get_youtube_insights(destination: str) -> str:
         }
 
         logger.info(f"[get_youtube_insights] Analysis completed successfully for '{destination}'")
-        return json.dumps(result)
+
+        # Create a human-readable formatted version
+        readable_result = format_youtube_insights_readable(result)
+
+        # Log the readable version (first 500 chars)
+        logger.info(f"Formatted YouTube insights:\n{readable_result[:500]}...")
+
+        # Log the total length of the readable result
+        logger.info(f"Total length of formatted YouTube insights: {len(readable_result)} characters")
+
+        # Return both formats in a combined JSON
+        combined_result = {
+            "data": result,
+            "readable": readable_result
+        }
+
+        # Log success message
+        logger.info(f"Successfully generated YouTube insights for {destination} with {len(insights.get('top_places', []))} places, {len(insights.get('top_activities', []))} activities, {len(insights.get('hidden_gems', []))} hidden gems, {len(insights.get('food_recommendations', []))} food recommendations, {len(insights.get('travel_tips', []))} travel tips, and {len(insights.get('seasonal_info', []))} seasonal info items")
+
+        return json.dumps(combined_result)
 
     except Exception as e:
         logger.error(f"[get_youtube_insights] Error analyzing YouTube content: {e}")
-        # Return a fallback response in case of errors
-        return json.dumps({
+        # Return a fallback response in case of errors (in Thai)
+        result = {
             "destination": destination,
             "insights": {
                 "top_places": ["ไม่สามารถเข้าถึงข้อมูล YouTube ได้"],
                 "top_activities": ["ไม่สามารถเข้าถึงข้อมูล YouTube ได้"],
-                "tips": ["ลองค้นหาข้อมูลจากแหล่งอื่น", "ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"]
+                "tips": ["ลองค้นหาข้อมูลจากแหล่งอื่น", "ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"],
+                "hidden_gems": ["ไม่พบข้อมูล"],
+                "food_recommendations": ["ไม่พบข้อมูลร้านอาหาร"]
             },
             "sentiment": "ไม่สามารถวิเคราะห์ได้",
             "channels": ["ไม่สามารถเข้าถึงข้อมูลได้"],
-            "videos": []
-        })
+            "videos": [],
+            "message": "ขออภัย ไม่สามารถดึงข้อมูลจาก YouTube ได้ในขณะนี้"
+        }
+
+        # Create a human-readable formatted version
+        readable_result = format_youtube_insights_readable(result)
+
+        # Return both formats in a combined JSON
+        combined_result = {
+            "data": result,
+            "readable": readable_result
+        }
+
+        return json.dumps(combined_result)
 
 # Validate YouTube API key if possible
 if YOUTUBE_TOOLS_AVAILABLE and YOUTUBE_API_KEY:

@@ -295,8 +295,29 @@ async def get_agent_response_async(
                 # Call our new YouTube insight agent
                 logger.info("Calling YouTube insight sub-agent")
                 logger.info(f"YouTube insight sub-agent input: {user_message}")
-                youtube_insight_response = call_sub_agent("youtube_insight", user_message, session_id)
-                logger.info(f"YouTube insight sub-agent response (FULL): {youtube_insight_response}")
+                youtube_insight_response_raw = call_sub_agent("youtube_insight", user_message, session_id)
+
+                # Parse the JSON response
+                try:
+                    import json
+                    youtube_insight_json = json.loads(youtube_insight_response_raw)
+
+                    # Extract the readable format if available
+                    if isinstance(youtube_insight_json, dict) and "readable" in youtube_insight_json:
+                        youtube_insight_readable = youtube_insight_json["readable"]
+                        youtube_insight_data = youtube_insight_json["data"]
+                        logger.info(f"YouTube insight sub-agent readable response: {youtube_insight_readable[:1000]}...")
+                        logger.info(f"YouTube insight sub-agent data response: {json.dumps(youtube_insight_data, ensure_ascii=False)[:1000]}...")
+                        # Use the readable format for the enhanced query
+                        youtube_insight_response = youtube_insight_readable
+                    else:
+                        # Fallback to the raw response
+                        logger.warning("YouTube insight response does not contain readable format")
+                        youtube_insight_response = youtube_insight_response_raw
+                except Exception as e:
+                    logger.error(f"Error parsing YouTube insight response: {e}")
+                    youtube_insight_response = youtube_insight_response_raw
+
                 yield {"message": "กำลังวิเคราะห์ข้อมูลจากวิดีโอ YouTube เกี่ยวกับจุดหมายปลายทาง...", "partial": True}
 
                 # Finally, call the travel planner to create a comprehensive plan
