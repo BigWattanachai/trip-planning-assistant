@@ -66,13 +66,41 @@ const formatAIResponse = (text: string): JSX.Element => {
                 // Check if paragraph is a table
                 const tableData = parseTable(paragraph);
                 if (tableData) {
+                    // Determine table type based on content
+                    let tableClassName = "travel-table";
+                    let tableType = "standard";
+
+                    // Check if it's a budget table
+                    if (paragraph.includes('💰') ||
+                        paragraph.toLowerCase().includes('ค่าใช้จ่าย') ||
+                        paragraph.toLowerCase().includes('งบประมาณ')) {
+                        tableClassName += " budget-table";
+                        tableType = "budget";
+                    }
+
+                    // Check if it's an itinerary table
+                    else if (paragraph.includes('🗺️') ||
+                             paragraph.includes('วันที่') ||
+                             paragraph.includes('ช่วงเวลา')) {
+                        tableClassName += " itinerary-table";
+                        tableType = "itinerary";
+                    }
+
                     return (
                         <div key={index} className="overflow-x-auto my-6">
-                            <table className="travel-table w-full border-collapse">
+                            <div className="text-sm text-gray-500 mb-2">
+                                {tableType === "budget" &&
+                                    <span className="inline-flex items-center"><span className="mr-1">💰</span> ตารางสรุปค่าใช้จ่าย</span>
+                                }
+                                {tableType === "itinerary" &&
+                                    <span className="inline-flex items-center"><span className="mr-1">🗺️</span> ตารางกำหนดการเดินทาง</span>
+                                }
+                            </div>
+                            <table className={tableClassName}>
                                 <thead>
                                     <tr>
                                         {tableData.headers.map((header, i) => (
-                                            <th key={i} className="border border-gray-300 bg-gray-100 px-4 py-2 text-left">
+                                            <th key={i} className="border border-gray-300 px-4 py-2 text-left">
                                                 <span dangerouslySetInnerHTML={{ __html: processMarkdown(header) }} />
                                             </th>
                                         ))}
