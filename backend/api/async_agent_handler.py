@@ -41,6 +41,29 @@ except ImportError:
         logger.error(f"Fallback call_sub_agent: {agent_type}")
         return f"Could not call {agent_type} agent"
 
+# Import state manager
+try:
+    from core.state_manager import state_manager
+    logger.info("Successfully imported state_manager from core.state_manager")
+except ImportError:
+    logger.error("Failed to import state_manager")
+    # Create a simple state manager as fallback
+    class SimpleStateManager:
+        def __init__(self):
+            self.session_states = {}
+        
+        def store_state(self, session_id, key, value):
+            if session_id not in self.session_states:
+                self.session_states[session_id] = {}
+            self.session_states[session_id][key] = value
+            
+        def get_state(self, session_id, key, default=None):
+            if session_id not in self.session_states:
+                return default
+            return self.session_states[session_id].get(key, default)
+    
+    state_manager = SimpleStateManager()
+
 # Add the current directory's parent to sys.path
 current_parent = str(pathlib.Path(__file__).parent.parent.absolute())
 if current_parent not in sys.path:
@@ -406,6 +429,9 @@ async def get_agent_response_async(
                 except Exception as e:
                     logger.error(f"Failed to save enhanced query to file: {e}")
 
+                # Store the enhanced query in state manager for potential updates later
+                state_manager.store_state(session_id, "last_enhanced_query", enhanced_query)
+
                 yield {"message": "กำลังจัดทำแผนการเดินทางแบบสมบูรณ์...", "partial": True}
 
                 logger.info("Calling travel planner sub-agent with enhanced query")
@@ -435,6 +461,9 @@ async def get_agent_response_async(
                 except Exception as e:
                     logger.error(f"Failed to save travel plan to file: {e}")
 
+                # Store the travel plan in state manager for potential updates later
+                state_manager.store_state(session_id, "last_travel_plan", travel_plan)
+
                 # Send the final comprehensive travel plan - CRITICAL FIX: ensure this is marked as final
                 yield {"message": travel_plan, "final": True}
             else:
@@ -461,8 +490,133 @@ async def process_with_direct_api(user_message: str, session_id: Optional[str] =
         search_results = None
 
         if query_type != "general":
-            # Call appropriate sub-agent for specialized queries
+            # Check if this is a plan update request
+            if query_type == "plan_update":
+                # Retrieve the last travel plan
+                last_travel_plan = state_manager.get_state(session_id, "last_travel_plan")
+                if not last_travel_plan:
+                    logger.warning("No previous travel plan found for update")
+                    yield {"message": "ขออภัยค่ะ ไม่พบแผนการเดินทางล่าสุดของคุณ กรุณาสร้างแผนการเดินทางใหม่ก่อนค่ะ", "final": True}
+                    return
+                
+                # Get the last enhanced query
+                last_enhanced_query = state_manager.get_state(session_id, "last_enhanced_query")
+                if not last_enhanced_query:
+                    logger.warning("No previous enhanced query found")
+                    # Create a simple enhanced query if not found
+                    last_enhanced_query = "กรุณาสร้างแผนการเดินทางใหม่"
+                
+                # Create the updated query for travel planner with clearer instructions
+                updated_query = f"""
+                {last_enhanced_query}
 
+                **คำขอปรับปรุงแผนจากผู้ใช้:**
+                {user_message}
+
+                **แผนการเดินทางล่าสุด:**
+                {last_travel_plan}
+
+                คำแนะนำในการปรับปรุงแผน:
+                1. วิเคราะห์คำขอของผู้ใช้และระบุสถานที่หรือกิจกรรมใหม่ที่ต้องการเพิ่ม
+                2. ตรวจสอบว่าสถานที่เหล่านั้นสามารถเพิ่มเข้าไปในแผนได้อย่างสมเหตุสมผลตามเส้นทางและตารางเวลา
+                3. ปรับตารางเวลาและกิจกรรมที่มีอยู่เพื่อรองรับสถานที่หรือกิจกรรมใหม่
+                4. ตรวจสอบว่าการเดินทางระหว่างสถานที่ยังคงเป็นไปได้หลังจากการปรับแผน
+                5. คำนวณเวลาที่ต้องใช้ในแต่ละสถานที่ใหม่อย่างสมเหตุสมผล
+                6. ปรับปรุงข้อมูลค่าใช้จ่ายถ้าจำเป็น
+                
+                สิ่งที่สำคัญที่สุด:
+                - ต้องส่งกลับแผนการเดินทางฉบับสมบูรณ์ทั้งหมด ไม่ใช่เพียงส่วนที่มีการเปลี่ยนแปลง
+                - รูปแบบของแผนต้องสอดคล้องกับแผนเดิม แต่ได้รับการปรับปรุงให้รวมสถานที่หรือกิจกรรมใหม่
+                - อย่าตอบเพียงว่าได้เพิ่มอะไรเข้าไปในแผน แต่ต้องแสดงแผนทั้งหมดพร้อมการเปลี่ยนแปลงที่ทำ
+                - แผนที่ปรับปรุงแล้วต้องมีความเป็นระเบียบเรียบร้อยและใช้งานได้จริง
+                
+                กรุณาตอบกลับด้วยแผนการเดินทางฉบับสมบูรณ์เท่านั้น ไม่ต้องอธิบายว่าคุณได้เปลี่ยนแปลงอะไร
+                """
+
+                logger.info(f"Preparing updated query for travel planner agent: {updated_query[:500]}...")
+                
+                # Tell the user we're updating the plan with more specific information
+                yield {"message": "กำลังปรับปรุงแผนการเดินทางตามคำขอของคุณ โดยเพิ่มสถานที่ใหม่และปรับตารางเวลาให้เหมาะสม กรุณารอสักครู่...", "partial": True}
+                
+                logger.info(f"Updated query for plan update: {updated_query[:500]}...")
+                
+                # Save the updated query to a file for easier inspection
+                try:
+                    import os
+                    from datetime import datetime
+                    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+                    os.makedirs(log_dir, exist_ok=True)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    log_file = os.path.join(log_dir, f"updated_plan_query_{timestamp}.txt")
+                    with open(log_file, "w", encoding="utf-8") as f:
+                        f.write(f"SESSION ID: {session_id}\n\n")
+                        f.write(f"USER REQUEST: {user_message}\n\n")
+                        f.write(f"UPDATED QUERY:\n{updated_query}\n")
+                    logger.info(f"Updated plan query saved to file: {log_file}")
+                except Exception as e:
+                    logger.error(f"Failed to save updated plan query to file: {e}")
+                
+                # Call travel planner agent with updated query
+                yield {"message": "กำลังประมวลผลและปรับปรุงแผนการเดินทางให้รวมสถานที่เพิ่มเติมตามที่คุณต้องการ...", "partial": True}
+                updated_travel_plan = call_sub_agent("travel_planner", updated_query, session_id)
+                
+                # Ensure the updated plan has the proper format
+                if updated_travel_plan and "===== แผนการเดินทางของคุณ =====" not in updated_travel_plan:
+                    updated_travel_plan = "===== แผนการเดินทางของคุณ (ฉบับปรับปรุง) =====\n\n" + updated_travel_plan
+                
+                # Store the updated plan in state manager
+                state_manager.store_state(session_id, "last_travel_plan", updated_travel_plan)
+                
+                # Log the updated plan
+                logger.info(f"Updated travel plan generated: {updated_travel_plan[:500]}...")
+                
+                # Save the updated plan to a file for easier inspection
+                try:
+                    import os
+                    from datetime import datetime
+                    log_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
+                    os.makedirs(log_dir, exist_ok=True)
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    log_file = os.path.join(log_dir, f"updated_travel_plan_{timestamp}.txt")
+                    with open(log_file, "w", encoding="utf-8") as f:
+                        f.write(f"SESSION ID: {session_id}\n\n")
+                        f.write(f"USER REQUEST: {user_message}\n\n")
+                        f.write(f"UPDATED TRAVEL PLAN:\n{updated_travel_plan}\n")
+                    logger.info(f"Updated travel plan saved to file: {log_file}")
+                except Exception as e:
+                    logger.error(f"Failed to save updated travel plan to file: {e}")
+                
+                # Validate the updated plan has all necessary components before sending
+                logger.info("Validating and sending updated travel plan to user")
+                
+                # Check if the updated plan seems to be missing content
+                if len(updated_travel_plan.strip()) < 100:  # Simple validation for obviously incomplete plans
+                    logger.warning("Updated travel plan seems too short, may be incomplete")
+                    
+                    # Try again with a more explicit instruction
+                    retry_query = f"""
+                    {updated_query}
+
+                    *** สำคัญมาก ***
+                    คุณต้องส่งแผนการเดินทางฉบับสมบูรณ์กลับมาทั้งหมด ไม่ใช่แค่ส่วนที่มีการเปลี่ยนแปลง
+                    แผนทั้งหมดประกอบด้วย: ภาพรวม, การเดินทาง, ที่พัก, แผนรายวัน, ร้านอาหาร, คำแนะนำ
+                    """
+                    
+                    yield {"message": "กำลังปรับปรุงรายละเอียดแผนการเดินทางเพิ่มเติม...", "partial": True}
+                    
+                    # Try once more with the travel planner agent
+                    updated_travel_plan = call_sub_agent("travel_planner", retry_query, session_id)
+                
+                
+                # Final formatting check - ensure it has a proper header
+                if not updated_travel_plan.strip().startswith("===="):
+                    updated_travel_plan = "===== แผนการเดินทางของคุณ (ฉบับปรับปรุง) =====\n\n" + updated_travel_plan
+                
+                # Send the complete updated plan
+                yield {"message": updated_travel_plan, "final": True}
+                return
+            
+            # Call appropriate sub-agent for specialized queries
             # No search results to enhance query
             enhanced_query = user_message
 
@@ -474,6 +628,12 @@ async def process_with_direct_api(user_message: str, session_id: Optional[str] =
                 # Make sure the response is properly formatted if it's a travel plan
                 if query_type == "travel_planner" and "===== แผนการเดินทางของคุณ =====" not in specialized_response:
                     specialized_response = "===== แผนการเดินทางของคุณ =====\n\n" + specialized_response
+                
+                # Store the travel plan for potential updates later
+                if query_type == "travel_planner":
+                    logger.info("Storing travel plan in state manager")
+                    state_manager.store_state(session_id, "last_travel_plan", specialized_response)
+                
                 yield {"message": specialized_response, "final": True}
             else:
                 logger.error(f"Empty response from {query_type} agent")
@@ -539,9 +699,21 @@ def classify_query(query: str) -> str:
         query: The user's query
 
     Returns:
-        The type of sub-agent to use: "accommodation", "activity", "restaurant", "transportation", "travel_planner", "youtube_insight", or "general"
+        The type of sub-agent to use: "accommodation", "activity", "restaurant", "transportation", "travel_planner", "youtube_insight", "plan_update" or "general"
     """
     query_lower = query.lower()
+
+    # Log the query to help with debugging
+    logger.info(f"Classifying query: {query_lower}")
+
+    # Check for plan update with improved pattern matching for Thai language
+    plan_update_patterns = ["เพิ่มสถานที่", "ปรับแผน", "เปลี่ยนแผน", "แก้ไขแผน", "อัพเดตแผน", "อัปเดตแผน", 
+                          "แก้แผน", "เพิ่มแผน", "ต้องการเพิ่ม", "อยากเพิ่ม", "เพิ่มที่", "ใส่เพิ่ม"]
+    
+    # More specific pattern matching to avoid false positives
+    if any(word in query_lower for word in plan_update_patterns) or "เข้าไปในแผน" in query_lower or ("เพิ่ม" in query_lower and "แผน" in query_lower):
+        logger.info("Query classified as plan update")
+        return "plan_update"
 
     # Travel planning
     if "ช่วยวางแผนการเดินทางท่องเที่ยว" in query_lower or "แผนการเดินทาง" in query_lower:

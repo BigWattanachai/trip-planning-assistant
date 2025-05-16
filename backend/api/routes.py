@@ -104,8 +104,9 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 
                     # Store to accumulate the complete response
                     accumulated_response = ""
-                    # Flag to track if this is a travel planning request
-                    is_travel_plan = "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message
+                    # Flag to track if this is a travel planning request or plan update
+                    is_travel_plan = ("ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message or 
+                                     any(term in user_message.lower() for term in ["เพิ่มสถานที่", "ปรับแผน", "แก้ไขแผน", "เปลี่ยนแผน", "อัพเดตแผน", "ปรับปรุงแผน", "แก้ไข plan"]))
 
                     # If it's a travel planning request, show a loading message
                     if is_travel_plan:
@@ -124,15 +125,18 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                         if response.get("partial", False):
                             # Accumulate partial responses
                             partial_text = response.get("message", "")
-                            accumulated_response += partial_text
-
+                            
                             # For travel planning, send status updates but not content fragments
                             if is_travel_plan and partial_text.startswith("กำลัง"):
+                                # Don't accumulate status messages into the final response
                                 await websocket.send_text(json.dumps({
                                     "message": partial_text,
                                     "partial": True
                                 }))
                                 logger.info(f"Sent status update: {partial_text[:50]}...")
+                            else:
+                                # Only accumulate non-status messages
+                                accumulated_response += partial_text
 
                         elif response.get("final", False):
                             # Mark that we've received a final response
@@ -141,10 +145,11 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                             # Get the final response message
                             final_message = response.get("message", "")
                             logger.info(f"Received final response: {final_message[:100]}...")
-
-                            # If no accumulation has happened, use the final message
-                            if not accumulated_response:
-                                accumulated_response = final_message
+                            
+                            # Always prioritize the final message for plan updates 
+                            # This ensures we get the complete plan, not just status updates
+                            accumulated_response = final_message
+                            logger.info(f"Using final message as response: {accumulated_response[:100]}...")
 
                             # Make sure this is a proper travel plan if it's a travel planning request
                             if is_travel_plan and "===== แผนการเดินทางของคุณ =====" not in accumulated_response:
@@ -186,6 +191,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                             state_manager.add_agent_message(session_id, accumulated_response, "travel")
 
                             # Send final accumulated response
+                            logger.info(f"Sending accumulated response to client: {accumulated_response[:100]}...")
                             await websocket.send_text(json.dumps({
                                 "message": accumulated_response,
                                 "final": True
