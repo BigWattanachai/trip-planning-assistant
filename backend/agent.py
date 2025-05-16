@@ -51,18 +51,33 @@ if USE_VERTEX_AI:
         # Import shared libraries and tools
         try:
             # Try absolute imports first
-            from backend_improve.shared_libraries.callbacks import rate_limit_callback
+            from backend_improve.shared_libraries.simple_callbacks import (
+                before_model_callback, after_model_callback,
+                before_tool_callback, after_tool_callback
+            )
             from backend_improve.tools.store_state import store_state_tool
-            logger.info("Imported components using backend_improve prefix")
+            logger.info("Imported simple callbacks using backend_improve prefix")
         except ImportError:
             # Try direct imports
             try:
-                from shared_libraries.callbacks import rate_limit_callback
+                from shared_libraries.simple_callbacks import (
+                    before_model_callback, after_model_callback,
+                    before_tool_callback, after_tool_callback
+                )
                 from tools.store_state import store_state_tool
-                logger.info("Imported components using direct imports")
+                logger.info("Imported simple callbacks using direct imports")
             except ImportError as e:
-                logger.error(f"Failed to import tools or callbacks: {e}")
-                rate_limit_callback = None
+                # Fall back to basic callbacks if simple callbacks are not available
+                try:
+                    from shared_libraries.callbacks import rate_limit_callback
+                    logger.info("Falling back to basic callbacks")
+                except ImportError:
+                    logger.error(f"Failed to import callbacks: {e}")
+                    rate_limit_callback = None
+                    before_model_callback = None
+                    after_model_callback = None
+                    before_tool_callback = None
+                    after_tool_callback = None
                 store_state_tool = None
 
         # Google Search is available by default in the ADK
@@ -92,14 +107,14 @@ if USE_VERTEX_AI:
                 """
 
         # Set up the list of tools for the root agent
+        # In VERTEXAI mode, we can only use search tools
         from google.adk.tools import google_search
         root_agent_tools = [google_search]
+        logger.info("Using only Google Search tool for VERTEXAI mode compatibility")
 
         # Note: Vertex AI only supports multiple tools if they are all search tools
-        # So we only add store_state_tool in direct API mode
-        # This avoids the error: "Multiple tools are supported only when they are all search tools"
-        # if store_state_tool:
-        #     root_agent_tools.append(store_state_tool)
+        # So we only use Google Search and handle sub-agent calls through special tags
+        # in the agent's response that will be processed by the backend
 
         # Try to import and initialize sub-agents
         try:
@@ -147,17 +162,49 @@ if USE_VERTEX_AI:
                 sub_agents.append(youtube_insight_agent.agent)
                 logger.info("Added youtube_insight_agent to sub-agents list")
 
-            # Create the root agent - without sub-agents for Vertex AI compatibility
-            # Note: Vertex AI has limitations with sub-agents, so we create a simpler agent
-            # that only uses the Google Search tool
-            root_agent = Agent(
-                name="root_agent",
-                model=MODEL,
-                instruction=ROOT_PROMPT,
-                tools=root_agent_tools,
-                # sub_agents=sub_agents,  # Commented out for Vertex AI compatibility
-                before_model_callback=rate_limit_callback if rate_limit_callback else None
-            )
+            # Create the root agent with special tag instructions for Vertex AI compatibility
+            # Note: Vertex AI has limitations with sub-agents, so we use special tags instead
+            sub_agent_instruction = """
+            IMPORTANT: Since you're running in VERTEXAI mode, you cannot directly use sub-agents.
+            Instead, when you need information from a specialized agent, include a special tag in your response like this:
+            [CALL_SUB_AGENT:agent_type:query]
+
+            Available sub-agents:
+            - accommodation: For finding and recommending accommodations
+            - activity: For finding and recommending activities and attractions
+            - restaurant: For finding and recommending restaurants and food options
+            - transportation: For transportation options and travel logistics
+            - travel_planner: For creating comprehensive travel plans
+            - youtube_insight: For getting insights from YouTube videos about destinations
+
+            Example usage:
+            [CALL_SUB_AGENT:accommodation:Find budget hotels in Bangkok]
+            [CALL_SUB_AGENT:restaurant:Recommend local restaurants in Chiang Mai]
+
+            These tags will be intercepted and processed by the backend, and the sub-agent responses
+            will be inserted into your final response.
+            """
+
+            agent_kwargs = {
+                "name": "root_agent",
+                "model": MODEL,
+                "instruction": ROOT_PROMPT + sub_agent_instruction,
+                "tools": root_agent_tools,
+                # "sub_agents": sub_agents,  # Commented out for Vertex AI compatibility
+            }
+
+            # Add callbacks if available
+            if 'before_model_callback' in locals() and before_model_callback:
+                agent_kwargs["before_model_callback"] = before_model_callback
+            if 'after_model_callback' in locals() and after_model_callback:
+                agent_kwargs["after_model_callback"] = after_model_callback
+            if 'before_tool_callback' in locals() and before_tool_callback:
+                agent_kwargs["before_tool_callback"] = before_tool_callback
+            if 'after_tool_callback' in locals() and after_tool_callback:
+                agent_kwargs["after_tool_callback"] = after_tool_callback
+
+            # Create the agent with the prepared arguments
+            root_agent = Agent(**agent_kwargs)
             logger.info(f"Root agent created with {len(root_agent_tools)} tools (sub-agents disabled for Vertex AI compatibility)")
 
             # The else clause is no longer needed since we always create the agent without sub-agents
@@ -166,13 +213,25 @@ if USE_VERTEX_AI:
         except ImportError as e:
             logger.warning(f"Failed to import sub-agents: {e}. Creating root agent without sub-agents.")
             # Create root agent without sub-agents
-            root_agent = Agent(
-                name="root_agent",
-                model=MODEL,
-                instruction=ROOT_PROMPT,
-                tools=root_agent_tools,
-                before_model_callback=rate_limit_callback if rate_limit_callback else None
-            )
+            agent_kwargs = {
+                "name": "root_agent",
+                "model": MODEL,
+                "instruction": ROOT_PROMPT,
+                "tools": root_agent_tools,
+            }
+
+            # Add callbacks if available
+            if 'before_model_callback' in locals() and before_model_callback:
+                agent_kwargs["before_model_callback"] = before_model_callback
+            if 'after_model_callback' in locals() and after_model_callback:
+                agent_kwargs["after_model_callback"] = after_model_callback
+            if 'before_tool_callback' in locals() and before_tool_callback:
+                agent_kwargs["before_tool_callback"] = before_tool_callback
+            if 'after_tool_callback' in locals() and after_tool_callback:
+                agent_kwargs["after_tool_callback"] = after_tool_callback
+
+            # Create the agent with the prepared arguments
+            root_agent = Agent(**agent_kwargs)
             logger.info(f"Root agent created with {len(root_agent_tools)} tools but no sub-agents")
 
     except ImportError as e:
@@ -292,6 +351,33 @@ def search_destination_info(destination: str, query_type: str = "travel") -> Dic
     except Exception as e:
         logger.error(f"Error searching for {destination}: {e}")
         return {"success": False, "error": str(e)}
+
+def log_sub_agent_activity(agent_type: str, action: str, content: str = None):
+    """
+    Log sub-agent activity for debugging and monitoring.
+
+    Args:
+        agent_type: The type of sub-agent ("accommodation", "activity", etc.)
+        action: The action being performed ("request", "response")
+        content: Optional content to log (truncated if too long)
+    """
+    emoji_map = {
+        "request": "🔍",
+        "response": "✅",
+        "error": "❌"
+    }
+    emoji = emoji_map.get(action, "ℹ️")
+
+    # Format the agent type for consistent logging
+    formatted_agent = f"{agent_type}_agent"
+
+    # Log the basic information
+    logger.info(f"{emoji} SUB-AGENT {action.upper()}: {formatted_agent}")
+
+    # Log content if provided (truncated if too long)
+    if content:
+        truncated = content[:500] + "... [truncated]" if len(content) > 500 else content
+        logger.info(f"📄 {formatted_agent} {action}: {truncated}")
 
 def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None) -> str:
     """
@@ -568,8 +654,9 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
         logger.warning(f"Unknown agent type: {agent_type}, using travel_planner")
         prompt = prompts["travel_planner"]
 
+    # Log the sub-agent request
+    log_sub_agent_activity(agent_type, "request", prompt)
     logger.info(f"Calling sub-agent: {agent_type}")
-    logger.debug(f"Sub-agent prompt: {prompt[:1000]}...")
 
     try:
         # Check if we need to handle YouTube insights differently
@@ -599,6 +686,8 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
             },
         )
 
+        # Log the sub-agent response
+        log_sub_agent_activity(agent_type, "response", response.text)
         logger.info(f"Sub-agent {agent_type} response generated")
 
         # Check if this is YouTube insights response and format it properly
@@ -653,5 +742,8 @@ def call_sub_agent(agent_type: str, query: str, session_id: Optional[str] = None
 
         return response.text
     except Exception as e:
-        logger.error(f"Error calling sub-agent {agent_type}: {e}")
+        error_message = f"Error calling sub-agent {agent_type}: {e}"
+        # Log the sub-agent error
+        log_sub_agent_activity(agent_type, "error", error_message)
+        logger.error(error_message)
         return f"Error: {str(e)}"

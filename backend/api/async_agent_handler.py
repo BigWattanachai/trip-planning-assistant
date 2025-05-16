@@ -30,6 +30,23 @@ parent_dir = str(pathlib.Path(__file__).parent.parent.parent.absolute())
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
+# Import call_sub_agent function
+try:
+    # Try absolute imports first
+    from backend_improve.agent import call_sub_agent
+    logger.info("Successfully imported call_sub_agent from backend_improve.agent")
+except ImportError:
+    # Try direct imports
+    try:
+        from agent import call_sub_agent
+        logger.info("Successfully imported call_sub_agent from agent")
+    except ImportError:
+        logger.error("Failed to import call_sub_agent function")
+        # Define a fallback function
+        def call_sub_agent(agent_type, query, session_id=None):
+            logger.error(f"Fallback call_sub_agent: {agent_type}")
+            return f"Could not call {agent_type} agent"
+
 # Add the current directory's parent to sys.path
 current_parent = str(pathlib.Path(__file__).parent.parent.absolute())
 if current_parent not in sys.path:
@@ -200,6 +217,25 @@ async def get_agent_response_async(
                                 if "text" in part:
                                     text_part = part["text"]
                                     accumulated_text += text_part
+
+                                    # Check for sub-agent call tags in partial responses
+                                    import re
+                                    sub_agent_calls = re.findall(r'\[CALL_SUB_AGENT:(\w+):([^\]]+)\]', text_part)
+
+                                    # Process any sub-agent calls in partial responses
+                                    for agent_type, query in sub_agent_calls:
+                                        logger.info(f"Detected sub-agent call in partial response: {agent_type} with query: {query}")
+                                        try:
+                                            # Call the sub-agent
+                                            sub_agent_response = call_sub_agent(agent_type, query, session_id)
+
+                                            # Replace the tag with the response
+                                            tag = f"[CALL_SUB_AGENT:{agent_type}:{query}]"
+                                            text_part = text_part.replace(tag, f"\n\n**{agent_type.upper()} AGENT RESPONSE:**\n{sub_agent_response}\n\n")
+                                            accumulated_text = accumulated_text.replace(tag, f"\n\n**{agent_type.upper()} AGENT RESPONSE:**\n{sub_agent_response}\n\n")
+                                        except Exception as e:
+                                            logger.error(f"Error calling sub-agent {agent_type} in partial response: {e}")
+
                                     yield {"message": text_part, "partial": True}
                                     logger.info(f"Yielded partial response: {text_part[:50]}...")
 
@@ -212,6 +248,23 @@ async def get_agent_response_async(
 
                 # If we have accumulated text, send it as the final response
                 if accumulated_text:
+                    # Check for sub-agent call tags
+                    import re
+                    sub_agent_calls = re.findall(r'\[CALL_SUB_AGENT:(\w+):([^\]]+)\]', accumulated_text)
+
+                    # Process any sub-agent calls
+                    for agent_type, query in sub_agent_calls:
+                        logger.info(f"Detected sub-agent call: {agent_type} with query: {query}")
+                        try:
+                            # Call the sub-agent
+                            sub_agent_response = call_sub_agent(agent_type, query, session_id)
+
+                            # Replace the tag with the response
+                            tag = f"[CALL_SUB_AGENT:{agent_type}:{query}]"
+                            accumulated_text = accumulated_text.replace(tag, f"\n\n**{agent_type.upper()} AGENT RESPONSE:**\n{sub_agent_response}\n\n")
+                        except Exception as e:
+                            logger.error(f"Error calling sub-agent {agent_type}: {e}")
+
                     logger.info(f"Sending final accumulated response ({len(accumulated_text)} chars)")
                     yield {"message": accumulated_text, "final": True}
                 else:

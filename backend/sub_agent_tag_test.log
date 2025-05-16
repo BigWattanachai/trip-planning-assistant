@@ -1,0 +1,177 @@
+2025-05-16 11:48:10,403 - api.async_agent_handler - INFO - Configuring Gemini API with provided key
+2025-05-16 11:48:10,623 - api.async_agent_handler - INFO - Initialized Gemini model: gemini-2.0-flash
+2025-05-16 11:48:10,624 - agent - INFO - Google Search is available for web search capabilities
+2025-05-16 11:48:11,726 - google.adk.models.registry - INFO - Updating LLM class for gemini-.* from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:48:11,726 - google.adk.models.registry - INFO - Updating LLM class for projects\/.+\/locations\/.+\/endpoints\/.+ from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:48:11,726 - google.adk.models.registry - INFO - Updating LLM class for projects\/.+\/locations\/.+\/publishers\/google\/models\/gemini.+ from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:48:11,726 - google.adk.models.registry - INFO - Updating LLM class for gemini-.* from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:48:11,726 - google.adk.models.registry - INFO - Updating LLM class for projects\/.+\/locations\/.+\/endpoints\/.+ from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:48:11,726 - google.adk.models.registry - INFO - Updating LLM class for projects\/.+\/locations\/.+\/publishers\/google\/models\/gemini.+ from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:48:11,867 - agent - INFO - ADK Mode: Using model gemini-2.0-flash
+2025-05-16 11:48:11,868 - agent - INFO - Imported simple callbacks using direct imports
+2025-05-16 11:48:11,868 - agent - INFO - Google Search is available for use in the ADK
+2025-05-16 11:48:11,868 - agent - INFO - Imported root agent prompt using direct import
+2025-05-16 11:48:11,869 - sub_agents.accommodation_agent - INFO - Accommodation agent created using simplified pattern
+2025-05-16 11:48:11,869 - sub_agents - INFO - Successfully imported AccommodationAgent
+2025-05-16 11:48:11,869 - sub_agents.activity_agent - INFO - Activity agent created using simplified pattern
+2025-05-16 11:48:11,869 - sub_agents - INFO - Successfully imported ActivityAgent
+2025-05-16 11:48:11,869 - sub_agents.restaurant_agent - INFO - Restaurant agent created using simplified pattern
+2025-05-16 11:48:11,869 - sub_agents - INFO - Successfully imported RestaurantAgent
+2025-05-16 11:48:11,870 - sub_agents.transportation_agent - INFO - Transportation agent created using simplified pattern
+2025-05-16 11:48:11,870 - sub_agents - INFO - Successfully imported TransportationAgent
+2025-05-16 11:48:11,870 - sub_agents.travel_planner_agent - INFO - Travel planner agent created using simplified pattern with YouTube insights integration
+2025-05-16 11:48:11,870 - sub_agents - INFO - Successfully imported TravelPlannerAgent
+2025-05-16 11:48:11,871 - root - INFO - Backend initialized in Vertex AI (ADK) mode
+2025-05-16 11:48:11,871 - root - INFO - Using model: gemini-2.0-flash
+2025-05-16 11:48:11,874 - backend.tools.youtube.youtube - INFO - YouTube API libraries successfully imported
+2025-05-16 11:48:11,875 - tools.youtube.youtube - INFO - YouTube API libraries successfully imported
+2025-05-16 11:48:11,875 - tools.youtube.youtube_insight - INFO - Successfully imported YouTube functions from tools.youtube.youtube
+2025-05-16 11:48:11,875 - backend.tools.youtube.youtube_insight - INFO - Successfully imported YouTube functions from tools.youtube.youtube
+2025-05-16 11:48:11,875 - sub_agents.youtube_insight_agent - INFO - Successfully imported YouTube tools from backend.tools.youtube.youtube_insight
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO - YouTube insight agent created using simplified pattern
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO - YouTube Insight Agent module loaded
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO - YouTube API dependencies are available
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO - YouTube tools available and ready to use
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO - YouTube Configuration:
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO -   - YouTube API Key Set: True
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO -   - YouTube Tools Available: True
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO -   - Store State Tool Available: False
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO -   - Timeout Seconds: 30
+2025-05-16 11:48:11,876 - sub_agents.youtube_insight_agent - INFO - Testing YouTube API key...
+2025-05-16 11:48:11,877 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-16 11:48:12,510 - sub_agents.youtube_insight_agent - INFO - YouTube API key is valid and working correctly.
+2025-05-16 11:48:12,510 - sub_agents - INFO - Successfully imported YouTubeInsightAgent
+2025-05-16 11:48:12,510 - sub_agents - INFO - Imported 6 sub-agents successfully
+2025-05-16 11:48:12,510 - agent - INFO - Imported sub-agents using direct import
+2025-05-16 11:48:12,510 - agent - INFO - Added accommodation_agent to sub-agents list
+2025-05-16 11:48:12,510 - agent - INFO - Added activity_agent to sub-agents list
+2025-05-16 11:48:12,510 - agent - INFO - Added restaurant_agent to sub-agents list
+2025-05-16 11:48:12,510 - agent - INFO - Added transportation_agent to sub-agents list
+2025-05-16 11:48:12,510 - agent - INFO - Added travel_planner_agent to sub-agents list
+2025-05-16 11:48:12,510 - agent - INFO - Added youtube_insight_agent to sub-agents list
+2025-05-16 11:48:12,511 - agent - INFO - Root agent created with 1 tools (sub-agents disabled for Vertex AI compatibility)
+2025-05-16 11:48:12,511 - api.async_agent_handler - INFO - Successfully imported root_agent from agent module
+2025-05-16 11:48:14,251 - api.async_agent_handler - INFO - ADK App initialized successfully
+2025-05-16 11:48:14,253 - core.state_manager - INFO - StateManager initialized
+2025-05-16 11:48:14,254 - api.routes - INFO - Successfully imported components using direct paths
+2025-05-16 11:48:14,256 - __main__ - INFO - Starting sub-agent tag test
+2025-05-16 11:48:14,256 - __main__ - INFO - Sending message: 
+    ฉันต้องการให้คุณใช้ sub-agent ในการตอบคำถามนี้
+    
+    กรุณาใช้ [CALL_SUB_AGENT:accommodation:หาที่พักราคาประหยัดในหัวหิน] ในการตอบคำถามนี้
+    
+    และใช้ [CALL_SUB_AGENT:restaurant:ร้านอาหารอร่อยในหัวหิน] ในการแนะนำร้านอาหาร
+    
+    สุดท้ายใช้ [CALL_SUB_AGENT:travel_planner:วางแผนท่องเที่ยวหัวหิน 3 วัน] ในการวางแผนการเดินทาง
+    
+2025-05-16 11:48:14,257 - api.async_agent_handler - INFO - Using ADK to process message for session test_session_123
+2025-05-16 11:48:14,536 - api.async_agent_handler - INFO - ADK session check failed: Session not found. Please create it using .create_session(), creating new session
+2025-05-16 11:48:14,536 - api.async_agent_handler - INFO - Created new ADK session for user_id=user_test_session_123, session_id=test_session_123
+2025-05-16 11:48:14,536 - api.async_agent_handler - INFO - Sending message to ADK stream_query: '
+    ฉันต้องการให้คุณใช้ sub-agent ในการตอบคำถามนี...'
+2025-05-16 11:48:14,537 - shared_libraries.simple_callbacks - INFO - 🔍 MODEL REQUEST from root_agent
+2025-05-16 11:48:14,537 - google_genai._api_client - INFO - The project/location from the environment variables will take precedence over the API key from the environment variables.
+2025-05-16 11:48:14,555 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-05-16 11:48:18,450 - httpx - INFO - HTTP Request: POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/hana-big/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent "HTTP/1.1 200 OK"
+2025-05-16 11:48:18,452 - shared_libraries.simple_callbacks - INFO - ✅ MODEL RESPONSE to root_agent
+2025-05-16 11:48:18,452 - api.async_agent_handler - INFO - Received ADK event: <class 'dict'>, keys: dict_keys(['content', 'grounding_metadata', 'invocation_id', 'author', 'actions', 'id', 'timestamp'])
+2025-05-16 11:48:18,453 - api.async_agent_handler - INFO - Detected sub-agent call in partial response: accommodation with query: หาที่พักราคาประหยัดในหัวหิน
+2025-05-16 11:48:18,453 - api.async_agent_handler - ERROR - Error calling sub-agent accommodation in partial response: name 'call_sub_agent' is not defined
+2025-05-16 11:48:18,453 - api.async_agent_handler - INFO - Detected sub-agent call in partial response: restaurant with query: ร้านอาหารอร่อยในหัวหิน
+2025-05-16 11:48:18,453 - api.async_agent_handler - ERROR - Error calling sub-agent restaurant in partial response: name 'call_sub_agent' is not defined
+2025-05-16 11:48:18,453 - api.async_agent_handler - INFO - Detected sub-agent call in partial response: travel_planner with query: วางแผนท่องเที่ยวหัวหิน 3 วัน
+2025-05-16 11:48:18,453 - api.async_agent_handler - ERROR - Error calling sub-agent travel_planner in partial response: name 'call_sub_agent' is not defined
+2025-05-16 11:48:18,454 - __main__ - INFO - Received response: สวัสดีค่ะ ยินดีที่ได้ช่วยเหลือในการวางแผนการเดินทางไปหัวหินนะคะ ก่อนอื่น เพื่อให้การวางแผนเป็นไปอย่า...
+2025-05-16 11:48:18,454 - api.async_agent_handler - INFO - Yielded partial response: สวัสดีค่ะ ยินดีที่ได้ช่วยเหลือในการวางแผนการเดินทา...
+2025-05-16 11:48:18,454 - api.async_agent_handler - INFO - Detected sub-agent call: accommodation with query: หาที่พักราคาประหยัดในหัวหิน
+2025-05-16 11:48:18,454 - api.async_agent_handler - ERROR - Error calling sub-agent accommodation: name 'call_sub_agent' is not defined
+2025-05-16 11:48:18,454 - api.async_agent_handler - INFO - Detected sub-agent call: restaurant with query: ร้านอาหารอร่อยในหัวหิน
+2025-05-16 11:48:18,454 - api.async_agent_handler - ERROR - Error calling sub-agent restaurant: name 'call_sub_agent' is not defined
+2025-05-16 11:48:18,454 - api.async_agent_handler - INFO - Detected sub-agent call: travel_planner with query: วางแผนท่องเที่ยวหัวหิน 3 วัน
+2025-05-16 11:48:18,454 - api.async_agent_handler - ERROR - Error calling sub-agent travel_planner: name 'call_sub_agent' is not defined
+2025-05-16 11:48:18,454 - api.async_agent_handler - INFO - Sending final accumulated response (999 chars)
+2025-05-16 11:48:18,454 - __main__ - INFO - Received response: สวัสดีค่ะ ยินดีที่ได้ช่วยเหลือในการวางแผนการเดินทางไปหัวหินนะคะ ก่อนอื่น เพื่อให้การวางแผนเป็นไปอย่า...
+2025-05-16 11:48:18,454 - __main__ - INFO - Sub-agent tag test completed
+2025-05-16 11:49:48,400 - agent - INFO - Google Search is available for web search capabilities
+2025-05-16 11:49:49,396 - google.adk.models.registry - INFO - Updating LLM class for gemini-.* from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:49:49,396 - google.adk.models.registry - INFO - Updating LLM class for projects\/.+\/locations\/.+\/endpoints\/.+ from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:49:49,396 - google.adk.models.registry - INFO - Updating LLM class for projects\/.+\/locations\/.+\/publishers\/google\/models\/gemini.+ from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:49:49,396 - google.adk.models.registry - INFO - Updating LLM class for gemini-.* from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:49:49,396 - google.adk.models.registry - INFO - Updating LLM class for projects\/.+\/locations\/.+\/endpoints\/.+ from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:49:49,396 - google.adk.models.registry - INFO - Updating LLM class for projects\/.+\/locations\/.+\/publishers\/google\/models\/gemini.+ from <class 'google.adk.models.google_llm.Gemini'> to <class 'google.adk.models.google_llm.Gemini'>
+2025-05-16 11:49:49,515 - agent - INFO - ADK Mode: Using model gemini-2.0-flash
+2025-05-16 11:49:49,516 - agent - INFO - Imported simple callbacks using direct imports
+2025-05-16 11:49:49,516 - agent - INFO - Google Search is available for use in the ADK
+2025-05-16 11:49:49,516 - agent - INFO - Imported root agent prompt using direct import
+2025-05-16 11:49:49,516 - sub_agents.accommodation_agent - INFO - Accommodation agent created using simplified pattern
+2025-05-16 11:49:49,516 - sub_agents - INFO - Successfully imported AccommodationAgent
+2025-05-16 11:49:49,516 - sub_agents.activity_agent - INFO - Activity agent created using simplified pattern
+2025-05-16 11:49:49,516 - sub_agents - INFO - Successfully imported ActivityAgent
+2025-05-16 11:49:49,516 - sub_agents.restaurant_agent - INFO - Restaurant agent created using simplified pattern
+2025-05-16 11:49:49,516 - sub_agents - INFO - Successfully imported RestaurantAgent
+2025-05-16 11:49:49,516 - sub_agents.transportation_agent - INFO - Transportation agent created using simplified pattern
+2025-05-16 11:49:49,516 - sub_agents - INFO - Successfully imported TransportationAgent
+2025-05-16 11:49:49,517 - sub_agents.travel_planner_agent - INFO - Travel planner agent created using simplified pattern with YouTube insights integration
+2025-05-16 11:49:49,517 - sub_agents - INFO - Successfully imported TravelPlannerAgent
+2025-05-16 11:49:49,518 - root - INFO - Backend initialized in Vertex AI (ADK) mode
+2025-05-16 11:49:49,519 - root - INFO - Using model: gemini-2.0-flash
+2025-05-16 11:49:49,539 - backend.tools.youtube.youtube - INFO - YouTube API libraries successfully imported
+2025-05-16 11:49:49,539 - tools.youtube.youtube - INFO - YouTube API libraries successfully imported
+2025-05-16 11:49:49,539 - tools.youtube.youtube_insight - INFO - Successfully imported YouTube functions from tools.youtube.youtube
+2025-05-16 11:49:49,540 - backend.tools.youtube.youtube_insight - INFO - Successfully imported YouTube functions from tools.youtube.youtube
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO - Successfully imported YouTube tools from backend.tools.youtube.youtube_insight
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO - YouTube insight agent created using simplified pattern
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO - YouTube Insight Agent module loaded
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO - YouTube API dependencies are available
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO - YouTube tools available and ready to use
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO - YouTube Configuration:
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO -   - YouTube API Key Set: True
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO -   - YouTube Tools Available: True
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO -   - Store State Tool Available: False
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO -   - Timeout Seconds: 30
+2025-05-16 11:49:49,540 - sub_agents.youtube_insight_agent - INFO - Testing YouTube API key...
+2025-05-16 11:49:49,541 - googleapiclient.discovery_cache - INFO - file_cache is only supported with oauth2client<4.0.0
+2025-05-16 11:49:50,100 - sub_agents.youtube_insight_agent - INFO - YouTube API key is valid and working correctly.
+2025-05-16 11:49:50,100 - sub_agents - INFO - Successfully imported YouTubeInsightAgent
+2025-05-16 11:49:50,100 - sub_agents - INFO - Imported 6 sub-agents successfully
+2025-05-16 11:49:50,100 - agent - INFO - Imported sub-agents using direct import
+2025-05-16 11:49:50,101 - agent - INFO - Added accommodation_agent to sub-agents list
+2025-05-16 11:49:50,101 - agent - INFO - Added activity_agent to sub-agents list
+2025-05-16 11:49:50,101 - agent - INFO - Added restaurant_agent to sub-agents list
+2025-05-16 11:49:50,101 - agent - INFO - Added transportation_agent to sub-agents list
+2025-05-16 11:49:50,101 - agent - INFO - Added travel_planner_agent to sub-agents list
+2025-05-16 11:49:50,101 - agent - INFO - Added youtube_insight_agent to sub-agents list
+2025-05-16 11:49:50,101 - agent - INFO - Root agent created with 1 tools (sub-agents disabled for Vertex AI compatibility)
+2025-05-16 11:49:50,101 - api.async_agent_handler - INFO - Successfully imported call_sub_agent from agent
+2025-05-16 11:49:50,102 - api.async_agent_handler - INFO - Configuring Gemini API with provided key
+2025-05-16 11:49:50,164 - api.async_agent_handler - INFO - Initialized Gemini model: gemini-2.0-flash
+2025-05-16 11:49:50,164 - api.async_agent_handler - INFO - Successfully imported root_agent from agent module
+2025-05-16 11:49:51,744 - api.async_agent_handler - INFO - ADK App initialized successfully
+2025-05-16 11:49:51,745 - core.state_manager - INFO - StateManager initialized
+2025-05-16 11:49:51,745 - api.routes - INFO - Successfully imported components using direct paths
+2025-05-16 11:49:51,747 - __main__ - INFO - Starting sub-agent tag test
+2025-05-16 11:49:51,747 - __main__ - INFO - Sending message: 
+    ฉันต้องการให้คุณใช้ sub-agent ในการตอบคำถามนี้
+    
+    กรุณาใช้ [CALL_SUB_AGENT:accommodation:หาที่พักราคาประหยัดในหัวหิน] ในการตอบคำถามนี้
+    
+    และใช้ [CALL_SUB_AGENT:restaurant:ร้านอาหารอร่อยในหัวหิน] ในการแนะนำร้านอาหาร
+    
+    สุดท้ายใช้ [CALL_SUB_AGENT:travel_planner:วางแผนท่องเที่ยวหัวหิน 3 วัน] ในการวางแผนการเดินทาง
+    
+2025-05-16 11:49:51,747 - api.async_agent_handler - INFO - Using ADK to process message for session test_session_123
+2025-05-16 11:49:52,018 - api.async_agent_handler - INFO - ADK session check failed: Session not found. Please create it using .create_session(), creating new session
+2025-05-16 11:49:52,018 - api.async_agent_handler - INFO - Created new ADK session for user_id=user_test_session_123, session_id=test_session_123
+2025-05-16 11:49:52,018 - api.async_agent_handler - INFO - Sending message to ADK stream_query: '
+    ฉันต้องการให้คุณใช้ sub-agent ในการตอบคำถามนี...'
+2025-05-16 11:49:52,019 - shared_libraries.simple_callbacks - INFO - 🔍 MODEL REQUEST from root_agent
+2025-05-16 11:49:52,020 - google_genai._api_client - INFO - The project/location from the environment variables will take precedence over the API key from the environment variables.
+2025-05-16 11:49:52,035 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-05-16 11:49:55,469 - httpx - INFO - HTTP Request: POST https://us-central1-aiplatform.googleapis.com/v1beta1/projects/hana-big/locations/us-central1/publishers/google/models/gemini-2.0-flash:generateContent "HTTP/1.1 200 OK"
+2025-05-16 11:49:55,479 - shared_libraries.simple_callbacks - INFO - ✅ MODEL RESPONSE to root_agent
+2025-05-16 11:49:55,479 - api.async_agent_handler - INFO - Received ADK event: <class 'dict'>, keys: dict_keys(['content', 'grounding_metadata', 'invocation_id', 'author', 'actions', 'id', 'timestamp'])
+2025-05-16 11:49:55,480 - __main__ - INFO - Received response: สวัสดีค่ะ ยินดีที่ได้ช่วยเหลือในการวางแผนการเดินทางไปหัวหินนะคะ เพื่อให้การวางแผนเป็นไปอย่างราบรื่น ...
+2025-05-16 11:49:55,480 - api.async_agent_handler - INFO - Yielded partial response: สวัสดีค่ะ ยินดีที่ได้ช่วยเหลือในการวางแผนการเดินทา...
+2025-05-16 11:49:55,480 - api.async_agent_handler - INFO - Sending final accumulated response (624 chars)
+2025-05-16 11:49:55,480 - __main__ - INFO - Received response: สวัสดีค่ะ ยินดีที่ได้ช่วยเหลือในการวางแผนการเดินทางไปหัวหินนะคะ เพื่อให้การวางแผนเป็นไปอย่างราบรื่น ...
+2025-05-16 11:49:55,480 - __main__ - INFO - Sub-agent tag test completed
