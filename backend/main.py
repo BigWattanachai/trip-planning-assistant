@@ -38,7 +38,7 @@ except ImportError:
 # Create the FastAPI app
 app = FastAPI(
     title="Travel A2A Backend",
-    description="Backend API for Travel A2A application with enhanced Tavily search",
+    description="Backend API for Travel A2A application",
     version="2.0",
 )
 
@@ -75,7 +75,7 @@ def main():
     """Main entry point for the application"""
     logger.info(f"Starting Travel A2A Backend in {'Vertex AI (ADK)' if USE_VERTEX_AI else 'Direct API'} mode")
     logger.info(f"Using model: {MODEL}")
-    logger.info(f"Tavily search available: {os.getenv('TAVILY_API_KEY') is not None}")
+    # No Tavily search needed
 
     # Initialize backend components
 

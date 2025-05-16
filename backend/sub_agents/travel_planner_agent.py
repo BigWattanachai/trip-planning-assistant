@@ -4,6 +4,14 @@ This agent creates comprehensive travel plans based on sub-agent inputs.
 Uses simplified Agent pattern with Google Search.
 """
 
+# Define TravelPlannerAgent class for compatibility with sub_agents/__init__.py
+class TravelPlannerAgent:
+    """Travel Planner Agent class for compatibility with agent imports."""
+    @staticmethod
+    def call_agent(query, session_id=None):
+        """Call the travel planner agent with the given query."""
+        return call_agent(query, session_id)
+
 import os
 import logging
 
@@ -278,7 +286,7 @@ if USE_VERTEX_AI:
                 destination_keywords = ['in', 'to', 'for', 'visit', 'travel']
                 import re
                 for keyword in destination_keywords:
-                    match = re.search(f"{keyword}\s+([\w\s]+)(?:\s|$|\.|,)", query, re.IGNORECASE)
+                    match = re.search(f"{keyword}\\s+([\\w\\s]+)(?:\\s|$|\\.|,)", query, re.IGNORECASE)
                     if match:
                         destination = match.group(1).strip()
                         break

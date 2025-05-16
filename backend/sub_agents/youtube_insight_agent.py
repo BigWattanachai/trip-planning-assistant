@@ -2,6 +2,14 @@
 # This agent extracts travel insights from YouTube content.
 # Uses simplified Agent pattern with Google Search.
 
+# Define YouTubeInsightAgent class for compatibility with sub_agents/__init__.py
+class YouTubeInsightAgent:
+    """YouTube Insight Agent class for compatibility with agent imports."""
+    @staticmethod
+    def call_agent(query, session_id=None):
+        """Call the YouTube insight agent with the given query."""
+        return call_agent(query, session_id)
+
 import os
 import sys
 import logging

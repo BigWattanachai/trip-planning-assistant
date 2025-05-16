@@ -4,6 +4,14 @@ This agent provides transportation recommendations for travel destinations.
 Uses simplified Agent pattern with Google Search.
 """
 
+# Define TransportationAgent class for compatibility with sub_agents/__init__.py
+class TransportationAgent:
+    """Transportation Agent class for compatibility with agent imports."""
+    @staticmethod
+    def call_agent(query, session_id=None):
+        """Call the transportation agent with the given query."""
+        return call_agent(query, session_id)
+
 import os
 import logging
 
@@ -62,7 +70,7 @@ if USE_VERTEX_AI:
     try:
         from google.adk.agents import Agent
         from google.adk.tools import google_search
-        
+
         # Import callbacks if available
         try:
             from backend_improve.shared_libraries.callbacks import rate_limit_callback
@@ -75,12 +83,12 @@ if USE_VERTEX_AI:
                 logger.warning("Could not import callbacks or store_state tool")
                 rate_limit_callback = None
                 store_state_tool = None
-        
+
         # Set up tools list
         tools = [google_search]
         if store_state_tool:
             tools.append(store_state_tool)
-        
+
         # Create the agent using the simplified pattern
         agent = Agent(
             name="transportation_agent",
@@ -89,9 +97,9 @@ if USE_VERTEX_AI:
             tools=tools,
             before_model_callback=rate_limit_callback if rate_limit_callback else None
         )
-        
+
         logger.info("Transportation agent created using simplified pattern")
-        
+
     except ImportError as e:
         logger.error(f"Failed to import ADK components: {e}")
         agent = None
@@ -102,11 +110,11 @@ else:
 def call_agent(query, session_id=None):
     """
     Call the transportation agent with the given query
-    
+
     Args:
         query: The user query
         session_id: Optional session ID for conversation tracking
-        
+
     Returns:
         The agent's response
     """
@@ -114,10 +122,10 @@ def call_agent(query, session_id=None):
         try:
             # ADK mode
             from google.adk.sessions import Session
-            
+
             # Create or get existing session
             session = Session.get(session_id) if session_id else Session()
-            
+
             # Call the agent
             response = agent.stream_query(query, session_id=session.id)
             return response
@@ -128,25 +136,25 @@ def call_agent(query, session_id=None):
         # Direct API mode
         try:
             import google.generativeai as genai
-            
+
             # Get the API key from environment
             api_key = os.getenv("GOOGLE_API_KEY")
             if not api_key:
                 return "Error: GOOGLE_API_KEY not set"
-                
+
             # Configure the Gemini API
             genai.configure(api_key=api_key)
-            
+
             # Get the model to use
             model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
             model = genai.GenerativeModel(model_name)
-            
+
             # Prepare a system message with the agent's instructions
             prompt = INSTRUCTION + "\n\nQuery: " + query
-            
+
             # Call the model
             response = model.generate_content(prompt)
-            
+
             return response.text
         except Exception as e:
             logger.error(f"Error in direct API mode: {e}")

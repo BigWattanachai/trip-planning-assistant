@@ -28,19 +28,19 @@ try:
     # Try to import the state manager
     from core.state_manager import state_manager
     logger.info("Successfully imported components using direct paths")
-    
+
     # Set USE_VERTEX_AI based on environment
     import os
     from dotenv import load_dotenv
     load_dotenv()
     USE_VERTEX_AI = os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "0").lower() in ("1", "true", "yes")
-    
+
 except ImportError:
     # Fall back to backend_improve-prefixed imports
     logger.info("Using backend_improve-prefixed imports")
     from backend_improve.api.async_agent_handler import get_agent_response_async
     from backend_improve.core.state_manager import state_manager
-    
+
     # Get USE_VERTEX_AI from backend
     try:
         from backend_improve import USE_VERTEX_AI
@@ -101,12 +101,12 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 try:
                     # Store the user message in conversation history
                     state_manager.add_user_message(session_id, user_message)
-                    
+
                     # Store to accumulate the complete response
                     accumulated_response = ""
                     # Flag to track if this is a travel planning request
                     is_travel_plan = "ช่วยวางแผนการเดินทางท่องเที่ยว" in user_message
-                    
+
                     # If it's a travel planning request, show a loading message
                     if is_travel_plan:
                         loading_message = "กำลังวิเคราะห์คำขอของคุณและรวบรวมข้อมูล กรุณารอสักครู่..."
@@ -115,17 +115,17 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                             "partial": True
                         }))
                         logger.info(f"Sent loading message for travel plan: {loading_message}")
-                    
+
                     # Track if we've received a final response
                     final_response_received = False
-                    
+
                     # Process the message with get_agent_response_async
                     async for response in get_agent_response_async(user_message, "travel", session_id):
                         if response.get("partial", False):
                             # Accumulate partial responses
                             partial_text = response.get("message", "")
                             accumulated_response += partial_text
-                            
+
                             # For travel planning, send status updates but not content fragments
                             if is_travel_plan and partial_text.startswith("กำลัง"):
                                 await websocket.send_text(json.dumps({
@@ -133,19 +133,19 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                                     "partial": True
                                 }))
                                 logger.info(f"Sent status update: {partial_text[:50]}...")
-                            
+
                         elif response.get("final", False):
                             # Mark that we've received a final response
                             final_response_received = True
-                            
+
                             # Get the final response message
                             final_message = response.get("message", "")
                             logger.info(f"Received final response: {final_message[:100]}...")
-                            
+
                             # If no accumulation has happened, use the final message
                             if not accumulated_response:
                                 accumulated_response = final_message
-                                
+
                             # Make sure this is a proper travel plan if it's a travel planning request
                             if is_travel_plan and "===== แผนการเดินทางของคุณ =====" not in accumulated_response:
                                 if "===== แผนการเดินทางของคุณ =====" in final_message:
@@ -154,7 +154,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                                 elif len(accumulated_response) > 500:
                                     # Add the header if it's missing but the content is substantial
                                     accumulated_response = "\n===== แผนการเดินทางของคุณ =====\n" + accumulated_response
-                            
+
                             # Store the agent response in conversation history
                             state_manager.add_agent_message(session_id, accumulated_response, "travel")
 
@@ -164,27 +164,27 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                                 "message": accumulated_response,
                                 "final": True
                             }))
-                            
+
                             # Signal turn completion
                             await websocket.send_text(json.dumps({"turn_complete": True}))
                             logger.info(f"[AGENT TO CLIENT]: {accumulated_response[:50]}...")
                             logger.info("[TURN COMPLETE]")
-                    
+
                     # If we didn't receive a final response, check if we have accumulated anything
                     if not final_response_received:
                         if accumulated_response:
                             # We have some accumulated content but no final response was marked
                             logger.warning("No final response received, using accumulated content")
-                            
+
                             # Make sure this is a proper travel plan if it's a travel planning request
                             if is_travel_plan and "===== แผนการเดินทางของคุณ =====" not in accumulated_response:
                                 if len(accumulated_response) > 500:
                                     # Add the header if it's missing but the content is substantial
                                     accumulated_response = "\n===== แผนการเดินทางของคุณ =====\n" + accumulated_response
-                            
+
                             # Store in conversation history
                             state_manager.add_agent_message(session_id, accumulated_response, "travel")
-                            
+
                             # Send final accumulated response
                             await websocket.send_text(json.dumps({
                                 "message": accumulated_response,
@@ -198,7 +198,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                                 "message": error_message,
                                 "final": True
                             }))
-                        
+
                         # Signal turn completion
                         await websocket.send_text(json.dumps({"turn_complete": True}))
                         logger.info("[TURN COMPLETE - Fallback completion]")
@@ -227,7 +227,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
 def health_check():
     """Health check endpoint"""
     return {
-        "status": "ok", 
+        "status": "ok",
         "mode": "vertex" if USE_VERTEX_AI else "direct",
         "connections": len(active_connections)
     }
@@ -236,11 +236,11 @@ def health_check():
 def get_info():
     """Get backend information"""
     import os
-    
+
     return {
         "status": "ok",
         "mode": "vertex" if USE_VERTEX_AI else "direct",
         "model": os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash"),
         "active_connections": len(active_connections),
-        "tavily_available": os.getenv("TAVILY_API_KEY") is not None,
+        # No Tavily search needed
     }
