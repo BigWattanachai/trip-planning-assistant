@@ -32,20 +32,14 @@ if parent_dir not in sys.path:
 
 # Import call_sub_agent function
 try:
-    # Only import from agent
     from agent import call_sub_agent
     logger.info("Successfully imported call_sub_agent from agent")
 except ImportError:
-    # Try direct imports
-    try:
-        from agent import call_sub_agent
-        logger.info("Successfully imported call_sub_agent from agent")
-    except ImportError:
-        logger.error("Failed to import call_sub_agent function")
-        # Define a fallback function
-        def call_sub_agent(agent_type, query, session_id=None):
-            logger.error(f"Fallback call_sub_agent: {agent_type}")
-            return f"Could not call {agent_type} agent"
+    logger.error("Failed to import call_sub_agent function")
+    # Define a fallback function
+    def call_sub_agent(agent_type, query, session_id=None):
+        logger.error(f"Fallback call_sub_agent: {agent_type}")
+        return f"Could not call {agent_type} agent"
 
 # Add the current directory's parent to sys.path
 current_parent = str(pathlib.Path(__file__).parent.parent.absolute())
