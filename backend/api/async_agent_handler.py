@@ -86,15 +86,8 @@ adk_app = None
 if USE_VERTEX_AI:
     try:
         # Try to import the root agent from specific locations
-        root_agent = None
-        try:
-            # Try with backend-improve prefix first
-            from agent import root_agent
-            logger.info("Successfully imported root_agent from agent module")
-        except ImportError:
-            # Try direct import
-            from agent import root_agent
-            logger.info("Successfully imported root_agent from agent module")
+        from agent import root_agent
+        logger.info("Successfully imported root_agent from agent module")
 
         # Import ADK components if root_agent is available
         if root_agent is not None:
