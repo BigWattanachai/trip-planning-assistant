@@ -23,8 +23,8 @@ except ImportError:
         logger.info("Successfully imported YouTube functions from backend.tools.youtube.youtube")
     except ImportError:
         try:
-            from backend_improve.tools.youtube.youtube import search_videos, get_transcript, YOUTUBE_AVAILABLE
-            logger.info("Successfully imported YouTube functions from backend_improve.tools.youtube.youtube")
+            from tools.youtube.youtube import search_videos, get_transcript, YOUTUBE_AVAILABLE
+            logger.info("Successfully imported YouTube functions from tools.youtube.youtube")
         except ImportError as e:
             logger.error(f"Failed to import base YouTube functions: {e}")
             logger.error("Using FALLBACK implementation for YouTube functionality. Results will be simulated.")

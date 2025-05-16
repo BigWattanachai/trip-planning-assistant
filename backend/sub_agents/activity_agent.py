@@ -75,8 +75,8 @@ if USE_VERTEX_AI:
 
         # Import callbacks if available
         try:
-            from backend_improve.shared_libraries.callbacks import rate_limit_callback
-            from backend_improve.tools.store_state import store_state_tool
+            from shared_libraries.callbacks import rate_limit_callback
+            from tools.store_state import store_state_tool
         except ImportError:
             try:
                 from shared_libraries.callbacks import rate_limit_callback
@@ -135,29 +135,10 @@ def call_agent(query, session_id=None):
             logger.error(f"Error calling activity agent: {e}")
             return f"Error: {str(e)}"
     else:
-        # Direct API mode
+        # Direct API mode uses the same Agent abstraction
         try:
-            import google.generativeai as genai
-
-            # Get the API key from environment
-            api_key = os.getenv("GOOGLE_API_KEY")
-            if not api_key:
-                return "Error: GOOGLE_API_KEY not set"
-
-            # Configure the Gemini API
-            genai.configure(api_key=api_key)
-
-            # Get the model to use
-            model_name = os.getenv("GOOGLE_GENAI_MODEL", "gemini-2.0-flash")
-            model = genai.GenerativeModel(model_name)
-
-            # Prepare a system message with the agent's instructions
-            prompt = INSTRUCTION + "\n\nQuery: " + query
-
-            # Call the model
-            response = model.generate_content(prompt)
-
-            return response.text
+            response = agent(query)
+            return response
         except Exception as e:
             logger.error(f"Error in direct API mode: {e}")
             return f"Error: {str(e)}"

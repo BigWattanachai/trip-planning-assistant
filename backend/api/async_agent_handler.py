@@ -32,9 +32,9 @@ if parent_dir not in sys.path:
 
 # Import call_sub_agent function
 try:
-    # Try absolute imports first
-    from backend_improve.agent import call_sub_agent
-    logger.info("Successfully imported call_sub_agent from backend_improve.agent")
+    # Only import from agent
+    from agent import call_sub_agent
+    logger.info("Successfully imported call_sub_agent from agent")
 except ImportError:
     # Try direct imports
     try:
@@ -89,8 +89,8 @@ if USE_VERTEX_AI:
         root_agent = None
         try:
             # Try with backend-improve prefix first
-            from backend_improve.agent import root_agent
-            logger.info("Successfully imported root_agent from backend_improve.agent module")
+            from agent import root_agent
+            logger.info("Successfully imported root_agent from agent module")
         except ImportError:
             # Try direct import
             from agent import root_agent
@@ -114,14 +114,9 @@ else:
 
     # Import the call_sub_agent function for direct API mode
     try:
-        # Try to import from backend_improve.agent first
-        try:
-            from backend_improve.agent import call_sub_agent, extract_travel_info
-            logger.info("Successfully imported call_sub_agent from backend_improve.agent")
-        except ImportError:
-            # If that fails, try from agent
-            from agent import call_sub_agent, extract_travel_info
-            logger.info("Successfully imported call_sub_agent from agent")
+        # Only import from agent
+        from agent import call_sub_agent, extract_travel_info
+        logger.info("Successfully imported call_sub_agent from agent")
     except ImportError:
         logger.error("Failed to import call_sub_agent function")
 

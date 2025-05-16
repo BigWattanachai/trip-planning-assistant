@@ -38,12 +38,12 @@ try:
 except ImportError:
     # Fall back to backend_improve-prefixed imports
     logger.info("Using backend_improve-prefixed imports")
-    from backend_improve.api.async_agent_handler import get_agent_response_async
-    from backend_improve.core.state_manager import state_manager
+    from api.async_agent_handler import get_agent_response_async
+    from core.state_manager import state_manager
 
     # Get USE_VERTEX_AI from backend
     try:
-        from backend_improve import USE_VERTEX_AI
+        from api import USE_VERTEX_AI
     except ImportError:
         import os
         from dotenv import load_dotenv

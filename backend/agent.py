@@ -51,11 +51,11 @@ if USE_VERTEX_AI:
         # Import shared libraries and tools
         try:
             # Try absolute imports first
-            from backend_improve.shared_libraries.simple_callbacks import (
+            from shared_libraries.simple_callbacks import (
                 before_model_callback, after_model_callback,
                 before_tool_callback, after_tool_callback
             )
-            from backend_improve.tools.store_state import store_state_tool
+            from tools.store_state import store_state_tool
             logger.info("Imported simple callbacks using backend_improve prefix")
         except ImportError:
             # Try direct imports
@@ -86,7 +86,7 @@ if USE_VERTEX_AI:
         # Import root agent prompt
         try:
             # Try absolute import first
-            from backend_improve.root_agent_prompt import PROMPT as ROOT_PROMPT
+            from root_agent_prompt import PROMPT as ROOT_PROMPT
             logger.info("Imported root agent prompt using backend_improve prefix")
         except ImportError:
             # Try direct import
@@ -120,7 +120,7 @@ if USE_VERTEX_AI:
         try:
             # Import sub-agents if available - absolute import first
             try:
-                from backend_improve.sub_agents import (
+                from sub_agents import (
                     accommodation_agent,
                     activity_agent,
                     restaurant_agent,

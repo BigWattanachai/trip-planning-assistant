@@ -28,8 +28,8 @@ logger = logging.getLogger(__name__)
 # Import the required modules from backend_improve
 try:
     import backend_improve
-    from backend_improve.api import router
-    logger.info("Successfully imported modules from backend_improve")
+    from api import router
+    logger.info("Successfully imported modules from api")
 except ImportError:
     # Fall back to direct imports if not running as a package
     logger.info("Using direct imports")
