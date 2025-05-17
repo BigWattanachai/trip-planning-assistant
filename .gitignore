@@ -50,3 +50,4 @@ next-env.d.ts
 **/__pycache__/
 /backend/logs/
 node_modules/
+**/node_modules/
