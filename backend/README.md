@@ -1,6 +1,6 @@
-# Travel A2A Backend (Improved)
+# Trip Planning Assistant Backend (Improved)
 
-This is an improved version of the Travel A2A backend with the following enhancements:
+This is an improved version of the Trip Planning Assistant backend with the following enhancements:
 
 - Support for both Vertex AI (Google ADK) mode and Direct API mode
 - Integration with Tavily Search for all sub-agents to provide up-to-date information

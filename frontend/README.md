@@ -1,6 +1,6 @@
-# Travel A2A Frontend
+# Trip Planning Assistant Frontend
 
-This is the frontend application for the Travel A2A project, which connects to the backend AI travel planning service.
+This is the frontend application for the Trip Planning Assistant project, which connects to the backend AI travel planning service.
 
 ## Getting Started
 

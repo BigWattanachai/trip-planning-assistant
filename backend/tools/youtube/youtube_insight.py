@@ -1,5 +1,5 @@
 """ 
-YouTube Travel Insights for Travel A2A Backend.
+YouTube Travel Insights for Trip Planning Assistant Backend.
 This module provides specialized YouTube tools for travel research and insights.
 """
 

@@ -1,5 +1,5 @@
 """
-Accommodation Agent for Travel A2A Backend.
+Accommodation Agent for Trip Planning Assistant Backend.
 This agent provides accommodation recommendations for travel destinations.
 Uses simplified Agent pattern with Google Search.
 """

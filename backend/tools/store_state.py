@@ -1,5 +1,5 @@
 """
-Store State Tool for Travel A2A Application.
+Store State Tool for Trip Planning Assistant Application.
 This module provides tools for storing state in agent contexts.
 """
 

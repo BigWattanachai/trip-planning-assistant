@@ -1,5 +1,5 @@
 """
-Core package for Travel A2A Backend.
+Core package for Trip Planning Assistant Backend.
 This package contains core functionality like state management.
 """
 

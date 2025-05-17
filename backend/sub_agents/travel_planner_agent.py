@@ -1,5 +1,5 @@
 """
-Travel Planner Agent for Travel A2A Backend.
+Travel Planner Agent for Trip Planning Assistant Backend.
 This agent creates comprehensive travel plans based on sub-agent inputs.
 Uses simplified Agent pattern with Google Search.
 """

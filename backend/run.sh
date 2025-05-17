@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Run script for Travel A2A Backend (Improved)
+# Run script for Trip Planning Assistant Backend (Improved)
 # This script ensures the backend is run in the correct environment and mode
 
 # Change to the script's directory
@@ -48,5 +48,5 @@ fi
 export PYTHONPATH="$PYTHONPATH:$(pwd)"
 
 # Run the application
-echo "Starting Travel A2A Backend..."
+echo "Starting Trip Planning Assistant Backend..."
 python3 main.py

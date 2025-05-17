@@ -1,5 +1,5 @@
 """
-Shared libraries for the Travel A2A application.
+Shared libraries for the Trip Planning Assistant application.
 This package contains shared functionality used across the application.
 """
 

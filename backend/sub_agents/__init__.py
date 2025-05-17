@@ -1,5 +1,5 @@
 """
-Sub-agents package for Travel A2A Backend (Improved).
+Sub-agents package for Trip Planning Assistant Backend (Improved).
 This package contains the sub-agents used by the root agent.
 """
 

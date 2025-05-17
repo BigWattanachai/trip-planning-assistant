@@ -1,5 +1,5 @@
 """
-Transportation Agent for Travel A2A Backend.
+Transportation Agent for Trip Planning Assistant Backend.
 This agent provides transportation recommendations for travel destinations.
 Uses simplified Agent pattern with Google Search.
 """

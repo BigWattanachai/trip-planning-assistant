@@ -1,6 +1,6 @@
 """
-Travel A2A Backend - Improved Version
-This package contains the backend code for the Travel A2A application.
+Trip Planning Assistant Backend - Improved Version
+This package contains the backend code for the Trip Planning Assistant application.
 It supports both Vertex AI (Google ADK) and Direct API modes.
 """
 
@@ -36,7 +36,7 @@ def setup_logging():
         root_logger.addHandler(console_handler)
 
         # Log that we've initialized logging
-        logging.info("Logging initialized for Travel A2A Backend")
+        logging.info("Logging initialized for Trip Planning Assistant Backend")
 
 # Set up logging immediately
 setup_logging()

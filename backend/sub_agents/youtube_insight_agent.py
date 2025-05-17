@@ -1,4 +1,4 @@
-# YouTube Insight Agent for Travel A2A Backend.
+# YouTube Insight Agent for Trip Planning Assistant Backend.
 # This agent extracts travel insights from YouTube content.
 # Uses simplified Agent pattern with Google Search.
 

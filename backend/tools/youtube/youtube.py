@@ -1,5 +1,5 @@
 """
-YouTube API wrapper for Travel A2A Backend.
+YouTube API wrapper for Trip Planning Assistant Backend.
 This module provides basic YouTube search and transcription functionality.
 """
 

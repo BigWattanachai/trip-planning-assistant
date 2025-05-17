@@ -1,5 +1,5 @@
 """
-Tools for the Travel A2A application.
+Tools for the Trip Planning Assistant application.
 This package contains various tools that the agents can use.
 """
 

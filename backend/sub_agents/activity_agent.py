@@ -1,5 +1,5 @@
 """
-Activity Agent for Travel A2A Backend.
+Activity Agent for Trip Planning Assistant Backend.
 This agent provides activity recommendations for travel destinations.
 Uses simplified Agent pattern with Google Search.
 """

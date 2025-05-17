@@ -1,5 +1,5 @@
 """
-Restaurant Agent for Travel A2A Backend.
+Restaurant Agent for Trip Planning Assistant Backend.
 This agent provides restaurant and food recommendations for travel destinations.
 Uses simplified Agent pattern with Google Search.
 """
