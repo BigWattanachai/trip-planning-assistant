@@ -1,11 +1,11 @@
-# Travel A2A
+# Trip Planning Assistant
 
 **AI-powered Travel Planning Platform**
 
 ---
 
 ## Overview
-Travel A2A is an advanced travel agent app that leverages the latest AI models (Google Gemini, Vertex AI, and more) to help users plan trips, discover destinations, and get real insights from YouTube travel content. It features a modular backend, a modern Next.js frontend, and seamless integration with Google and YouTube APIs.
+Trip Planning Assistant is an advanced travel agent app that leverages the latest AI models (Google Gemini, Vertex AI, and more) to help users plan trips, discover destinations, and get real insights from YouTube travel content. It features a modular backend, a modern Next.js frontend, and seamless integration with Google and YouTube APIs.
 
 ---
 
@@ -31,7 +31,8 @@ Travel A2A is an advanced travel agent app that leverages the latest AI models (
 ## Quick Start (Docker Compose)
 1. **Clone the repo:**
    ```sh
-   git clone <your-repo-url>
+   git clone https://github.com/BigWattanachai/trip-planning-assistant.git
+
    cd trip-planning-assistant
    ```
 2. **Configure Environment:**
