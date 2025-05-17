@@ -1,103 +1,122 @@
-# Travel Planner with Google A2A and MCP Tools
+# Travel A2A
 
-A modern web application for planning trips using AI agents built with Google A2A architecture and MCP tools.
+**AI-powered Travel Planning Platform**
+
+---
+
+## Overview
+Travel A2A is an advanced travel agent app that leverages the latest AI models (Google Gemini, Vertex AI, and more) to help users plan trips, discover destinations, and get real insights from YouTube travel content. It features a modular backend, a modern Next.js frontend, and seamless integration with Google and YouTube APIs.
+
+---
 
 ## Features
+- **AI Travel Planning:** Generate personalized itineraries and recommendations using Gemini or Vertex AI (Direct API & ADK modes).
+- **YouTube Insight Agent:** Extract travel wisdom directly from YouTube videos, including sentiment, popular channels, and transcript analysis.
+- **Destination Search & Activities:** Find accommodations, activities, and hidden gems.
+- **Modern UI:** Fast, responsive, and mobile-friendly frontend built with Next.js and TailwindCSS.
+- **Extensible Agent Architecture:** Add new agents/tools for more travel domains.
 
-- 🤖 Multiple specialized AI agents working together
-- 🎯 Activities and attractions recommendations
-- 🍽️ Restaurant suggestions based on budget
-- ✈️ Flight search and booking options
-- 🎥 YouTube travel videos
-- 🏨 Accommodation recommendations from multiple platforms
-- 💬 Interactive chat interface
-- 🎨 Beautiful, responsive UI
+---
 
-## Tech Stack
+## Architecture
+```
+[ Next.js Frontend ]  <->  [ FastAPI Backend (Python) ]  <->  [ Google APIs | YouTube | Vertex AI | Tavily ]
+```
+- **Frontend:** `/frontend` (Next.js, React, TailwindCSS)
+- **Backend:** `/backend` (FastAPI, ADK, LangChain, Google APIs)
+- **Docker Compose:** Orchestrates both services for local/dev deployment
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **AI Integration**: Google Gemma-3, MCP Tools
-- **State Management**: React Context
-- **Icons**: Lucide React
+---
 
-## Getting Started
+## Quick Start (Docker Compose)
+1. **Clone the repo:**
+   ```sh
+   git clone <your-repo-url>
+   cd trip-planning-assistant
+   ```
+2. **Configure Environment:**
+    - Edit `.env` in the root directory with your Google/YouTube API keys and settings.
+3. **Build and Run:**
+   ```sh
+   docker-compose up --build
+   ```
+    - Frontend: [http://localhost:3000](http://localhost:3000)
+    - Backend: [http://localhost:8000](http://localhost:8000)
 
-### Using Docker (Recommended)
+---
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/travel-a2a.git
-cd travel-a2a
+## Manual Setup (Development)
+### Backend
+```sh
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+python main.py
 ```
 
-2. Start the services with Docker Compose:
-```bash
-docker-compose up
-```
-
-3. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-### Frontend Development
-
-1. Navigate to the frontend directory:
-```bash
+### Frontend
+```sh
 cd frontend
-```
-
-2. Install dependencies:
-```bash
 npm install
+npm run build && npm start
 ```
 
-3. Run the development server:
-```bash
-npm run dev
-```
+---
 
-4. Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables (`.env`)
+- `GOOGLE_API_KEY` — Google Cloud/YouTube API key
+- `YOUTUBE_API_KEY` — YouTube Data API key
+- `GOOGLE_GENAI_USE_VERTEXAI` — `0` for Direct API, `1` for Vertex AI (ADK)
+- `GOOGLE_GENAI_MODEL` — Model name (e.g., `gemini-2.0-flash`)
+- `GOOGLE_CLOUD_PROJECT`, `VERTEX_LOCATION` — Vertex AI settings (if using Vertex)
+- `PORT`, `HOST` — Backend server settings
 
-## Project Structure
+> **Tip:** All services now use the root `.env` file for configuration.
 
-```
-travel-a2a/
-├── frontend/
-│   ├── src/
-│   │   ├── app/              # Next.js app router
-│   │   ├── components/       # React components
-│   │   │   ├── Canvas/       # Travel results display
-│   │   │   ├── Chat/         # Chat interface
-│   │   │   └── Layout/       # Layout components
-│   │   ├── context/          # React context providers
-│   │   ├── services/         # AI agents and orchestration
-│   │   │   └── agents/       # Individual AI agents
-│   │   └── lib/              # Utility functions
-│   ├── public/               # Static assets
-│   └── package.json          # Project dependencies
-├── backend/                  # Backend API and AI agent implementations
-└── docker-compose.yml        # Docker configuration
-```
+---
 
-## AI Agents
+## Key Components
+### Backend
+- **FastAPI**: Main API framework
+- **Google Gemini/Vertex AI**: AI model integration
+- **YouTube Insight Agent**: Extracts travel insights from YouTube
+- **LangChain, Tavily**: Search and language tools
+- **ADK Mode**: Advanced session management, streaming responses
 
-The application uses multiple specialized AI agents:
+### Frontend
+- **Next.js**: Modern React framework
+- **TailwindCSS**: Styling
+- **API Integration**: Connects to backend for AI and travel data
 
-1. **Activity Agent**: Finds activities and attractions
-2. **Restaurant Agent**: Recommends dining options
-3. **Flight Agent**: Searches for flight options
-4. **Video Agent**: Curates relevant YouTube content
-5. **Accommodation Agent**: Finds hotels and rentals
+---
+
+## Usage
+- Access the frontend at [http://localhost:3000](http://localhost:3000)
+- Plan trips, search destinations, and get AI-powered insights
+- Use the YouTube tab to extract travel wisdom from real videos
+
+---
 
 ## Contributing
+1. Fork the repo
+2. Create a feature branch
+3. Submit a pull request with clear description
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+---
 
 ## License
+MIT
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+---
+
+## Credits
+- Built with [FastAPI](https://fastapi.tiangolo.com/), [Next.js](https://nextjs.org/), [Google Gemini](https://ai.google.dev/), [YouTube Data API](https://developers.google.com/youtube/v3), [LangChain](https://python.langchain.com/), and more.
+
+---
+
+## Contact
+For questions, issues, or feature requests, please open an issue or contact the maintainer.
 
 ## Acknowledgments
 
