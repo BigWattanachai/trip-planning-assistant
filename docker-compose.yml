@@ -21,7 +21,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ./backend/.env
+      - .env
     volumes:
       - backend-data:/app/data
     networks:
@@ -31,16 +31,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-  # Optional: MCP Server (if you want to run it locally)
-  # mcp-server:
-  #   image: mcp-server:latest
-  #   ports:
-  #     - "8080:8080"
-  #   environment:
-  #     - MCP_API_KEY=${MCP_API_KEY}
-  #   networks:
-  #     - travel-a2a-network
 
 volumes:
   backend-data:
